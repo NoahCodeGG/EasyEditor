@@ -1,0 +1,22 @@
+{
+  "name": "@easy-editor/core",
+  "private": true,
+  "description": "Core package for EasyEditor.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "keywords": [
+    "@easy-editor"
+  ],
+  "author": "",
+  "scripts": {
+    "dev": "deno run --watch ./src/index.ts",
+    "build": "tsup",
+    "format": "biome format --write .",
+    "lint": "biome check ."
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {},
+  "peerDependencies": {}
+}
