@@ -16,6 +16,15 @@
     },
     "format": {
       "dependsOn": ["^format"]
+    },
+    "types": {
+      "dependsOn": ["^types"]
+    },
+    "test-types": {
+      "dependsOn": ["^test-types"]
+    },
+    "test": {
+      "dependsOn": ["^test"]
     }
   }
 }

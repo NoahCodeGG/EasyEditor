@@ -38,7 +38,7 @@
   },
   "formatter": {
     "enabled": true,
-    "ignore": [],
+    "ignore": ["*.json"],
     "indentStyle": "space",
     "lineWidth": 120,
     "indentWidth": 2,

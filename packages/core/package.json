@@ -10,13 +10,21 @@
   "author": "",
   "scripts": {
     "dev": "deno run --watch ./src/index.ts",
-    "build": "tsup",
     "format": "biome format --write .",
-    "lint": "biome check ."
+    "lint": "biome check .",
+    "build": "npm-run-all -nl build:*",
+    "build:clean": "rimraf dist/",
+    "build:js": "rollup -c",
+    "types": "npm-run-all -nl types:*",
+    "types:clean": "rimraf types/",
+    "types:src": "tsc --project tsconfig.build.json",
+    "test-types": "tsc --project tsconfig.test.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "types"
   ],
-  "dependencies": {},
-  "peerDependencies": {}
+  "dependencies": {
+    "mobx": "^6.13.5"
+  }
 }
