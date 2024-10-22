@@ -1,7 +1,1 @@
-export interface EasyEditor {
-  version: string
-}
-
-export const easyEditor: EasyEditor = {
-  version: '0.0.1',
-}
+export const DEV = '_EASY_EDITOR_DEV_'

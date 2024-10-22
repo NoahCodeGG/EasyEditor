@@ -4,8 +4,8 @@
     "declaration": true,
     "target": "ESNext",
     "newLine": "LF",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "jsx": "preserve"
   },
