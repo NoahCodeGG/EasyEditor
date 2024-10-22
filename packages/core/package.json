@@ -25,6 +25,7 @@
     "types"
   ],
   "dependencies": {
-    "mobx": "^6.13.5"
+    "mobx": "^6.13.5",
+    "nanoid": "^5.0.7"
   }
 }
