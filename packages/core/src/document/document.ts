@@ -157,12 +157,10 @@ export class Document {
 
   insertNode(node: Node, ref: Node) {
     if (this.rootNode === ref) {
-      return this.logger.error(
-        'insertNodeAfter error: ref is root node, please insert to ref.children, There can only be one root node',
-      )
+      return this.logger.error('ref is root node, please insert to ref.children, There can only be one root node')
     }
     if (ref.index === -1) {
-      return this.logger.error('insertNodeAfter error: ref has no parent')
+      return this.logger.error('ref has no parent')
     }
 
     node.unlink()
