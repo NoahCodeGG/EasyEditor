@@ -39,6 +39,12 @@ const isExtraKey = (key: string): boolean => {
 export class Props {
   private logger = createLogger('Props')
 
+  readonly path = []
+
+  get props() {
+    return this
+  }
+
   @observable.shallow items: Prop[] = []
 
   private _maps = new Map<string, Prop>()
@@ -100,7 +106,7 @@ export class Props {
 
     let prop = this.maps.get(entry)
     if (!prop && createIfNone) {
-      prop = this.add(UNSET, entry)
+      prop = this.add(entry, UNSET)
     }
 
     if (prop) {

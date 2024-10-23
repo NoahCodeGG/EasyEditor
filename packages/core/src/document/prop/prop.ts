@@ -1,13 +1,23 @@
 import { createLogger, uniqueId } from '@/utils'
-import { action, computed, observable, runInAction, untracked } from 'mobx'
+import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
 import type { Node } from '../node/node'
 import type { Props } from './props'
-import { splitPath } from './utils'
+import { isPlainObject, isValidArrayIndex, splitPath } from './utils'
 
 export const UNSET = Symbol.for('unset')
 export type UNSET = typeof UNSET
 
-export type ValueTypes = 'unset' | 'literal' | 'map' | 'list' | 'slot'
+export type ValueTypes = 'unset' | 'literal' | 'list' | 'map'
+
+export interface PropParent {
+  readonly props: Props
+
+  readonly owner: Node
+
+  get path(): string[]
+
+  delete(prop: Prop): void
+}
 
 export class Prop {
   private logger = createLogger('Prop')
@@ -22,39 +32,42 @@ export class Prop {
 
   @observable.ref private _value: unknown = UNSET
 
+  @computed get value(): any | UNSET {
+    return this.export()
+  }
+
   @observable.ref private _type: ValueTypes = 'unset'
 
   get type(): ValueTypes {
     return this._type
   }
 
+  /** use for list type */
   @observable.shallow private _items: Prop[] | null = null
 
+  /** use for map type */
   @observable.shallow private _maps: Map<string | number, Prop> | null = null
 
-  private get items(): Prop[] | null {
-    if (this._items) return this._items
+  private get items() {
+    if (this._items) {
+      return this._items
+    }
+
     return runInAction(() => {
       let items: Prop[] | null = null
       if (this._type === 'list') {
-        const data = this._value
-        data.forEach((item: any, idx: number) => {
+        const data = this._value as Array<any>
+        data.forEach((item, index) => {
           items = items || []
-          items.push(new Prop(this, item, idx))
+          items.push(new Prop(this, item, index))
         })
         this._maps = null
       } else if (this._type === 'map') {
-        const data = this._value
+        const data = this._value as Record<string, any>
         const maps = new Map<string, Prop>()
         const keys = Object.keys(data)
         for (const key of keys) {
-          let prop: Prop
-          if (this._prevMaps?.has(key)) {
-            prop = this._prevMaps.get(key)!
-            prop.setValue(data[key])
-          } else {
-            prop = new Prop(this, data[key], key)
-          }
+          const prop = new Prop(this, data[key], key)
           items = items || []
           items.push(prop)
           maps.set(key, prop)
@@ -64,8 +77,9 @@ export class Prop {
         items = null
         this._maps = null
       }
+
       this._items = items
-      return this._items
+      return this._items as Prop[]
     })
   }
 
@@ -76,8 +90,11 @@ export class Prop {
     return this._maps
   }
 
+  /**
+   * return a path of prop
+   */
   get path(): string[] {
-    return (this.parent.path || []).concat(this.key as string)
+    return (this.parent.path || []).concat(this.key)
   }
 
   /**
@@ -88,18 +105,18 @@ export class Prop {
   }
 
   constructor(
-    readonly parent: Prop,
+    readonly parent: PropParent,
     key: string,
-    value?: unknown,
+    value?: any,
   ) {
     this.owner = parent.owner
     this.props = parent.props
     this.id = uniqueId()
     this.key = key
-    this.value = value
+    this._value = value
   }
 
-  export() {
+  export(): unknown {
     const type = this._type
 
     if (type === 'unset') {
@@ -131,7 +148,7 @@ export class Prop {
       if (!this._items) {
         return this._value
       }
-      const values = this.items!.map(prop => {
+      const values = this.items.map(prop => {
         return prop.export()
       })
       if (values.every(val => val === undefined)) {
@@ -143,27 +160,32 @@ export class Prop {
 
   @action
   remove() {
+    this.purge()
     this.parent.delete(this)
   }
 
+  @observable.ref private purged = false
+
+  /**
+   * clear internal data
+   */
   @action
   purge() {
     if (this.purged) {
       return
     }
+
     this.purged = true
     if (this._items) {
       this._items.forEach(item => item.purge())
     }
     this._items = null
     this._maps = null
-    // @ts-ignore
-    if (this._slotNode && this._slotNode.slotFor === this) {
-      // @ts-ignore
-      this._slotNode.remove()
-    }
   }
 
+  /**
+   * dispose internal data, use change value
+   */
   @action
   private dispose() {
     const items = untracked(() => this._items)
@@ -173,13 +195,12 @@ export class Prop {
       }
     }
     this._items = null
-    this._prevMaps = this._maps
     this._maps = null
   }
 
   get(path: string, createIfNone = true): Prop | null {
     const type = this._type
-    if (type !== 'map' && type !== 'list' && type !== 'unset' && !createIfNone) {
+    if (type !== 'list' && type !== 'unset' && !createIfNone) {
       return null
     }
 
@@ -202,7 +223,7 @@ export class Prop {
     }
 
     if (createIfNone) {
-      prop = new Prop(this, UNSET, entry)
+      prop = new Prop(this, entry, UNSET)
       this.set(entry, prop, true)
       if (nest) {
         return prop.get(nest, true)
@@ -215,9 +236,9 @@ export class Prop {
   }
 
   @action
-  set(key: string | number, value: IPublicTypeCompositeValue | Prop, force = false) {
+  set(key: string | number, value: any | Prop, force = false) {
     const type = this._type
-    if (type !== 'map' && type !== 'list' && type !== 'unset' && !force) {
+    if (type !== 'list' && type !== 'unset' && !force) {
       return null
     }
     if (type === 'unset' || (force && type !== 'map')) {
@@ -229,14 +250,16 @@ export class Prop {
         this.setValue({})
       }
     }
-    const prop = isProp(value) ? value : new Prop(this, value, key)
+
+    const prop = value instanceof Prop ? value : new Prop(this, value, key)
     const items = this._items! || []
+
     if (this.type === 'list') {
       if (!isValidArrayIndex(key)) {
         return null
       }
       if (isObservableArray(items)) {
-        mobxSet(items, key, prop)
+        set(items, key, prop)
       } else {
         items[key] = prop
       }
@@ -258,7 +281,7 @@ export class Prop {
         maps?.set(key, prop)
       }
       this._maps = maps
-    } /* istanbul ignore next */ else {
+    } else {
       return null
     }
 
@@ -267,7 +290,6 @@ export class Prop {
 
   @action
   delete(prop: Prop): void {
-    /* istanbul ignore else */
     if (this._items) {
       const i = this._items.indexOf(prop)
       if (i > -1) {
@@ -307,7 +329,6 @@ export class Prop {
 
   @action
   deleteKey(key: string): void {
-    /* istanbul ignore else */
     if (this.maps) {
       const prop = this.maps.get(key)
       if (prop) {
@@ -329,13 +350,11 @@ export class Prop {
   @action
   setValue(val: any) {
     if (val === this._value) return
-    // const editor = this.owner.document?.designer.editor;
-    const oldValue = this._value
+
     this._value = val
     const t = typeof val
     if (val == null) {
-      // this._value = undefined;
-      this._type = 'literal'
+      this._type = 'unset'
     } else if (t === 'string' || t === 'number' || t === 'boolean') {
       this._type = 'literal'
     } else if (Array.isArray(val)) {
