@@ -89,14 +89,22 @@ export class Project {
     return document
   }
 
-  removeDocument(id: string) {
-    const index = this.documents.findIndex(document => document.id === id)
-    if (index > -1) {
-      this.documents[index].remove()
-      this.documents.splice(index, 1)
-
-      this.emitter.emit(ProjectEventMap.DocumentRemove, id)
+  removeDocument(id: string | Document) {
+    let document: Document | undefined
+    if (typeof id === 'string') {
+      document = this.documents.find(document => document.id === id)
+    } else {
+      document = id
     }
+
+    if (!document) {
+      return this.logger.warn('document not found', id)
+    }
+
+    document.remove()
+    this.documents.splice(this.documents.indexOf(document), 1)
+
+    this.emitter.emit(ProjectEventMap.DocumentRemove, id)
   }
 
   /**
@@ -135,13 +143,25 @@ export class Project {
 
   onDocumentCreate(listener: (document: Document) => void) {
     this.emitter.on(ProjectEventMap.DocumentCreate, listener)
+
+    return () => {
+      this.emitter.off(ProjectEventMap.DocumentCreate, listener)
+    }
   }
 
   onDocumentRemove(listener: (id: string) => void) {
     this.emitter.on(ProjectEventMap.DocumentRemove, listener)
+
+    return () => {
+      this.emitter.off(ProjectEventMap.DocumentRemove, listener)
+    }
   }
 
   onDocumentChange(listener: (document: Document) => void) {
     this.emitter.on(ProjectEventMap.DocumentChange, listener)
+
+    return () => {
+      this.emitter.off(ProjectEventMap.DocumentChange, listener)
+    }
   }
 }
