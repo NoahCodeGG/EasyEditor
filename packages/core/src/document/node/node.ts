@@ -1,4 +1,5 @@
 import { createLogger } from '@/utils'
+import { observable } from 'mobx'
 
 export interface NodeSchema {
   id: string
@@ -8,4 +9,6 @@ export interface NodeSchema {
 
 export class Node {
   private logger = createLogger('Node')
+
+  @observable.ref id = ''
 }
