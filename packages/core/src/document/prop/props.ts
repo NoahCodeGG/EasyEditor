@@ -1,12 +1,11 @@
 import type { Node } from '../node/node'
 
-import { createLogger } from '@/utils'
+import { createLogger, uniqueId } from '@/utils'
 import { action, computed, observable } from 'mobx'
-import { Prop, UNSET } from './prop'
-import { splitPath } from './utils'
+import { Prop, type PropKey, type PropValue, UNSET, splitPath } from './prop'
 
 export interface PropsSchema {
-  [key: string]: any
+  [key: PropKey]: any
 }
 
 const EXTRA_KEY_PREFIX = '__'
@@ -14,7 +13,7 @@ const EXTRA_KEY_PREFIX = '__'
 /**
  * prop key convert to extra key
  */
-const getConvertedExtraKey = (key: string): string => {
+const getConvertedExtraKey = (key: PropKey): string => {
   if (!key) {
     return ''
   }
@@ -28,21 +27,33 @@ const getConvertedExtraKey = (key: string): string => {
 /**
  * extra key convert to prop key
  */
-const getOriginalExtraKey = (key: string): string => {
+const getOriginalExtraKey = (key: PropKey): string => {
   return key.replace(new RegExp(`${EXTRA_KEY_PREFIX}`, 'g'), '')
 }
 
-const isExtraKey = (key: string): boolean => {
+const isExtraKey = (key: PropKey): boolean => {
   return key.startsWith(EXTRA_KEY_PREFIX) && key.endsWith(EXTRA_KEY_PREFIX)
 }
 
 export class Props {
   private logger = createLogger('Props')
 
+  readonly id = uniqueId('props')
+
   readonly path = []
 
   get props() {
     return this
+  }
+
+  readonly owner: Node
+
+  getProps() {
+    return this.props
+  }
+
+  getNode() {
+    return this.owner
   }
 
   @observable.shallow items: Prop[] = []
@@ -57,11 +68,8 @@ export class Props {
     return this.items.length
   }
 
-  constructor(
-    readonly owner: Node,
-    props?: PropsSchema,
-    extras?: PropsSchema,
-  ) {
+  constructor(owner: Node, props?: PropsSchema, extras?: PropsSchema) {
+    this.owner = owner
     this.import(props, extras)
   }
 
@@ -85,7 +93,6 @@ export class Props {
 
     for (const item of this.items) {
       const key = item.key as string
-
       const value = item.export()
 
       if (isExtraKey(key)) {
@@ -96,6 +103,19 @@ export class Props {
     }
 
     return { props, extras }
+  }
+
+  private purged = false
+
+  @action
+  purge() {
+    if (this.purged) {
+      return
+    }
+    this.purged = true
+    for (const item of this.items) {
+      item.purge()
+    }
   }
 
   /**
@@ -134,14 +154,17 @@ export class Props {
   }
 
   @action
-  delete(propKey: Prop | string) {
-    let prop: Prop | undefined
-    if (typeof propKey === 'string') {
-      prop = this.items.find(item => item.key === propKey)
-    } else {
-      prop = propKey
+  delete(prop: Prop) {
+    const index = this.items.indexOf(prop)
+    if (index > -1) {
+      this.items.splice(index, 1)
+      prop.purge()
     }
+  }
 
+  @action
+  deleteKey(propKey: PropKey) {
+    const prop = this.maps.get(propKey)
     if (!prop) {
       return this.logger.warn(`prop ${propKey} not found`)
     }
@@ -154,29 +177,29 @@ export class Props {
   }
 
   @action
-  add(key: string, value?: any) {
+  add(key: PropKey, value?: PropValue) {
     const prop = new Prop(this, key, value)
     this.items.push(prop)
     return prop
   }
 
-  has(key: string) {
+  has(key: PropKey) {
     return this.maps.has(key)
   }
 
-  forEach(fn: (item: Prop, key: string) => void) {
+  forEach(fn: (item: Prop, key: PropKey) => void) {
     for (const item of this.items) {
       fn(item, item.key)
     }
   }
 
-  map<E>(fn: (item: Prop, key: string) => E): E[] | null {
+  map<E>(fn: (item: Prop, key: PropKey) => E): E[] | null {
     return this.items.map(item => {
       return fn(item, item.key)
     })
   }
 
-  filter(fn: (item: Prop, key: string) => boolean) {
+  filter(fn: (item: Prop, key: PropKey) => boolean) {
     return this.items.filter(item => {
       return fn(item, item.key)
     })

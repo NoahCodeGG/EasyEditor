@@ -1,4 +1,4 @@
-import { createLogger, uniqueId } from '@/utils'
+import { uniqueId } from '@/utils'
 import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
 import type { Node } from '../node/node'
 import type { Props } from './props'
@@ -18,13 +18,11 @@ export interface PropParent {
   delete(prop: Prop): void
 }
 
-export type PropKey = string | number
+export type PropKey = string
 
 export type PropValue = unknown | UNSET
 
 export class Prop {
-  private logger = createLogger('Prop')
-
   readonly isProp = true
 
   readonly id: string
@@ -34,6 +32,14 @@ export class Prop {
   readonly owner: Node
 
   readonly props: Props
+
+  getProps() {
+    return this.props
+  }
+
+  getNode() {
+    return this.owner
+  }
 
   @observable.ref private _value: PropValue = UNSET
 
@@ -89,7 +95,7 @@ export class Prop {
    * return a path of prop
    */
   get path(): string[] {
-    return (this.parent.path || []).concat(this.key as string)
+    return (this.parent.path || []).concat(this.key)
   }
 
   /**
@@ -289,7 +295,7 @@ export class Prop {
     return this.export()
   }
 
-  get(path: string | number, createIfNone = true): Prop | null {
+  get(path: string, createIfNone = true): Prop | null {
     const type = this._type
     if (type !== 'list' && type !== 'unset' && !createIfNone) {
       return null
@@ -327,7 +333,7 @@ export class Prop {
   }
 
   @action
-  set(key: string | number, value: any | Prop, force = false) {
+  set(key: PropKey, value: PropValue | Prop, force = false) {
     const type = this._type
     if (type !== 'list' && type !== 'unset' && !force) {
       return null
@@ -343,7 +349,7 @@ export class Prop {
       }
     }
 
-    const prop = isProp(value) ? value : new Prop(this, value, key)
+    const prop = isProp(value) ? value : new Prop(this, key, value)
     const items = this._items! || []
 
     if (this.type === 'list') {
@@ -442,7 +448,7 @@ export class Prop {
   }
 
   @action
-  forEach(fn: (item: Prop, key: number | string | undefined) => void): void {
+  forEach(fn: (item: Prop, key: PropKey | number) => void): void {
     const { items } = this
     if (!items) {
       return
@@ -455,7 +461,7 @@ export class Prop {
   }
 
   @action
-  map<T>(fn: (item: Prop, key: number | string | undefined) => T): T[] | null {
+  map<T>(fn: (item: Prop, key: PropKey | number) => T): T[] | null {
     const { items } = this
     if (!items) {
       return null
@@ -497,26 +503,24 @@ export const isProp = (obj: unknown): obj is Prop => {
  * - entry: a or 0
  * - nest: .b or [1].b
  */
-export const splitPath = (path: string | number) => {
+export const splitPath = (path: string) => {
   let entry = path
   let nest = ''
 
-  if (typeof path !== 'number' && typeof entry !== 'number') {
-    const objIndex = path.indexOf('.', 1) // path = ".c.a.b"
-    const arrIndex = path.indexOf('[', 1) // path = "[0].a.b"
+  const objIndex = path.indexOf('.', 1) // path = ".c.a.b"
+  const arrIndex = path.indexOf('[', 1) // path = "[0].a.b"
 
-    if (objIndex > 0 && ((arrIndex > 0 && objIndex < arrIndex) || arrIndex < 0)) {
-      entry = path.slice(0, objIndex)
-      nest = path.slice(objIndex + 1)
-    }
+  if (objIndex > 0 && ((arrIndex > 0 && objIndex < arrIndex) || arrIndex < 0)) {
+    entry = path.slice(0, objIndex)
+    nest = path.slice(objIndex + 1)
+  }
 
-    if (arrIndex > 0 && ((objIndex > 0 && arrIndex < objIndex) || objIndex < 0)) {
-      entry = path.slice(0, arrIndex)
-      nest = path.slice(arrIndex)
-    }
-    if (entry.startsWith('[')) {
-      entry = entry.slice(1, entry.length - 1)
-    }
+  if (arrIndex > 0 && ((objIndex > 0 && arrIndex < objIndex) || objIndex < 0)) {
+    entry = path.slice(0, arrIndex)
+    nest = path.slice(arrIndex)
+  }
+  if (entry.startsWith('[')) {
+    entry = entry.slice(1, entry.length - 1)
   }
 
   return { entry, nest }
