@@ -2,7 +2,6 @@ import { createLogger, uniqueId } from '@/utils'
 import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
 import type { Node } from '../node/node'
 import type { Props } from './props'
-import { isPlainObject, isValidArrayIndex, splitPath } from './utils'
 
 export const UNSET = Symbol.for('unset')
 export type UNSET = typeof UNSET
@@ -19,71 +18,67 @@ export interface PropParent {
   delete(prop: Prop): void
 }
 
+export type PropKey = string | number
+
+export type PropValue = unknown | UNSET
+
 export class Prop {
   private logger = createLogger('Prop')
 
-  @observable.ref id: string
+  readonly isProp = true
 
-  @observable.ref key: string
+  readonly id: string
 
-  @observable.ref owner: Node
+  @observable.ref key: PropKey
 
-  @observable.ref props: Props
+  readonly owner: Node
 
-  @observable.ref private _value: unknown = UNSET
+  readonly props: Props
 
-  @computed get value(): any | UNSET {
+  @observable.ref private _value: PropValue = UNSET
+
+  @computed get value(): unknown | UNSET {
     return this.export()
   }
 
   @observable.ref private _type: ValueTypes = 'unset'
 
-  get type(): ValueTypes {
+  get type() {
     return this._type
   }
 
-  /** use for list type */
+  @action
+  unset() {
+    this._type = 'unset'
+  }
+
+  isUnset() {
+    return this._type === 'unset'
+  }
+
+  /** use for list or map type */
   @observable.shallow private _items: Prop[] | null = null
+  /**
+   * 作为一层缓存机制，主要是复用部分已存在的 Prop，保持响应式关系，比如：
+   * 当前 Prop#_value 值为 { a: 1 }，当调用 setValue({ a: 2 }) 时，所有原来的子 Prop 均被销毁，
+   * 导致假如外部有 mobx reaction（常见于 observer），此时响应式链路会被打断，
+   * 因为 reaction 监听的是原 Prop(a) 的 _value，而不是新 Prop(a) 的 _value。
+   */
+  @observable.shallow private _maps: Map<PropKey, Prop> | null = null
 
-  /** use for map type */
-  @observable.shallow private _maps: Map<string | number, Prop> | null = null
-
+  /**
+   * Construct the items and maps for the prop value
+   */
   private get items() {
     if (this._items) {
       return this._items
     }
 
-    return runInAction(() => {
-      let items: Prop[] | null = null
-      if (this._type === 'list') {
-        const data = this._value as Array<any>
-        data.forEach((item, index) => {
-          items = items || []
-          items.push(new Prop(this, item, index))
-        })
-        this._maps = null
-      } else if (this._type === 'map') {
-        const data = this._value as Record<string, any>
-        const maps = new Map<string, Prop>()
-        const keys = Object.keys(data)
-        for (const key of keys) {
-          const prop = new Prop(this, data[key], key)
-          items = items || []
-          items.push(prop)
-          maps.set(key, prop)
-        }
-        this._maps = maps
-      } else {
-        items = null
-        this._maps = null
-      }
-
-      this._items = items
-      return this._items as Prop[]
-    })
+    this.initItems()
+    return this._items
   }
 
-  @computed private get maps(): Map<string | number, Prop> | null {
+  @computed private get maps(): Map<PropKey, Prop> | null {
     if (!this.items) {
       return null
     }
@@ -94,7 +89,7 @@ export class Prop {
    * return a path of prop
    */
   get path(): string[] {
-    return (this.parent.path || []).concat(this.key)
+    return (this.parent.path || []).concat(this.key as string)
   }
 
   /**
@@ -106,14 +101,75 @@ export class Prop {
 
   constructor(
     readonly parent: PropParent,
-    key: string,
-    value?: any,
+    key: PropKey,
+    value: PropValue = UNSET,
   ) {
+    this.id = uniqueId('prop')
     this.owner = parent.owner
     this.props = parent.props
-    this.id = uniqueId()
     this.key = key
-    this._value = value
+
+    if (value !== UNSET) {
+      this.setValue(value)
+    }
+
+    this.initItems()
+  }
+
+  /**
+   * This is to trigger the execution of the items getter function,
+   * which will construct the items and maps for the prop value
+   */
+  @action
+  private initItems() {
+    runInAction(() => {
+      let items: Prop[] | null = null
+
+      if (this._type === 'list') {
+        const maps = new Map<string, Prop>()
+        const data = this._value as Array<PropValue>
+
+        for (let i = 0; i < data.length; i++) {
+          const item = data[i]
+          let prop: Prop
+          items = items || []
+          if (this._maps?.has(i.toString())) {
+            prop = this._maps.get(i.toString())!
+            prop.setValue(item)
+          } else {
+            prop = new Prop(this, i.toString(), item)
+          }
+
+          maps.set(i.toString(), prop)
+          items.push(prop)
+        }
+        this._maps = maps
+      } else if (this._type === 'map') {
+        const maps = new Map<string, Prop>()
+        const data = this._value as Record<string, PropValue>
+        const keys = Object.keys(data)
+
+        for (const key of keys) {
+          let prop: Prop
+          if (this._maps?.has(key)) {
+            prop = this._maps.get(key)!
+            prop.setValue(data[key])
+          } else {
+            prop = new Prop(this, key, data[key])
+          }
+          items = items || []
+          items.push(prop)
+          maps.set(key, prop)
+        }
+
+        this._maps = maps
+      } else {
+        items = null
+        this._maps = null
+      }
+
+      this._items = items
+    })
   }
 
   export(): unknown {
@@ -131,16 +187,18 @@ export class Prop {
       if (!this._items) {
         return this._value
       }
-      let maps: any
-      this.items!.forEach((prop, key) => {
+
+      let maps: Record<PropKey, PropValue> | undefined = undefined
+      for (let i = 0; i < this.items!.length; i++) {
+        const prop = this.items![i]
         if (!prop.isUnset()) {
           const v = prop.export()
-          if (v != null) {
+          if (v !== null) {
             maps = maps || {}
-            maps[prop.key || key] = v
+            maps[prop.key || i] = v
           }
         }
-      })
+      }
       return maps
     }
 
@@ -148,22 +206,16 @@ export class Prop {
       if (!this._items) {
         return this._value
       }
-      const values = this.items.map(prop => {
+
+      return this.items!.map(prop => {
         return prop.export()
       })
-      if (values.every(val => val === undefined)) {
-        return undefined
-      }
-      return values
     }
   }
 
-  @action
-  remove() {
-    this.purge()
-    this.parent.delete(this)
-  }
-
+  /**
+   * whether the prop has been destroyed
+   */
   @observable.ref private purged = false
 
   /**
@@ -177,14 +229,23 @@ export class Prop {
 
     this.purged = true
     if (this._items) {
-      this._items.forEach(item => item.purge())
+      for (const item of this._items) {
+        item.purge()
+      }
     }
     this._items = null
     this._maps = null
   }
 
+  @action
+  remove() {
+    this.purge()
+    this.parent.delete(this)
+  }
+
   /**
-   * dispose internal data, use change value
+   * dispose internal data, use for changing value,
+   * this will not trigger reactive
    */
   @action
   private dispose() {
@@ -194,11 +255,41 @@ export class Prop {
         prop.purge()
       }
     }
+
     this._items = null
     this._maps = null
   }
 
-  get(path: string, createIfNone = true): Prop | null {
+  /**
+   * set value, val should be JSON Object
+   */
+  @action
+  setValue(val: any) {
+    if (val === this._value) return
+
+    this._value = val
+    const t = typeof val
+    if (val == null) {
+      this._type = 'literal'
+    } else if (t === 'string' || t === 'number' || t === 'boolean') {
+      this._type = 'literal'
+    } else if (Array.isArray(val)) {
+      this._type = 'list'
+    } else if (isPlainObject(val)) {
+      this._type = 'map'
+    }
+
+    this.dispose()
+    this.initItems()
+
+    // TODO: eventbus change
+  }
+
+  getValue() {
+    return this.export()
+  }
+
+  get(path: string | number, createIfNone = true): Prop | null {
     const type = this._type
     if (type !== 'list' && type !== 'unset' && !createIfNone) {
       return null
@@ -241,6 +332,7 @@ export class Prop {
     if (type !== 'list' && type !== 'unset' && !force) {
       return null
     }
+
     if (type === 'unset' || (force && type !== 'map')) {
       if (isValidArrayIndex(key)) {
         if (type !== 'list') {
@@ -251,7 +343,7 @@ export class Prop {
       }
     }
 
-    const prop = value instanceof Prop ? value : new Prop(this, value, key)
+    const prop = isProp(value) ? value : new Prop(this, value, key)
     const items = this._items! || []
 
     if (this.type === 'list') {
@@ -267,6 +359,7 @@ export class Prop {
     } else if (this.type === 'map') {
       const maps = this._maps || new Map<string, Prop>()
       const orig = maps?.get(key)
+
       if (orig) {
         // replace
         const i = items.indexOf(orig)
@@ -311,12 +404,16 @@ export class Prop {
     if (type === 'unset' || (force && type !== 'list')) {
       this.setValue([])
     }
+
     const prop = new Prop(this, value)
     this._items = this._items || []
     this._items.push(prop)
     return prop
   }
 
+  /**
+   * check if the prop has the key, only for map and list type
+   */
   has(key: string): boolean {
     if (this._type !== 'map') {
       return false
@@ -344,46 +441,13 @@ export class Prop {
     return ''
   }
 
-  /**
-   * set value, val should be JSON Object
-   */
-  @action
-  setValue(val: any) {
-    if (val === this._value) return
-
-    this._value = val
-    const t = typeof val
-    if (val == null) {
-      this._type = 'unset'
-    } else if (t === 'string' || t === 'number' || t === 'boolean') {
-      this._type = 'literal'
-    } else if (Array.isArray(val)) {
-      this._type = 'list'
-    } else if (isPlainObject(val)) {
-      this._type = 'map'
-    }
-    this.dispose()
-  }
-
-  getValue() {
-    return this.export()
-  }
-
-  @action
-  unset() {
-    this._type = 'unset'
-  }
-
-  isUnset() {
-    return this._type === 'unset'
-  }
-
   @action
   forEach(fn: (item: Prop, key: number | string | undefined) => void): void {
     const { items } = this
     if (!items) {
       return
     }
+
     const isMap = this._type === 'map'
     items.forEach((item, index) => {
       return isMap ? fn(item, item.key) : fn(item, index)
@@ -396,6 +460,7 @@ export class Prop {
     if (!items) {
       return null
     }
+
     const isMap = this._type === 'map'
     return items.map((item, index) => {
       return isMap ? fn(item, item.key) : fn(item, index)
@@ -421,4 +486,58 @@ export class Prop {
       },
     }
   }
+}
+
+export const isProp = (obj: unknown): obj is Prop => {
+  return obj instanceof Prop
+}
+
+/**
+ * split path to entry and nest
+ * - entry: a or 0
+ * - nest: .b or [1].b
+ */
+export const splitPath = (path: string | number) => {
+  let entry = path
+  let nest = ''
+
+  if (typeof path !== 'number' && typeof entry !== 'number') {
+    const objIndex = path.indexOf('.', 1) // path = ".c.a.b"
+    const arrIndex = path.indexOf('[', 1) // path = "[0].a.b"
+
+    if (objIndex > 0 && ((arrIndex > 0 && objIndex < arrIndex) || arrIndex < 0)) {
+      entry = path.slice(0, objIndex)
+      nest = path.slice(objIndex + 1)
+    }
+
+    if (arrIndex > 0 && ((objIndex > 0 && arrIndex < objIndex) || objIndex < 0)) {
+      entry = path.slice(0, arrIndex)
+      nest = path.slice(arrIndex)
+    }
+    if (entry.startsWith('[')) {
+      entry = entry.slice(1, entry.length - 1)
+    }
+  }
+
+  return { entry, nest }
+}
+
+/**
+ * check if the key is a valid array index
+ */
+export function isValidArrayIndex(key: any, limit = -1): key is number {
+  const n = Number.parseFloat(String(key))
+  return n >= 0 && Math.floor(n) === n && Number.isFinite(n) && (limit < 0 || n < limit)
+}
+
+export const isObject = (value: any): value is Record<string, unknown> => {
+  return value !== null && typeof value === 'object'
+}
+
+export const isPlainObject = (value: any): value is any => {
+  if (!isObject(value)) {
+    return false
+  }
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null || Object.getPrototypeOf(proto) === null
 }
