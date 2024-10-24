@@ -5,17 +5,21 @@ import type { Node, NodeSchema } from './node'
 export class NodeChildren {
   private logger = createLogger('NodeChildren')
 
+  readonly owner: Node
+
   @observable.ref children: Node[] = []
 
+  getNode() {
+    return this.owner
+  }
+
   @computed
-  get length(): number {
+  get size(): number {
     return this.children.length
   }
 
-  constructor(
-    readonly owner: Node,
-    data?: NodeSchema[],
-  ) {
+  constructor(owner: Node, data?: NodeSchema[]) {
+    this.owner = owner
     this.children = (Array.isArray(data) ? data : []).map(child => {
       return this.owner.document.createNode(child)
     })
@@ -29,20 +33,55 @@ export class NodeChildren {
     })
   }
 
-  @action
-  private internalInitParent() {
+  private purged = false
+
+  purge() {
+    if (this.purged) {
+      return
+    }
+    this.purged = true
     this.children.forEach(child => {
-      child.internalSetParent(this.owner)
+      child.purge()
     })
   }
 
   @action
-  internalUnlinkChild(node: Node) {
+  private internalInitParent() {
+    for (const child of this.children) {
+      child.internalSetParent(this.owner)
+    }
+  }
+
+  @action
+  private internalUnlinkChild(node: Node) {
     const i = this.children.indexOf(node)
     if (i < 0) {
       return false
     }
     this.children.splice(i, 1)
+  }
+
+  unlinkChild(node: Node) {
+    this.internalUnlinkChild(node)
+
+    // TODO: eventbus
+  }
+
+  delete(node: Node): boolean {
+    return this.internalDelete(node)
+  }
+
+  internalDelete(node: Node): boolean {
+    const i = this.children.map(d => d.id).indexOf(node.id)
+    if (i > -1) {
+      this.children.splice(i, 1)
+      return true
+    }
+    return false
+  }
+
+  isEmpty() {
+    return this.size < 1
   }
 
   get(index: number) {
@@ -53,21 +92,8 @@ export class NodeChildren {
     return this.children[index]
   }
 
-  has(node: Node): boolean {
-    const i = this.children.indexOf(node)
-    return i >= 0
-  }
-
-  clear() {
-    if (this.children.length > 0) {
-      for (let i = this.children.length - 1; i >= 0; i--) {
-        const subNode = this.children[i]
-        if (subNode.children.length > 0) {
-          subNode.children.clear()
-        }
-        subNode.document.removeNode(subNode)
-      }
-    }
+  has(node: Node) {
+    return this.children.indexOf(node) > -1
   }
 
   /**
@@ -77,16 +103,17 @@ export class NodeChildren {
    */
   @action
   insert(node: Node, at?: number | null): void {
+    const { children } = this
     const index = at === null || at === -1 ? this.children.length : at!
 
     const inChildrenIndex = this.children.indexOf(node)
 
     // node is not in the children
     if (inChildrenIndex < 0) {
-      if (index < this.children.length) {
-        this.children.splice(index, 0, node)
+      if (index < children.length) {
+        children.splice(index, 0, node)
       } else {
-        this.children.push(node)
+        children.push(node)
       }
       node.internalSetParent(this.owner)
     } else {
@@ -94,8 +121,8 @@ export class NodeChildren {
         return
       }
 
-      this.children.splice(inChildrenIndex, 1)
-      this.children.splice(index, 0, node)
+      children.splice(inChildrenIndex, 1)
+      children.splice(index, 0, node)
     }
   }
 

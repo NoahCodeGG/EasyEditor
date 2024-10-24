@@ -494,8 +494,8 @@ export class Prop {
   }
 }
 
-export const isProp = (obj: unknown): obj is Prop => {
-  return obj instanceof Prop
+export const isProp = (obj: any): obj is Prop => {
+  return obj && obj.isProp
 }
 
 /**

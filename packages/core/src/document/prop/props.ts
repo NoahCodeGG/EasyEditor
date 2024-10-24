@@ -13,7 +13,7 @@ const EXTRA_KEY_PREFIX = '__'
 /**
  * prop key convert to extra key
  */
-const getConvertedExtraKey = (key: PropKey): string => {
+export const getConvertedExtraKey = (key: PropKey): string => {
   if (!key) {
     return ''
   }
@@ -27,11 +27,11 @@ const getConvertedExtraKey = (key: PropKey): string => {
 /**
  * extra key convert to prop key
  */
-const getOriginalExtraKey = (key: PropKey): string => {
+export const getOriginalExtraKey = (key: PropKey): string => {
   return key.replace(new RegExp(`${EXTRA_KEY_PREFIX}`, 'g'), '')
 }
 
-const isExtraKey = (key: PropKey): boolean => {
+export const isExtraKey = (key: PropKey): boolean => {
   return key.startsWith(EXTRA_KEY_PREFIX) && key.endsWith(EXTRA_KEY_PREFIX)
 }
 
@@ -121,7 +121,7 @@ export class Props {
   /**
    * get a prop, if not found, create a prop when createIfNone is true
    */
-  private get(path: string, createIfNone = false) {
+  get(path: PropKey, createIfNone = false) {
     const { entry, nest } = splitPath(path)
 
     let prop = this.maps.get(entry)
@@ -136,20 +136,20 @@ export class Props {
     return null
   }
 
-  query(path: string, createIfNone = true) {
+  query(path: PropKey, createIfNone = true) {
     return this.get(path, createIfNone)
   }
 
-  getProp(path: string, createIfNone = true) {
+  getProp(path: PropKey, createIfNone = true) {
     return this.query(path, createIfNone) || null
   }
 
-  getPropValue(path: string) {
+  getPropValue(path: PropKey) {
     return this.getProp(path, false)?.value
   }
 
   @action
-  setPropValue(path: string, value: any) {
+  setPropValue(path: PropKey, value: any) {
     this.getProp(path, true)!.setValue(value)
   }
 

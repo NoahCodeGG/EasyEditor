@@ -22,7 +22,8 @@
       "complexity": {
         "noForEach": "off",
         "noUselessEmptyExport": "error",
-        "useArrowFunction": "error"
+        "useArrowFunction": "error",
+        "useOptionalChain": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
