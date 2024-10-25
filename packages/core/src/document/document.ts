@@ -5,7 +5,7 @@ import type { NodeSchema } from './node/node'
 
 import { action, observable } from 'mobx'
 import { createEventBus, createLogger, uniqueId } from '../utils'
-import { Node, isNode } from './node/node'
+import { NODE_EVENT, Node, isNode } from './node/node'
 
 export interface DocumentSchema {
   id: string
@@ -13,12 +13,12 @@ export interface DocumentSchema {
   rootNode: NodeSchema
 }
 
-export enum DocumentEvent {
-  Create = 'document:create',
-  Remove = 'document:remove',
-  Change = 'document:change',
-  NodeCreate = 'document:node:create',
-  NodeRemove = 'document:node:remove',
+export enum DOCUMENT_EVENT {
+  ADD = 'document:add',
+  CREATE = 'document:create',
+  REMOVE = 'document:remove',
+  OPEN_CHANGE = 'document:open.change',
+  OPEN = 'document:open',
 }
 
 export class Document {
@@ -31,23 +31,21 @@ export class Document {
   @observable.ref _opened = false
 
   /** document is blank or not */
-  @observable.ref _blank = true
+  private _blank = true
 
   /** document root node */
-  @observable.ref rootNode: Node | null = null
-
-  @observable.shallow activeNode?: Node
+  rootNode: Node | null = null
 
   private _nodesMap = new Map<Node['id'], Node>()
 
-  get nodesMap(): Map<string, Node> {
+  get nodesMap() {
     return this._nodesMap
   }
 
   @observable.shallow private nodes = new Set<Node>()
 
-  get name(): string {
-    return this.rootNode?.getExtraProp('name', false)?.getAsString() || this.id
+  get name() {
+    return (this.rootNode?.getExtraProp('name', false)?.getValue() as string) || this.id
   }
 
   set name(name: string) {
@@ -78,7 +76,7 @@ export class Document {
     this.emitter = createEventBus('Document')
     this.import(schema)
 
-    this.designer.postEvent(DocumentEvent.Create, this)
+    this.designer.postEvent(DOCUMENT_EVENT.CREATE, this)
   }
 
   @action
@@ -111,7 +109,7 @@ export class Document {
     this.purge()
     this.project.removeDocument(this)
 
-    this.designer.postEvent(DocumentEvent.Remove, this)
+    this.designer.postEvent(DOCUMENT_EVENT.REMOVE, this.id)
   }
 
   purge() {
@@ -132,8 +130,7 @@ export class Document {
     this.nodes.add(node)
     this._nodesMap.set(node.id, node)
 
-    // this.emitter.emit(DocumentEventMap.NodeCreate, node)
-
+    this.designer.postEvent(NODE_EVENT.ADD, node)
     return node
   }
 
@@ -177,8 +174,6 @@ export class Document {
     }
 
     node.remove()
-
-    // this.emitter.emit(DocumentEventMap.NodeRemove, node.id)
   }
 
   unlinkNode(node: Node) {
@@ -229,7 +224,7 @@ export class Document {
     this._opened = true
     // only emit when document is suspense
     if (originState === false) {
-      this.designer.postEvent(DocumentEvent.Change, this)
+      this.designer.postEvent(DOCUMENT_EVENT.OPEN, this)
     }
     if (this._opened) {
       this.project.checkExclusive(this)
@@ -245,10 +240,14 @@ export class Document {
     this._opened = false
   }
 
+  /**
+   * use open a document and suspense other documents
+   */
   private setOpened(flag: boolean) {
     if (!this._opened && !flag) {
       return
     }
+
     this._opened = flag
     // this.simulator?.setSuspense(flag);
     if (!flag) {
@@ -279,21 +278,53 @@ export class Document {
   //   );
   // }
 
-  // onNodeCreate(listener: (node: Node) => void) {
-  //   this.emitter.on(DocumentEventMap.NodeCreate, listener)
+  onReady(fn: () => void) {
+    this.designer.onEvent(DOCUMENT_EVENT.OPEN, fn)
 
-  //   return () => {
-  //     this.emitter.off(DocumentEventMap.NodeCreate, listener)
-  //   }
-  // }
+    return () => {
+      this.designer.offEvent(DOCUMENT_EVENT.OPEN, fn)
+    }
+  }
 
-  // onNodeRemove(listener: (id: string) => void) {
-  //   this.emitter.on(DocumentEventMap.NodeRemove, listener)
+  onNodeAdd(listener: (node: Node) => void) {
+    this.designer.onEvent(NODE_EVENT.ADD, listener)
 
-  //   return () => {
-  //     this.emitter.off(DocumentEventMap.NodeRemove, listener)
-  //   }
-  // }
+    return () => {
+      this.designer.offEvent(NODE_EVENT.ADD, listener)
+    }
+  }
+
+  onNodeRemove(listener: (id: string) => void) {
+    this.designer.onEvent(NODE_EVENT.REMOVE, listener)
+
+    return () => {
+      this.designer.offEvent(NODE_EVENT.REMOVE, listener)
+    }
+  }
+
+  onNodeVisibleChange(fn: (node: Node, visible: boolean) => void) {
+    this.designer.onEvent(NODE_EVENT.VISIBLE_CHANGE, fn)
+
+    return () => {
+      this.designer.offEvent(NODE_EVENT.VISIBLE_CHANGE, fn)
+    }
+  }
+
+  onNodeLockChange(fn: (node: Node, lock: boolean) => void) {
+    this.designer.onEvent(NODE_EVENT.LOCK_CHANGE, fn)
+
+    return () => {
+      this.designer.offEvent(NODE_EVENT.LOCK_CHANGE, fn)
+    }
+  }
+
+  onNodeChildrenChange(fn: (info: any) => void) {
+    this.designer.onEvent(NODE_EVENT.CHILDREN_CHANGE, fn)
+
+    return () => {
+      this.designer.offEvent(NODE_EVENT.CHILDREN_CHANGE, fn)
+    }
+  }
 }
 
 export function isDocument(obj: any): obj is Document {

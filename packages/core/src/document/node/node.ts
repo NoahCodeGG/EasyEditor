@@ -13,6 +13,15 @@ export interface NodeSchema {
   children?: NodeSchema[]
 }
 
+export enum NODE_EVENT {
+  ADD = 'node:add',
+  CREATE = 'node:create',
+  REMOVE = 'node:remove',
+  VISIBLE_CHANGE = 'node:visible.change',
+  LOCK_CHANGE = 'node:lock.change',
+  CHILDREN_CHANGE = 'node:children.change',
+}
+
 export class Node {
   private logger = createLogger('Node')
   private emitter: EventBus
@@ -117,7 +126,7 @@ export class Node {
 
     this.initBuiltinProps()
 
-    // TODO: eventbus
+    this.document.designer.postEvent(NODE_EVENT.CREATE, this)
   }
 
   export() {
@@ -258,6 +267,7 @@ export class Node {
   remove() {
     if (this.parent) {
       this.parent.children!.delete(this)
+      this.document.designer.postEvent(NODE_EVENT.REMOVE, this)
     }
   }
 

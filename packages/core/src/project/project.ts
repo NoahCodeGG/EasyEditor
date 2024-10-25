@@ -1,7 +1,7 @@
 import type { Designer } from '@/designer'
 import type { DocumentSchema } from '@/document'
 
-import { Document, DocumentEvent, isDocument } from '@/document'
+import { DOCUMENT_EVENT, Document, isDocument } from '@/document'
 import { createEventBus } from '@/utils/event-bus'
 import { computed, observable } from 'mobx'
 import { createLogger } from '../utils'
@@ -21,8 +21,8 @@ const defaultSchema: ProjectSchema = {
   documents: [],
 }
 
-export enum ProjectEvent {
-  RenderReady = 'renderer:ready',
+export enum PROJECT_EVENT {
+  RENDERER_READY = 'renderer:ready',
 }
 
 export class Project {
@@ -116,6 +116,8 @@ export class Project {
     const doc = new Document(this, schema)
     this.documents.push(doc)
     this.documentsMap.set(doc.id, doc)
+
+    this.designer.postEvent(DOCUMENT_EVENT.ADD, doc)
     return doc
   }
 
@@ -173,7 +175,7 @@ export class Project {
       }
     }
 
-    this.emitter.emit('current-document.change', curDoc)
+    this.emitter.emit(DOCUMENT_EVENT.OPEN_CHANGE, curDoc)
   }
 
   getDocument(id: string) {
@@ -211,7 +213,7 @@ export class Project {
 
   setRendererReady(renderer: any) {
     this.isRendererReady = true
-    this.emitter.emit(ProjectEvent.RenderReady, renderer)
+    this.emitter.emit(PROJECT_EVENT.RENDERER_READY, renderer)
   }
 
   /**
@@ -222,33 +224,41 @@ export class Project {
       fn()
     }
 
-    this.emitter.on(ProjectEvent.RenderReady, fn)
+    this.emitter.on(PROJECT_EVENT.RENDERER_READY, fn)
     return () => {
-      this.emitter.off(ProjectEvent.RenderReady, fn)
+      this.emitter.off(PROJECT_EVENT.RENDERER_READY, fn)
+    }
+  }
+
+  onDocumentAdd(listener: (document: Document) => void) {
+    this.designer.onEvent(DOCUMENT_EVENT.ADD, listener)
+
+    return () => {
+      this.designer.offEvent(DOCUMENT_EVENT.ADD, listener)
     }
   }
 
   onDocumentCreate(listener: (document: Document) => void) {
-    this.designer.onEvent(DocumentEvent.Create, listener)
+    this.designer.onEvent(DOCUMENT_EVENT.CREATE, listener)
 
     return () => {
-      this.designer.offEvent(DocumentEvent.Create, listener)
+      this.designer.offEvent(DOCUMENT_EVENT.CREATE, listener)
     }
   }
 
   onDocumentRemove(listener: (id: string) => void) {
-    this.designer.onEvent(DocumentEvent.Remove, listener)
+    this.designer.onEvent(DOCUMENT_EVENT.REMOVE, listener)
 
     return () => {
-      this.designer.offEvent(DocumentEvent.Remove, listener)
+      this.designer.offEvent(DOCUMENT_EVENT.REMOVE, listener)
     }
   }
 
   onCurrentDocumentChange(listener: (document: Document) => void) {
-    this.designer.onEvent(DocumentEvent.Change, listener)
+    this.designer.onEvent(DOCUMENT_EVENT.OPEN_CHANGE, listener)
 
     return () => {
-      this.designer.offEvent(DocumentEvent.Change, listener)
+      this.designer.offEvent(DOCUMENT_EVENT.OPEN_CHANGE, listener)
     }
   }
 }
