@@ -25,7 +25,7 @@ export type PropValue = unknown | UNSET
 export class Prop {
   readonly isProp = true
 
-  readonly id: string
+  readonly id = uniqueId('prop')
 
   @observable.ref key: PropKey
 
@@ -110,7 +110,6 @@ export class Prop {
     key: PropKey,
     value: PropValue = UNSET,
   ) {
-    this.id = uniqueId('prop')
     this.owner = parent.owner
     this.props = parent.props
     this.key = key

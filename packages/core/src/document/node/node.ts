@@ -109,7 +109,7 @@ export class Node {
   ) {
     const { id, componentName, children, props, ...extras } = nodeSchema
 
-    this.id = id || uniqueId('Node')
+    this.id = id || uniqueId('node')
     this.componentName = componentName
     this.props = new Props(this, props, extras)
     this._children = new NodeChildren(this, children)
@@ -257,7 +257,7 @@ export class Node {
   @action
   remove() {
     if (this.parent) {
-      this.parent.children!.internalDelete(this)
+      this.parent.children!.delete(this)
     }
   }
 
@@ -279,6 +279,11 @@ export class Node {
     }
 
     return false
+  }
+
+  /** whether child nodes are included */
+  isParental() {
+    return this._children ? !this._children.isEmpty() : false
   }
 
   /**

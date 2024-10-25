@@ -35,7 +35,7 @@ export class Project {
   @observable.shallow private documents: Document[] = []
 
   @computed get currentDocument() {
-    return this.documents.find(document => document.active)
+    return this.documents.find(document => document._open)
   }
 
   constructor(
@@ -113,7 +113,7 @@ export class Project {
   open(id: string) {
     const document = this.documents.find(document => document.id === id)
     if (document) {
-      document.active = true
+      document._open = true
     }
     return document
   }

@@ -33,6 +33,13 @@ export class NodeChildren {
     })
   }
 
+  remove() {
+    this.children.forEach(child => {
+      child.remove()
+    })
+    this.children.length = 0
+  }
+
   private purged = false
 
   purge() {
@@ -58,11 +65,13 @@ export class NodeChildren {
     if (i < 0) {
       return false
     }
+
     this.children.splice(i, 1)
+    return true
   }
 
   unlinkChild(node: Node) {
-    this.internalUnlinkChild(node)
+    return this.internalUnlinkChild(node)
 
     // TODO: eventbus
   }
@@ -72,12 +81,14 @@ export class NodeChildren {
   }
 
   internalDelete(node: Node): boolean {
-    const i = this.children.map(d => d.id).indexOf(node.id)
-    if (i > -1) {
-      this.children.splice(i, 1)
-      return true
+    if (node.isParental()) {
+      node.children?.remove()
     }
-    return false
+
+    node.document.unlinkNode(node)
+    node.unlink()
+
+    return true
   }
 
   isEmpty() {
