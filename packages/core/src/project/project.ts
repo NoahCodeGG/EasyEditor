@@ -1,7 +1,7 @@
 import type { Designer } from '@/designer'
 import type { DocumentSchema } from '@/document'
 
-import { Document, isDocument } from '@/document'
+import { Document, DocumentEvent, isDocument } from '@/document'
 import { createEventBus } from '@/utils/event-bus'
 import { computed, observable } from 'mobx'
 import { createLogger } from '../utils'
@@ -21,10 +21,8 @@ const defaultSchema: ProjectSchema = {
   documents: [],
 }
 
-enum ProjectEventMap {
-  DocumentCreate = 'document:create',
-  DocumentRemove = 'document:remove',
-  DocumentChange = 'document:change',
+export enum ProjectEvent {
+  RenderReady = 'renderer:ready',
 }
 
 export class Project {
@@ -118,7 +116,6 @@ export class Project {
     const doc = new Document(this, schema)
     this.documents.push(doc)
     this.documentsMap.set(doc.id, doc)
-    this.emitter.emit(ProjectEventMap.DocumentCreate, doc)
     return doc
   }
 
@@ -142,8 +139,6 @@ export class Project {
     document.remove()
     this.documents.splice(index, 1)
     this.documentsMap.delete(document.id)
-
-    this.emitter.emit(ProjectEventMap.DocumentRemove, idOrDoc)
   }
 
   /**
@@ -212,27 +207,48 @@ export class Project {
     return Reflect.get(this.data, key)
   }
 
+  private isRendererReady = false
+
+  setRendererReady(renderer: any) {
+    this.isRendererReady = true
+    this.emitter.emit(ProjectEvent.RenderReady, renderer)
+  }
+
+  /**
+   * use to wait for renderer ready and then do initial work
+   */
+  onRendererReady(fn: () => void): () => void {
+    if (this.isRendererReady) {
+      fn()
+    }
+
+    this.emitter.on(ProjectEvent.RenderReady, fn)
+    return () => {
+      this.emitter.off(ProjectEvent.RenderReady, fn)
+    }
+  }
+
   onDocumentCreate(listener: (document: Document) => void) {
-    this.emitter.on(ProjectEventMap.DocumentCreate, listener)
+    this.designer.onEvent(DocumentEvent.Create, listener)
 
     return () => {
-      this.emitter.off(ProjectEventMap.DocumentCreate, listener)
+      this.designer.offEvent(DocumentEvent.Create, listener)
     }
   }
 
   onDocumentRemove(listener: (id: string) => void) {
-    this.emitter.on(ProjectEventMap.DocumentRemove, listener)
+    this.designer.onEvent(DocumentEvent.Remove, listener)
 
     return () => {
-      this.emitter.off(ProjectEventMap.DocumentRemove, listener)
+      this.designer.offEvent(DocumentEvent.Remove, listener)
     }
   }
 
-  onDocumentChange(listener: (document: Document) => void) {
-    this.emitter.on(ProjectEventMap.DocumentChange, listener)
+  onCurrentDocumentChange(listener: (document: Document) => void) {
+    this.designer.onEvent(DocumentEvent.Change, listener)
 
     return () => {
-      this.emitter.off(ProjectEventMap.DocumentChange, listener)
+      this.designer.offEvent(DocumentEvent.Change, listener)
     }
   }
 }

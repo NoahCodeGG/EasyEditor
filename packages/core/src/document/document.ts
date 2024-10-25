@@ -1,3 +1,4 @@
+import type { Designer } from '@/designer'
 import type { Project } from '@/project'
 import type { EventBus } from '../utils'
 import type { NodeSchema } from './node/node'
@@ -12,7 +13,10 @@ export interface DocumentSchema {
   rootNode: NodeSchema
 }
 
-enum DocumentEventMap {
+export enum DocumentEvent {
+  Create = 'document:create',
+  Remove = 'document:remove',
+  Change = 'document:change',
   NodeCreate = 'document:node:create',
   NodeRemove = 'document:node:remove',
 }
@@ -65,10 +69,16 @@ export class Document {
 
   readonly project: Project
 
+  readonly designer: Designer
+
   constructor(project: Project, schema?: DocumentSchema) {
+    this.id = schema?.id ?? uniqueId('doc')
     this.project = project
+    this.designer = project.designer
     this.emitter = createEventBus('Document')
     this.import(schema)
+
+    this.designer.postEvent(DocumentEvent.Create, this)
   }
 
   @action
@@ -100,6 +110,8 @@ export class Document {
   remove() {
     this.purge()
     this.project.removeDocument(this)
+
+    this.designer.postEvent(DocumentEvent.Remove, this)
   }
 
   purge() {
@@ -120,7 +132,7 @@ export class Document {
     this.nodes.add(node)
     this._nodesMap.set(node.id, node)
 
-    this.emitter.emit(DocumentEventMap.NodeCreate, node)
+    // this.emitter.emit(DocumentEventMap.NodeCreate, node)
 
     return node
   }
@@ -166,7 +178,7 @@ export class Document {
 
     node.remove()
 
-    this.emitter.emit(DocumentEventMap.NodeRemove, node.id)
+    // this.emitter.emit(DocumentEventMap.NodeRemove, node.id)
   }
 
   unlinkNode(node: Node) {
@@ -215,14 +227,16 @@ export class Document {
   open() {
     const originState = this._opened
     this._opened = true
+    // only emit when document is suspense
     if (originState === false) {
-      // this.designer.postEvent('document-open', this);
+      this.designer.postEvent(DocumentEvent.Change, this)
     }
     if (this._opened) {
-      // this.project.checkExclusive(this);
+      this.project.checkExclusive(this)
     } else {
       this.setOpened(false)
     }
+
     return this
   }
 
@@ -238,7 +252,7 @@ export class Document {
     this._opened = flag
     // this.simulator?.setSuspense(flag);
     if (!flag) {
-      // this.project.checkExclusive(this);
+      this.project.checkExclusive(this)
     }
   }
 
@@ -265,21 +279,21 @@ export class Document {
   //   );
   // }
 
-  onNodeCreate(listener: (node: Node) => void) {
-    this.emitter.on(DocumentEventMap.NodeCreate, listener)
+  // onNodeCreate(listener: (node: Node) => void) {
+  //   this.emitter.on(DocumentEventMap.NodeCreate, listener)
 
-    return () => {
-      this.emitter.off(DocumentEventMap.NodeCreate, listener)
-    }
-  }
+  //   return () => {
+  //     this.emitter.off(DocumentEventMap.NodeCreate, listener)
+  //   }
+  // }
 
-  onNodeRemove(listener: (id: string) => void) {
-    this.emitter.on(DocumentEventMap.NodeRemove, listener)
+  // onNodeRemove(listener: (id: string) => void) {
+  //   this.emitter.on(DocumentEventMap.NodeRemove, listener)
 
-    return () => {
-      this.emitter.off(DocumentEventMap.NodeRemove, listener)
-    }
-  }
+  //   return () => {
+  //     this.emitter.off(DocumentEventMap.NodeRemove, listener)
+  //   }
+  // }
 }
 
 export function isDocument(obj: any): obj is Document {
