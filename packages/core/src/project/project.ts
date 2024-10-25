@@ -1,7 +1,7 @@
 import type { Designer } from '@/designer'
 import type { DocumentSchema } from '@/document'
 
-import { Document } from '@/document'
+import { Document, isDocument } from '@/document'
 import { createEventBus } from '@/utils/event-bus'
 import { computed, observable } from 'mobx'
 import { createLogger } from '../utils'
@@ -9,6 +9,7 @@ import { createLogger } from '../utils'
 interface ProjectSchema {
   version: string
   documents: DocumentSchema[]
+  config?: Record<string, any>
   // TODO: 组件库
   // components: any[]
   // TODO: 插件附加
@@ -34,8 +35,20 @@ export class Project {
 
   @observable.shallow private documents: Document[] = []
 
+  private documentsMap = new Map<string, Document>()
+
   @computed get currentDocument() {
-    return this.documents.find(document => document._open)
+    return this.documents.find(document => document.open)
+  }
+
+  @observable private _config: Record<string, any> | undefined
+
+  @computed get config(): Record<string, any> | undefined {
+    return this._config
+  }
+
+  set config(value: Record<string, any>) {
+    this._config = value
   }
 
   constructor(
@@ -45,6 +58,11 @@ export class Project {
     this.load(schema)
   }
 
+  /**
+   * load project schema
+   * @param schema project schema
+   * @param autoOpen auto open document, if type is string, will open document by id, if type is boolean, will open first document
+   */
   load(schema?: ProjectSchema, autoOpen?: boolean | string) {
     this.unload()
 
@@ -53,8 +71,26 @@ export class Project {
       ...schema,
     }
 
+    if (schema?.config) {
+      this._config = schema.config
+    }
+
+    if (schema?.documents) {
+      for (const document of schema.documents) {
+        this.createDocument(document)
+      }
+    }
+
     if (autoOpen) {
-      // ...
+      if (this.documents.length < 1) {
+        return this.logger.warn('no document found, skip auto open')
+      }
+
+      if (typeof autoOpen === 'string') {
+        this.open(autoOpen)
+      } else if (typeof autoOpen === 'boolean') {
+        this.open(this.documents[0].id)
+      }
     }
   }
 
@@ -62,64 +98,91 @@ export class Project {
     if (this.documents.length < 1) {
       return
     }
-    for (const document of this.documents) {
-      document.remove()
+    for (let i = this.documents.length - 1; i >= 0; i--) {
+      this.documents[i].remove()
     }
   }
 
   getSchema(): ProjectSchema {
     return {
       ...this.data,
-      // documents: this.documents.map(document => document.export()),
+      documents: this.documents.map(document => document.export()),
     }
   }
 
   setSchema(schema: ProjectSchema) {
-    // this.data = {
-    //   ...this.data,
-    //   ...schema,
-    // }
+    this.load(schema)
   }
 
   createDocument(schema?: DocumentSchema) {
-    const document = new Document(this, schema)
-    this.documents.push(document)
-
-    this.emitter.emit(ProjectEventMap.DocumentCreate, document)
-    return document
+    const doc = new Document(this, schema)
+    this.documents.push(doc)
+    this.documentsMap.set(doc.id, doc)
+    this.emitter.emit(ProjectEventMap.DocumentCreate, doc)
+    return doc
   }
 
-  removeDocument(id: string | Document) {
+  removeDocument(idOrDoc: string | Document) {
     let document: Document | undefined
-    if (typeof id === 'string') {
-      document = this.documents.find(document => document.id === id)
+    if (typeof idOrDoc === 'string') {
+      document = this.documents.find(document => document.id === idOrDoc)
     } else {
-      document = id
+      document = idOrDoc
     }
 
     if (!document) {
-      return this.logger.warn('document not found', id)
+      return this.logger.warn('document not found', idOrDoc)
+    }
+
+    const index = this.documents.indexOf(document)
+    if (index < 0) {
+      return this.logger.warn('document not found', idOrDoc)
     }
 
     document.remove()
-    this.documents.splice(this.documents.indexOf(document), 1)
+    this.documents.splice(index, 1)
+    this.documentsMap.delete(document.id)
 
-    this.emitter.emit(ProjectEventMap.DocumentRemove, id)
+    this.emitter.emit(ProjectEventMap.DocumentRemove, idOrDoc)
   }
 
   /**
-   * active a document
+   * open or create a document
    */
-  open(id: string) {
-    const document = this.documents.find(document => document.id === id)
-    if (document) {
-      document._open = true
+  open(idOrDoc?: string | Document | DocumentSchema) {
+    if (!idOrDoc) {
+      this.logger.warn('no doc param found, will create a new document')
+      return this.createDocument().open()
     }
-    return document
+
+    if (typeof idOrDoc === 'string') {
+      const got = this.documents.find(doc => doc.id === idOrDoc)
+      return got?.open()
+    }
+    if (isDocument(idOrDoc)) {
+      return idOrDoc.open()
+    }
+
+    const newDoc = this.createDocument(idOrDoc)
+    return newDoc.open()
+  }
+
+  /**
+   * suspense other documents
+   * @param curDoc current active document
+   */
+  checkExclusive(curDoc: Document) {
+    for (const doc of this.documents) {
+      if (doc !== curDoc) {
+        doc.suspense()
+      }
+    }
+
+    this.emitter.emit('current-document.change', curDoc)
   }
 
   getDocument(id: string) {
-    return this.documents.find(document => document.id === id)
+    return this.documents.find(doc => doc.id === id)
   }
 
   /**
@@ -128,6 +191,10 @@ export class Project {
   set<T extends keyof ProjectSchema>(key: T, value: ProjectSchema[T]): void
   set(key: string, value: unknown): void
   set(key: string, value: unknown): void {
+    if (key === 'config') {
+      this._config = value as Record<string, any>
+    }
+
     Object.assign(this.data, { [key]: value })
   }
 
@@ -138,6 +205,10 @@ export class Project {
   get<T>(key: string): T
   get(key: string): unknown
   get(key: string): any {
+    if (key === 'config') {
+      return this._config
+    }
+
     return Reflect.get(this.data, key)
   }
 
