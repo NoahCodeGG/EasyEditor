@@ -1,13 +1,21 @@
-import { createLogger } from '@/utils'
-import { action, computed, observable } from 'mobx'
 import type { Node, NodeSchema } from './node'
+
+import { createEventBus, createLogger } from '@/utils'
+import { action, computed, observable } from 'mobx'
+import { NODE_EVENT } from './node'
+
+export enum NODE_CHILDREN_EVENT {
+  CHANGE = 'nodeChildren:change',
+  INSERT = 'nodeChildren:insert',
+}
 
 export class NodeChildren {
   private logger = createLogger('NodeChildren')
+  private emitter = createEventBus('NodeChildren')
 
   readonly owner: Node
 
-  @observable.ref children: Node[] = []
+  @observable.shallow children: Node[] = []
 
   getNode() {
     return this.owner
@@ -71,9 +79,11 @@ export class NodeChildren {
   }
 
   unlinkChild(node: Node) {
-    return this.internalUnlinkChild(node)
-
-    // TODO: eventbus
+    this.internalUnlinkChild(node)
+    this.emitter.emit(NODE_CHILDREN_EVENT.CHANGE, {
+      type: 'unlink',
+      node,
+    })
   }
 
   delete(node: Node): boolean {
@@ -85,8 +95,13 @@ export class NodeChildren {
       node.children?.remove()
     }
 
-    node.document.unlinkNode(node)
+    const { document } = node
+    document.unlinkNode(node)
     node.unlink()
+    this.emitter.emit(NODE_CHILDREN_EVENT.CHANGE, {
+      type: 'delete',
+      node,
+    })
 
     return true
   }
@@ -135,6 +150,14 @@ export class NodeChildren {
       children.splice(inChildrenIndex, 1)
       children.splice(index, 0, node)
     }
+
+    this.emitter.emit(NODE_CHILDREN_EVENT.CHANGE, {
+      type: 'insert',
+      node,
+    })
+    this.emitter.emit(NODE_CHILDREN_EVENT.INSERT, node)
+    const designer = this.owner.document.designer
+    designer.postEvent(NODE_EVENT.ADD, node)
   }
 
   indexOf(node: Node): number {
@@ -183,5 +206,19 @@ export class NodeChildren {
     return this.children.reduce((acc: any, cur: Node) => {
       return fn(acc, cur)
     }, initialValue)
+  }
+
+  onChange(listener: (info?: any) => void) {
+    this.emitter.on(NODE_CHILDREN_EVENT.CHANGE, listener)
+    return () => {
+      this.emitter.off(NODE_CHILDREN_EVENT.CHANGE, listener)
+    }
+  }
+
+  onInsert(listener: (node: Node) => void) {
+    this.emitter.on(NODE_CHILDREN_EVENT.INSERT, listener)
+    return () => {
+      this.emitter.off(NODE_CHILDREN_EVENT.INSERT, listener)
+    }
   }
 }

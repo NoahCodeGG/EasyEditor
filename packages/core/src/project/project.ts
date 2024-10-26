@@ -219,14 +219,14 @@ export class Project {
   /**
    * use to wait for renderer ready and then do initial work
    */
-  onRendererReady(fn: () => void): () => void {
+  onRendererReady(listener: () => void): () => void {
     if (this.isRendererReady) {
-      fn()
+      listener()
     }
 
-    this.emitter.on(PROJECT_EVENT.RENDERER_READY, fn)
+    this.emitter.on(PROJECT_EVENT.RENDERER_READY, listener)
     return () => {
-      this.emitter.off(PROJECT_EVENT.RENDERER_READY, fn)
+      this.emitter.off(PROJECT_EVENT.RENDERER_READY, listener)
     }
   }
 
@@ -235,14 +235,6 @@ export class Project {
 
     return () => {
       this.designer.offEvent(DOCUMENT_EVENT.ADD, listener)
-    }
-  }
-
-  onDocumentCreate(listener: (document: Document) => void) {
-    this.designer.onEvent(DOCUMENT_EVENT.CREATE, listener)
-
-    return () => {
-      this.designer.offEvent(DOCUMENT_EVENT.CREATE, listener)
     }
   }
 

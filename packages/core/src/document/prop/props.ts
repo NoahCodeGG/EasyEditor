@@ -1,8 +1,9 @@
 import type { Node } from '../node/node'
+import type { PropKey, PropValue } from './prop'
 
 import { createLogger, uniqueId } from '@/utils'
 import { action, computed, observable } from 'mobx'
-import { Prop, type PropKey, type PropValue, UNSET, splitPath } from './prop'
+import { Prop, UNSET, splitPath } from './prop'
 
 export interface PropsSchema {
   [key: PropKey]: any
@@ -58,10 +59,18 @@ export class Props {
 
   @observable.shallow items: Prop[] = []
 
-  private _maps = new Map<string, Prop>()
+  @computed private get maps() {
+    const maps = new Map<string, Prop>()
 
-  get maps() {
-    return this._maps
+    if (this.items.length > 0) {
+      this.items.forEach(prop => {
+        if (prop.key) {
+          maps.set(prop.key, prop)
+        }
+      })
+    }
+
+    return maps
   }
 
   @computed get size() {
@@ -75,6 +84,9 @@ export class Props {
 
   @action
   import(props?: PropsSchema, extras?: PropsSchema) {
+    // TODO: 是否需要继承之前相同的 key，来保持响应式
+    this.purge()
+
     if (props) {
       this.items = Object.keys(props).map(key => new Prop(this, key, props[key]))
     }

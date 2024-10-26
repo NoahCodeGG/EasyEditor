@@ -15,7 +15,6 @@ export interface DocumentSchema {
 
 export enum DOCUMENT_EVENT {
   ADD = 'document:add',
-  CREATE = 'document:create',
   REMOVE = 'document:remove',
   OPEN_CHANGE = 'document:open.change',
   OPEN = 'document:open',
@@ -35,6 +34,10 @@ export class Document {
 
   /** document root node */
   rootNode: Node | null = null
+
+  getRoot() {
+    return this.rootNode
+  }
 
   private _nodesMap = new Map<Node['id'], Node>()
 
@@ -63,6 +66,8 @@ export class Document {
 
   // history: History
 
+  // TODO: 不应该放在 document，这一块应该是属于 designer 的
+  // 原本的设计是每个 document 都有一个独立的 selection，但是感觉没必要
   // readonly selection
 
   readonly project: Project
@@ -75,8 +80,6 @@ export class Document {
     this.designer = project.designer
     this.emitter = createEventBus('Document')
     this.import(schema)
-
-    this.designer.postEvent(DOCUMENT_EVENT.CREATE, this)
   }
 
   @action
@@ -123,14 +126,13 @@ export class Document {
   createNode(schema: NodeSchema) {
     if (this.hasNode(schema?.id)) {
       this.logger.error('node already exists', schema.id)
-      return this.getNode(schema.id)
+      return this.getNode(schema.id)!
     }
 
     const node = new Node(this, schema)
     this.nodes.add(node)
     this._nodesMap.set(node.id, node)
 
-    this.designer.postEvent(NODE_EVENT.ADD, node)
     return node
   }
 
@@ -263,6 +265,58 @@ export class Document {
     this.setOpened(true)
   }
 
+  /**
+   * get components map of all the nodes in this document
+   * @param extraComps - extra components that will be added to the components map, use for custom components
+   */
+  getComponentsMap(extraComps?: string[]) {
+    // TODO: component 类型
+    const componentsMap: Record<Node['componentName'], any> = []
+    // use map to avoid duplicate
+    const existedMap: Record<Node['componentName'], boolean> = {}
+
+    for (const node of this._nodesMap.values()) {
+      // TODO: 组件具体内容添加
+      // const { componentName } = node || {}
+      // if (!existedMap[componentName]) {
+      //   existedMap[componentName] = true
+      //   if (node.componentMeta?.npm?.package) {
+      //     componentsMap.push({
+      //       ...node.componentMeta.npm,
+      //       componentName,
+      //     })
+      //   } else {
+      //     componentsMap.push({
+      //       devMode: 'lowCode',
+      //       componentName,
+      //     })
+      //   }
+      // }
+    }
+
+    // combine extra components
+    if (Array.isArray(extraComps)) {
+      extraComps.forEach(componentName => {
+        // if (componentName && !existedMap[componentName]) {
+        //   const meta = this.getComponentMeta(componentName)
+        //   if (meta?.npm?.package) {
+        //     componentsMap.push({
+        //       ...meta?.npm,
+        //       componentName,
+        //     })
+        //   } else {
+        //     componentsMap.push({
+        //       devMode: 'lowCode',
+        //       componentName,
+        //     })
+        //   }
+        // }
+      })
+    }
+
+    return componentsMap
+  }
+
   // isModified(): boolean {
   //   return this.history.isSavePoint();
   // }
@@ -278,11 +332,11 @@ export class Document {
   //   );
   // }
 
-  onReady(fn: () => void) {
-    this.designer.onEvent(DOCUMENT_EVENT.OPEN, fn)
+  onReady(listener: () => void) {
+    this.designer.onEvent(DOCUMENT_EVENT.OPEN, listener)
 
     return () => {
-      this.designer.offEvent(DOCUMENT_EVENT.OPEN, fn)
+      this.designer.offEvent(DOCUMENT_EVENT.OPEN, listener)
     }
   }
 
@@ -299,30 +353,6 @@ export class Document {
 
     return () => {
       this.designer.offEvent(NODE_EVENT.REMOVE, listener)
-    }
-  }
-
-  onNodeVisibleChange(fn: (node: Node, visible: boolean) => void) {
-    this.designer.onEvent(NODE_EVENT.VISIBLE_CHANGE, fn)
-
-    return () => {
-      this.designer.offEvent(NODE_EVENT.VISIBLE_CHANGE, fn)
-    }
-  }
-
-  onNodeLockChange(fn: (node: Node, lock: boolean) => void) {
-    this.designer.onEvent(NODE_EVENT.LOCK_CHANGE, fn)
-
-    return () => {
-      this.designer.offEvent(NODE_EVENT.LOCK_CHANGE, fn)
-    }
-  }
-
-  onNodeChildrenChange(fn: (info: any) => void) {
-    this.designer.onEvent(NODE_EVENT.CHILDREN_CHANGE, fn)
-
-    return () => {
-      this.designer.offEvent(NODE_EVENT.CHILDREN_CHANGE, fn)
     }
   }
 }

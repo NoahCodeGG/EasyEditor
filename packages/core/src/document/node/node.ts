@@ -1,10 +1,11 @@
+import type { EventBus } from '@/utils'
 import type { Document } from '../document'
 import type { PropKey, PropValue } from '../prop/prop'
+
+import { createEventBus, createLogger, uniqueId } from '@/utils'
+import { action, computed, observable } from 'mobx'
 import { Props, getConvertedExtraKey } from '../prop/props'
 import { NodeChildren } from './node-children'
-
-import { type EventBus, createEventBus, createLogger, uniqueId } from '@/utils'
-import { action, computed, observable } from 'mobx'
 
 export interface NodeSchema {
   id: string
@@ -15,16 +16,15 @@ export interface NodeSchema {
 
 export enum NODE_EVENT {
   ADD = 'node:add',
-  CREATE = 'node:create',
   REMOVE = 'node:remove',
   VISIBLE_CHANGE = 'node:visible.change',
   LOCK_CHANGE = 'node:lock.change',
-  CHILDREN_CHANGE = 'node:children.change',
+  PROP_CHANGE = 'node:prop.change',
 }
 
 export class Node {
   private logger = createLogger('Node')
-  private emitter: EventBus
+  protected emitter: EventBus
 
   readonly isNode = true
 
@@ -49,7 +49,7 @@ export class Node {
   }
 
   /**
-   * if the node is the root node, return -1
+   * if the node is the root node or not linked, return -1
    */
   @computed get index() {
     if (!this.parent) {
@@ -60,7 +60,7 @@ export class Node {
   }
 
   /**
-   * z-index level of the node
+   * z-index level of this node
    */
   @computed get zLevel(): number {
     if (this._parent) {
@@ -125,8 +125,6 @@ export class Node {
     this.emitter = createEventBus('Node')
 
     this.initBuiltinProps()
-
-    this.document.designer.postEvent(NODE_EVENT.CREATE, this)
   }
 
   export() {
@@ -161,8 +159,7 @@ export class Node {
 
   hide(flag = true) {
     this.setExtraProp('isHidden', flag)
-
-    // TODO: eventbus
+    this.emitter.emit(NODE_EVENT.VISIBLE_CHANGE, flag)
   }
 
   isHidden() {
@@ -171,6 +168,7 @@ export class Node {
 
   lock(flag = true) {
     this.setExtraProp('isLocked', flag)
+    this.emitter.emit(NODE_EVENT.LOCK_CHANGE, flag)
   }
 
   isLocked() {
@@ -231,6 +229,9 @@ export class Node {
     this._parent = null
   }
 
+  /**
+   * unlink this node from its parent
+   */
   unlink() {
     if (this.parent) {
       this.parent.children!.unlinkChild(this)
@@ -291,9 +292,19 @@ export class Node {
     return false
   }
 
-  /** whether child nodes are included */
+  /**
+   * whether child nodes are included
+   */
   isParental() {
     return this._children ? !this._children.isEmpty() : false
+  }
+
+  /**
+   * whether this node is a leaf node
+   * TODO: 这种方式判断是否是叶子节点，感觉不太对
+   */
+  isLeaf() {
+    return this._children ? this._children.isEmpty() : true
   }
 
   /**
@@ -388,8 +399,141 @@ export class Node {
     }
     return this.parent.children?.get(index - 1)
   }
+
+  /**
+   * check if this node contains another node
+   */
+  contains(node: Node): boolean {
+    return contains(this, node)
+  }
+
+  /**
+   * get the parent node at a specific depth
+   */
+  getZLevelTop(zLevel: number) {
+    return getZLevelTop(this, zLevel)
+  }
+
+  /**
+   * compare the position of this node and another node
+   *
+   *  - 16 thisNode contains otherNode
+   *  - 8  thisNode contained_by otherNode
+   *  - 2  thisNode before or after otherNode
+   *  - 0  thisNode same as otherNode
+   */
+  comparePosition(otherNode: Node) {
+    return comparePosition(this, otherNode)
+  }
+
+  onVisibleChange(listener: (flag: boolean) => void) {
+    this.emitter.on(NODE_EVENT.VISIBLE_CHANGE, listener)
+
+    return () => {
+      this.emitter.off(NODE_EVENT.VISIBLE_CHANGE, listener)
+    }
+  }
+
+  onLockChange(listener: (flag: boolean) => void) {
+    this.emitter.on(NODE_EVENT.LOCK_CHANGE, listener)
+
+    return () => {
+      this.emitter.off(NODE_EVENT.LOCK_CHANGE, listener)
+    }
+  }
+
+  onChildrenChange(listener: (children: Node[]) => void) {
+    return this.children?.onChange(listener)
+  }
+
+  emitPropChange(prop: any) {
+    this.emitter.emit(NODE_EVENT.PROP_CHANGE, prop)
+  }
+
+  onPropChange(listener: (info: any) => void) {
+    this.emitter.on(NODE_EVENT.PROP_CHANGE, listener)
+    return () => {
+      this.emitter.off(NODE_EVENT.PROP_CHANGE, listener)
+    }
+  }
 }
 
 export const isNode = (node: any): node is Node => {
   return node && node.isNode
+}
+
+export function getZLevelTop(child: Node, zLevel: number): Node | null {
+  let l = child.zLevel
+  if (l < zLevel || zLevel < 0) {
+    return null
+  }
+  if (l === zLevel) {
+    return child
+  }
+  let r: any = child
+  while (r && l-- > zLevel) {
+    r = r.parent
+  }
+  return r
+}
+
+/**
+ * check if node1 contains node2
+ */
+export function contains(node1: Node, node2: Node): boolean {
+  if (node1 === node2) {
+    return true
+  }
+
+  if (!node1.isParental() || !node2.parent) {
+    return false
+  }
+
+  const p = getZLevelTop(node2, node1.zLevel)
+  if (!p) {
+    return false
+  }
+
+  return node1 === p
+}
+
+// 16 node1 contains node2
+// 8  node1 contained_by node2
+// 2  node1 before or after node2
+// 0  node1 same as node2
+export enum PositionNO {
+  Contains = 16,
+  ContainedBy = 8,
+  BeforeOrAfter = 2,
+  TheSame = 0,
+}
+
+/**
+ * compare the position of two nodes
+ */
+export function comparePosition(node1: Node, node2: Node): PositionNO {
+  if (node1 === node2) {
+    return PositionNO.TheSame
+  }
+  const l1 = node1.zLevel
+  const l2 = node2.zLevel
+  if (l1 === l2) {
+    return PositionNO.BeforeOrAfter
+  }
+
+  let p: any
+  if (l1 < l2) {
+    p = getZLevelTop(node2, l1)
+    if (p && p === node1) {
+      return PositionNO.Contains
+    }
+    return PositionNO.BeforeOrAfter
+  }
+
+  p = getZLevelTop(node1, l2)
+  if (p && p === node2) {
+    return PositionNO.ContainedBy
+  }
+
+  return PositionNO.BeforeOrAfter
 }

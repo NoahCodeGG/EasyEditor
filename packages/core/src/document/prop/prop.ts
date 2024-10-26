@@ -1,7 +1,8 @@
-import { uniqueId } from '@/utils'
-import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
 import type { Node } from '../node/node'
 import type { Props } from './props'
+
+import { uniqueId } from '@/utils'
+import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
 
 export const UNSET = Symbol.for('unset')
 export type UNSET = typeof UNSET
@@ -272,6 +273,7 @@ export class Prop {
   setValue(val: any) {
     if (val === this._value) return
 
+    const oldValue = this._value
     this._value = val
     const t = typeof val
     if (val == null) {
@@ -287,7 +289,12 @@ export class Prop {
     this.dispose()
     this.initItems()
 
-    // TODO: eventbus change
+    this.owner.emitPropChange({
+      key: this.key,
+      prop: this,
+      oldValue,
+      newValue: this._value,
+    })
   }
 
   getValue() {
@@ -437,6 +444,11 @@ export class Prop {
         this.delete(prop)
       }
     }
+  }
+
+  @action
+  clearPropValue(propName: string): void {
+    this.get(propName, false)?.unset()
   }
 
   getAsString(): string {
