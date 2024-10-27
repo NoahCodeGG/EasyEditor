@@ -6,7 +6,7 @@ import { createEventBus } from '@/utils/event-bus'
 import { computed, observable } from 'mobx'
 import { createLogger } from '../utils'
 
-interface ProjectSchema {
+export interface ProjectSchema {
   version: string
   documents: DocumentSchema[]
   config?: Record<string, any>
