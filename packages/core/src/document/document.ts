@@ -5,6 +5,7 @@ import type { NodeSchema } from './node/node'
 
 import { action, observable } from 'mobx'
 import { createEventBus, createLogger, uniqueId } from '../utils'
+import { History } from './history'
 import { NODE_EVENT, Node, isNode } from './node/node'
 
 export interface DocumentSchema {
@@ -64,7 +65,11 @@ export class Document {
     return this._blank
   }
 
-  // history: History
+  readonly history: History
+
+  getHistory() {
+    return this.history
+  }
 
   // TODO: 不应该放在 document，这一块应该是属于 designer 的
   // 原本的设计是每个 document 都有一个独立的 selection，但是感觉没必要
@@ -80,6 +85,15 @@ export class Document {
     this.designer = project.designer
     this.emitter = createEventBus('Document')
     this.import(schema)
+
+    this.history = new History(
+      () => this.export(),
+      schema => {
+        this.import(schema)
+        // this.designer.rerender()
+      },
+      this,
+    )
   }
 
   @action
@@ -263,6 +277,13 @@ export class Document {
 
   activate() {
     this.setOpened(true)
+  }
+
+  /**
+   * check if there is unsaved change for document
+   */
+  isModified() {
+    return this.history.isSavePoint()
   }
 
   /**
