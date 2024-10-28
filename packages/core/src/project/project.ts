@@ -31,7 +31,8 @@ export class Project {
 
   private data: ProjectSchema = defaultSchema
 
-  @observable.shallow private documents: Document[] = []
+  // TODO： dragon 临时改为非 private
+  @observable.shallow documents: Document[] = []
 
   private documentsMap = new Map<string, Document>()
 

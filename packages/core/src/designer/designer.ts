@@ -4,7 +4,7 @@ import type { Document } from '@/document'
 import { createEventBus, createLogger } from '@/utils'
 import { computed, observable } from 'mobx'
 import { Detecting } from './detecting'
-import { Dragon } from './dragon'
+import { Dragon, type DropLocation } from './dragon'
 import { Selection } from './selection'
 
 // export type ComponentType<T> = React.ComponentType<T>
@@ -50,6 +50,8 @@ export class Designer {
 
   readonly selection: Selection
 
+  private _dropLocation?: DropLocation
+
   @observable.ref private _componentMetasMap = new Map<string, ComponentMeta>()
 
   private _lostComponentMetasMap = new Map<string, ComponentMeta>()
@@ -65,7 +67,7 @@ export class Designer {
   constructor(props: DesignerProps) {
     this.setProps(props)
     this.project = new Project(this, props?.defaultSchema)
-    this.dragon = new Dragon()
+    this.dragon = new Dragon(this)
     this.detecting = new Detecting()
     this.selection = new Selection(this)
 
@@ -232,5 +234,16 @@ export class Designer {
 
   offEvent(event: string, listener: (...args: any[]) => void) {
     this.emitter.off(`designer:${event}`, listener)
+  }
+
+  /**
+   * 清除插入位置
+   */
+  clearLocation() {
+    if (this._dropLocation && this._dropLocation.document) {
+      this._dropLocation.document.dropLocation = null
+    }
+    this.postEvent('dropLocation.change', undefined)
+    this._dropLocation = undefined
   }
 }
