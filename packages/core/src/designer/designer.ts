@@ -5,6 +5,7 @@ import { createEventBus, createLogger } from '@/utils'
 import { computed, observable } from 'mobx'
 import { Detecting } from './detecting'
 import { Dragon } from './dragon'
+import { Selection } from './selection'
 
 // export type ComponentType<T> = React.ComponentType<T>
 export type ComponentType<T> = any
@@ -59,14 +60,6 @@ export class Designer {
 
   // @observable private _suspensed = false
 
-  get currentDocument() {
-    return this.project.currentDocument
-  }
-
-  get currentHistory() {
-    return this.currentDocument?.history
-  }
-
   private props?: DesignerProps
 
   constructor(props: DesignerProps) {
@@ -74,7 +67,7 @@ export class Designer {
     this.project = new Project(this, props?.defaultSchema)
     this.dragon = new Dragon()
     this.detecting = new Detecting()
-    this.selection = new Selection()
+    this.selection = new Selection(this)
 
     // TODO: dragon event
 

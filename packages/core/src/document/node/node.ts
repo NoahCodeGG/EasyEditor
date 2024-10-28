@@ -292,6 +292,18 @@ export class Node {
     return false
   }
 
+  // TODO
+  canSelect() {
+    // const onSelectHook = this.componentMeta?.advanced?.callbacks?.onSelectHook
+    // const canSelect = typeof onSelectHook === 'function' ? onSelectHook(this.internalToShellNode()!) : true
+    // return canSelect
+    return true
+  }
+
+  select() {
+    this.document.project.designer.selection.select(this.id)
+  }
+
   /**
    * whether child nodes are included
    */
