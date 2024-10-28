@@ -154,7 +154,7 @@ export class Selection {
   //   return nodes
   // }
 
-  onChange(listener: (ids: string[]) => void): () => void {
+  onSelectionChange(listener: (ids: string[]) => void): () => void {
     this.emitter.on(SELECTION_EVENT.CHANGE, listener)
 
     return () => {

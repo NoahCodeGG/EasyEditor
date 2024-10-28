@@ -301,7 +301,15 @@ export class Node {
   }
 
   select() {
-    this.document.project.designer.selection.select(this.id)
+    this.document.designer.selection.select(this.id)
+  }
+
+  hover(flag = true) {
+    if (flag) {
+      this.document.designer.detecting.capture(this)
+    } else {
+      this.document.designer.detecting.release(this)
+    }
   }
 
   /**
