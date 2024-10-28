@@ -35,7 +35,6 @@ export class Node {
   protected _children: NodeChildren | null
 
   @observable.ref private _parent: Node | null = null
-  isSlot: any
 
   get parent() {
     return this._parent

@@ -1,15 +1,37 @@
 import type { Document, Node, NodeSchema } from '@/document'
-import { type EventBus, createEventBus, cursor } from '@/utils'
+import { type Simulator, isSimulator } from '@/simulator'
+import { createEventBus, cursor } from '@/utils'
 import { setNativeSelection } from '@/utils/navtive-selection'
-import { makeObservable, observable } from 'mobx'
+import { observable } from 'mobx'
 import type { Designer } from '.'
 import type { LocationDetail } from './location'
-
-const SHAKE_DISTANCE = 4
 
 export class DragObject {
   data: NodeSchema | NodeSchema[] | undefined
   nodes: (Node | null)[] | undefined
+}
+
+export enum DragObjectType {
+  Node = 'node',
+  NodeData = 'nodedata',
+}
+
+export interface DragNodeObject<T = Node> {
+  type: DragObjectType.Node
+  nodes: T[]
+}
+
+export interface DragNodeDataObject {
+  type: DragObjectType.NodeData
+  data: NodeSchema | NodeSchema[]
+  thumbnail?: string
+  description?: string
+  [extra: string]: any
+}
+
+export interface DragAnyObject {
+  type: string
+  [key: string]: any
 }
 
 export interface LocateEvent {
@@ -46,6 +68,8 @@ export interface LocateEvent {
   document?: Document | null
 
   get dragObject(): DragObject | null
+
+  sensor?: Sensor
 }
 
 export interface DropLocation {
@@ -74,7 +98,7 @@ export interface DropLocation {
   clone(event: LocateEvent): DropLocation
 }
 
-export interface Sensor<Node> {
+export interface Sensor<T = Node> {
   /**
    * 是否可响应，比如面板被隐藏，可设置该值 false
    */
@@ -106,36 +130,84 @@ export interface Sensor<Node> {
   // getNodeInstanceFromElement?: (e: Element | null) => IPublicTypeNodeInstance<IPublicTypeComponentInstance, Node> | null
 }
 
+export function isDragNodeObject(obj: any): obj is DragNodeObject {
+  return obj && obj.type === DragObjectType.Node
+}
+
+export function isDragNodeDataObject(obj: any): obj is DragNodeDataObject {
+  return obj && obj.type === DragObjectType.NodeData
+}
+
+export function isDragAnyObject(obj: any): obj is DragAnyObject {
+  return obj && obj.type !== DragObjectType.NodeData && obj.type !== DragObjectType.Node
+}
+
+export function isLocateEvent(e: any): e is LocateEvent {
+  return e && e.type === 'LocateEvent'
+}
+
+function isDragEvent(e: any): e is DragEvent {
+  return e?.type?.startsWith('drag')
+}
+
+export function isInvalidPoint(e: any, last: any): boolean {
+  return (
+    e.clientX === 0 &&
+    e.clientY === 0 &&
+    last &&
+    (Math.abs(last.clientX - e.clientX) > 5 || Math.abs(last.clientY - e.clientY) > 5)
+  )
+}
+
+export function isSameAs(e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean {
+  return e1.clientY === e2.clientY && e1.clientX === e2.clientX
+}
+
+const SHAKE_DISTANCE = 4
+
+/**
+ * mouse shake check
+ */
+export function isShaken(e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean {
+  if ((e1 as any).shaken) {
+    return true
+  }
+  if (e1.target !== e2.target) {
+    return true
+  }
+  return (e1.clientY - e2.clientY) ** 2 + (e1.clientX - e2.clientX) ** 2 > SHAKE_DISTANCE
+}
+
+export function setShaken(e: any) {
+  e.shaken = true
+}
+
+function getSourceSensor(dragObject: DragObject): Simulator | null {
+  if (!isDragNodeObject(dragObject)) {
+    return null
+  }
+  return dragObject.nodes[0]?.document?.simulator || null
+}
+
 export class Dragon {
-  private sensors: Sensor<Node>[] = []
-  private nodeInstPointerEvents = false
+  emitter = createEventBus('Dragon')
 
-  key = Math.random()
+  private sensors: Sensor[] = []
 
-  /**
-   * current active sensor, 可用于感应区高亮
-   */
-  @observable.ref private _activeSensor: Sensor<Node> | undefined
+  /** current active sensor */
+  @observable.ref private _activeSensor: Sensor | undefined
 
-  get activeSensor(): Sensor<Node> | undefined {
+  get activeSensor() {
     return this._activeSensor
   }
 
   @observable.ref private _dragging = false
 
-  @observable.ref private _canDrop = false
-
-  get dragging(): boolean {
+  get dragging() {
     return this._dragging
   }
 
-  viewName: string | undefined
-
-  emitter: EventBus = createEventBus('Dragon')
-
-  constructor(readonly designer: Designer) {
-    makeObservable(this)
-  }
+  constructor(readonly designer: Designer) {}
 
   /**
    * Quick listen a shell(container element) drag behavior
@@ -167,125 +239,42 @@ export class Dragon {
 
   /**
    * boost your dragObject for dragging(flying) 发射拖拽对象
-   *
    * @param dragObject 拖拽对象
    * @param boostEvent 拖拽初始时事件
    */
-  boost(dragObject: DragObject, boostEvent: MouseEvent | DragEvent, fromRglNode?: Node) {
+  boost(dragObject: DragObject, boostEvent: MouseEvent | DragEvent) {
     const { designer } = this
-    // const masterSensors = this.getMasterSensors()
-    // const handleEvents = makeEventsHandler(boostEvent, masterSensors)
-    // const newBie = !isDragNodeObject(dragObject)
-    // TODO
-    const forceCopyState = false
-    // isDragNodeObject(dragObject) &&
-    // dragObject.nodes.some((node: Node) => (typeof node.isSlot === 'function' ? node.isSlot() : node.isSlot))
+    const masterSensors = this.getMasterSensors()
+    const handleEvents = makeEventsHandler(boostEvent, masterSensors)
+    const newBie = !isDragNodeObject(dragObject)
     const isBoostFromDragAPI = isDragEvent(boostEvent)
-    let lastSensor: Sensor<Node> | undefined
+    let lastSensor: Sensor | undefined
 
     this._dragging = false
 
-    const getRGL = (e: MouseEvent | DragEvent) => {
-      const locateEvent = createLocateEvent(e)
-      const sensor = chooseSensor(locateEvent)
-      if (!sensor || !sensor.getNodeInstanceFromElement) return {}
-      const nodeInst = sensor.getNodeInstanceFromElement(e.target as Element)
-      return nodeInst?.node?.getRGL() || {}
-    }
-
-    const checkEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    /**
+     * When you press esc while dragging, it will stop dnd
+     * @param e
+     */
+    const checkesc = (e: KeyboardEvent) => {
+      if (e.keyCode === 27) {
         designer.clearLocation()
         over()
       }
     }
 
-    let copy = false
-    const checkCopy = (e: MouseEvent | DragEvent | KeyboardEvent) => {
-      if (isDragEvent(e) && e.dataTransfer) {
-        // if (newBie || forceCopyState) {
-        if (forceCopyState) {
-          e.dataTransfer.dropEffect = 'copy'
-        }
-
-        return
-      }
-
-      // if (newBie) {
-      //   return
-      // }
-
-      if (e.altKey || e.ctrlKey) {
-        copy = true
-        this.setCopyState(true)
-        if (isDragEvent(e) && e.dataTransfer) {
-          e.dataTransfer.dropEffect = 'copy'
-        }
-      } else {
-        copy = false
-        if (!forceCopyState) {
-          this.setCopyState(false)
-          if (isDragEvent(e) && e.dataTransfer) {
-            e.dataTransfer.dropEffect = 'move'
-          }
-        }
-      }
-    }
-
     let lastArrive: any
     const drag = (e: MouseEvent | DragEvent) => {
-      // FIXME: donot setcopy when: newbie & no location
-      checkCopy(e)
-
       if (isInvalidPoint(e, lastArrive)) return
 
       if (lastArrive && isSameAs(e, lastArrive)) {
         lastArrive = e
         return
       }
-
       lastArrive = e
 
-      const { isRGL, rglNode } = getRGL(e)
       const locateEvent = createLocateEvent(e)
       const sensor = chooseSensor(locateEvent)
-
-      if (isRGL) {
-        // 禁止被拖拽元素的阻断
-        // const nodeInst = dragObject.nodes?.[0]?.getDOMNode()
-        // if (nodeInst && nodeInst.style) {
-        //   this.nodeInstPointerEvents = true
-        //   nodeInst.style.pointerEvents = 'none'
-        // }
-
-        // 原生拖拽
-        this.emitter.emit('rgl.sleeping', false)
-        if (fromRglNode && fromRglNode.id === rglNode.id) {
-          designer.clearLocation()
-          this.clearState()
-          this.emitter.emit('drag', locateEvent)
-          return
-        }
-
-        this._canDrop = !!sensor?.locate(locateEvent)
-
-        if (this._canDrop) {
-          this.emitter.emit('rgl.add.placeholder', {
-            rglNode,
-            fromRglNode,
-            node: locateEvent.dragObject?.nodes?.[0],
-            event: e,
-          })
-          designer.clearLocation()
-          this.clearState()
-          this.emitter.emit('drag', locateEvent)
-          return
-        }
-      } else {
-        this._canDrop = false
-        this.emitter.emit('rgl.remove.placeholder')
-        this.emitter.emit('rgl.sleeping', true)
-      }
 
       if (sensor) {
         sensor.fixEvent(locateEvent)
@@ -293,7 +282,6 @@ export class Dragon {
       } else {
         designer.clearLocation()
       }
-
       this.emitter.emit('drag', locateEvent)
     }
 
@@ -301,8 +289,7 @@ export class Dragon {
       this._dragging = true
       setShaken(boostEvent)
       const locateEvent = createLocateEvent(boostEvent)
-      // if (newBie || forceCopyState) {
-      if (forceCopyState) {
+      if (newBie) {
         this.setCopyState(true)
       } else {
         chooseSensor(locateEvent)
@@ -310,9 +297,9 @@ export class Dragon {
       this.setDraggingState(true)
       // ESC cancel drag
       if (!isBoostFromDragAPI) {
-        // handleEvents(doc => {
-        //   doc.addEventListener('keydown', checkEsc, false)
-        // })
+        handleEvents(doc => {
+          doc.addEventListener('keydown', checkesc, false)
+        })
       }
 
       this.emitter.emit('dragstart', locateEvent)
@@ -320,7 +307,6 @@ export class Dragon {
 
     // route: drag-move
     const move = (e: MouseEvent | DragEvent) => {
-      /* istanbul ignore next */
       if (isBoostFromDragAPI) {
         e.preventDefault()
       }
@@ -339,7 +325,7 @@ export class Dragon {
     }
 
     let didDrop = true
-    /* istanbul ignore next */
+
     const drop = (e: DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
@@ -348,44 +334,13 @@ export class Dragon {
 
     // end-tail drag process
     const over = (e?: any) => {
-      // 禁止被拖拽元素的阻断
-      if (this.nodeInstPointerEvents) {
-        // const nodeInst = dragObject.nodes?.[0]?.getDOMNode()
-        // if (nodeInst && nodeInst.style) {
-        //   nodeInst.style.pointerEvents = ''
-        // }
-        // this.nodeInstPointerEvents = false
-      }
-
-      // 发送drop事件
-      if (e) {
-        const { isRGL, rglNode } = getRGL(e)
-        /* istanbul ignore next */
-        if (isRGL && this._canDrop && this._dragging) {
-          const tarNode = dragObject.nodes?.[0]
-          if (rglNode.id !== tarNode?.id) {
-            // 避免死循环
-            this.emitter.emit('rgl.drop', {
-              rglNode,
-              node: tarNode,
-            })
-
-            // const selection = designer.project.currentDocument?.selection
-            // selection?.select(tarNode?.id)
-          }
-        }
-      }
-
-      // 移除磁帖占位消息
-      this.emitter.emit('rgl.remove.placeholder')
-
       if (e && isDragEvent(e)) {
         e.preventDefault()
       }
       if (lastSensor) {
         lastSensor.deactiveSensor()
       }
-
+      /* istanbul ignore next */
       if (isBoostFromDragAPI) {
         if (!didDrop) {
           designer.clearLocation()
@@ -393,36 +348,31 @@ export class Dragon {
       } else {
         this.setNativeSelection(true)
       }
-
       this.clearState()
 
-      let exception: any
+      let exception: unknown
       if (this._dragging) {
         this._dragging = false
         try {
-          this.emitter.emit('dragend', { dragObject, copy })
-        } catch (ex) /* istanbul ignore next */ {
+          this.emitter.emit('dragend', { dragObject })
+        } catch (ex) {
           exception = ex
         }
       }
-
       designer.clearLocation()
 
-      // handleEvents(doc => {
-      //   /* istanbul ignore next */
-      //   if (isBoostFromDragAPI) {
-      //     doc.removeEventListener('dragover', move, true)
-      //     doc.removeEventListener('dragend', over, true)
-      //     doc.removeEventListener('drop', drop, true)
-      //   } else {
-      //     doc.removeEventListener('mousemove', move, true)
-      //     doc.removeEventListener('mouseup', over, true)
-      //   }
-      //   doc.removeEventListener('mousedown', over, true)
-      //   doc.removeEventListener('keydown', checkEsc, false)
-      //   doc.removeEventListener('keydown', checkCopy, false)
-      //   doc.removeEventListener('keyup', checkCopy, false)
-      // })
+      handleEvents(doc => {
+        if (isBoostFromDragAPI) {
+          doc.removeEventListener('dragover', move, true)
+          doc.removeEventListener('dragend', over, true)
+          doc.removeEventListener('drop', drop, true)
+        } else {
+          doc.removeEventListener('mousemove', move, true)
+          doc.removeEventListener('mouseup', over, true)
+        }
+        doc.removeEventListener('mousedown', over, true)
+        doc.removeEventListener('keydown', checkesc, false)
+      })
 
       if (exception) {
         throw exception
@@ -444,10 +394,10 @@ export class Dragon {
       if (!sourceDocument || sourceDocument === document) {
         evt.globalX = e.clientX
         evt.globalY = e.clientY
-      } else {
+      } /* istanbul ignore next */ else {
         // event from simulator sandbox
-        let srcSim: ISimulatorHost | undefined
-        const lastSim = lastSensor && isSimulatorHost(lastSensor) ? lastSensor : null
+        let srcSim: Simulator | undefined
+        const lastSim = lastSensor && isSimulator(lastSensor) ? lastSensor : null
         // check source simulator
         if (lastSim && lastSim.contentDocument === sourceDocument) {
           srcSim = lastSim
@@ -457,7 +407,6 @@ export class Dragon {
             srcSim = lastSim
           }
         }
-
         if (srcSim) {
           // transform point by simulator
           const g = srcSim.viewport.toGlobalPoint(e)
@@ -476,9 +425,10 @@ export class Dragon {
     }
 
     const sourceSensor = getSourceSensor(dragObject)
+    // /* istanbul ignore next */
     const chooseSensor = (e: LocateEvent) => {
       // this.sensors will change on dragstart
-      const sensors: Sensor<Node>[] = this.sensors.concat(masterSensors as Sensor<Node>[])
+      const sensors: Sensor[] = this.sensors.concat(masterSensors as Sensor[])
       let sensor = e.sensor && e.sensor.isEnter(e) ? e.sensor : sensors.find(s => s.sensorAvailable && s.isEnter(e))
       if (!sensor) {
         // TODO: enter some area like componentspanel cancel
@@ -490,21 +440,17 @@ export class Dragon {
           sensor = sourceSensor
         }
       }
-
       if (sensor !== lastSensor) {
         if (lastSensor) {
           lastSensor.deactiveSensor()
         }
         lastSensor = sensor
       }
-
       if (sensor) {
         e.sensor = sensor
         sensor.fixEvent(e)
       }
-
       this._activeSensor = sensor
-
       return sensor
     }
 
@@ -514,7 +460,12 @@ export class Dragon {
 
       if (dataTransfer) {
         dataTransfer.effectAllowed = 'all'
-        dataTransfer.setData('application/json', '{}')
+
+        try {
+          dataTransfer.setData('application/json', '{}')
+        } catch (ex) {
+          // ignore
+        }
       }
 
       dragstart()
@@ -522,55 +473,46 @@ export class Dragon {
       this.setNativeSelection(false)
     }
 
-    // handleEvents(doc => {
-    //   if (isBoostFromDragAPI) {
-    //     doc.addEventListener('dragover', move, true)
-    //     // dragexit
-    //     didDrop = false
-    //     doc.addEventListener('drop', drop, true)
-    //     doc.addEventListener('dragend', over, true)
-    //   } else {
-    //     doc.addEventListener('mousemove', move, true)
-    //     doc.addEventListener('mouseup', over, true)
-    //   }
-    //   doc.addEventListener('mousedown', over, true)
-    // })
-
-    // future think: drag things from browser-out or a iframe-pane
-
-    // if (!newBie && !isBoostFromDragAPI) {
-    if (!isBoostFromDragAPI) {
-      // handleEvents(doc => {
-      //   doc.addEventListener('keydown', checkCopy, false)
-      //   doc.addEventListener('keyup', checkCopy, false)
-      // })
-    }
+    handleEvents(doc => {
+      /* istanbul ignore next */
+      if (isBoostFromDragAPI) {
+        doc.addEventListener('dragover', move, true)
+        // dragexit
+        didDrop = false
+        doc.addEventListener('drop', drop, true)
+        doc.addEventListener('dragend', over, true)
+      } else {
+        doc.addEventListener('mousemove', move, true)
+        doc.addEventListener('mouseup', over, true)
+      }
+      doc.addEventListener('mousedown', over, true)
+    })
   }
 
-  // private getMasterSensors(): ISimulatorHost[] {
-  //   return Array.from(
-  //     new Set(
-  //       this.designer.project.documents
-  //         .map(doc => {
-  //           if (doc.active && doc.simulator?.sensorAvailable) {
-  //             return doc.simulator
-  //           }
-  //           return null
-  //         })
-  //         .filter(Boolean) as any,
-  //     ),
-  //   )
-  // }
+  private getMasterSensors(): Simulator[] {
+    return Array.from(
+      new Set(
+        this.designer.project.documents
+          .map(doc => {
+            // if (doc.active && doc.simulator?.sensorAvailable) {
+            //   return doc.simulator
+            // }
+            return null
+          })
+          .filter(Boolean) as any,
+      ),
+    )
+  }
 
   private getSimulators() {
-    return new Set(this.designer.project.documents.map((doc: any) => doc.simulator))
+    return new Set(this.designer.project.documents.map(doc => doc.simulator))
   }
 
   // #region ======== drag and drop helpers ============
   private setNativeSelection(enableFlag: boolean) {
     setNativeSelection(enableFlag)
     this.getSimulators().forEach(sim => {
-      sim?.setNativeSelection(enableFlag)
+      // sim?.setNativeSelection(enableFlag)
     })
   }
 
@@ -580,7 +522,7 @@ export class Dragon {
   private setDraggingState(state: boolean) {
     cursor.setDragging(state)
     this.getSimulators().forEach(sim => {
-      sim?.setDraggingState(state)
+      // sim?.setDraggingState(state)
     })
   }
 
@@ -590,7 +532,7 @@ export class Dragon {
   private setCopyState(state: boolean) {
     cursor.setCopy(state)
     this.getSimulators().forEach(sim => {
-      sim?.setCopyState(state)
+      // sim?.setCopyState(state)
     })
   }
 
@@ -600,7 +542,7 @@ export class Dragon {
   private clearState() {
     cursor.release()
     this.getSimulators().forEach(sim => {
-      sim?.clearState()
+      // sim?.clearState()
     })
   }
   // #endregion
@@ -647,36 +589,24 @@ export class Dragon {
   }
 }
 
-function isDragEvent(e: any): e is DragEvent {
-  return e?.type?.startsWith('drag')
-}
+const makeEventsHandler = (boostEvent: MouseEvent | DragEvent, sensors: Simulator[]) => {
+  const topDoc = window.document
+  const sourceDoc = boostEvent.view?.document || topDoc
 
-export function setShaken(e: any) {
-  e.shaken = true
-}
+  const docs = new Set<globalThis.Document>()
+  docs.add(topDoc)
+  docs.add(sourceDoc)
+  sensors.forEach(sim => {
+    const sdoc = sim.contentDocument
+    if (sdoc) {
+      docs.add(sdoc)
+    }
+  })
 
-/**
- * mouse shake check
- */
-export function isShaken(e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean {
-  if ((e1 as any).shaken) {
-    return true
+  return (handle: (sdoc: globalThis.Document) => void) => {
+    docs.forEach(doc => handle(doc))
   }
-  if (e1.target !== e2.target) {
-    return true
-  }
-  return (e1.clientY - e2.clientY) ** 2 + (e1.clientX - e2.clientX) ** 2 > SHAKE_DISTANCE
-}
-
-export function isInvalidPoint(e: any, last: any): boolean {
-  return (
-    e.clientX === 0 &&
-    e.clientY === 0 &&
-    last &&
-    (Math.abs(last.clientX - e.clientX) > 5 || Math.abs(last.clientY - e.clientY) > 5)
-  )
-}
-
-export function isSameAs(e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean {
-  return e1.clientY === e2.clientY && e1.clientX === e2.clientX
+  // return (handle: (doc: globalThis.Document) => void) => {
+  //   handle(sourceDoc)
+  // }
 }

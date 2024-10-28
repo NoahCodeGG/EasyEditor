@@ -3,6 +3,7 @@ import type { Project } from '@/project'
 import type { EventBus } from '../utils'
 import type { NodeSchema } from './node/node'
 
+import type { Simulator } from '@/simulator'
 import { action, observable } from 'mobx'
 import { createEventBus, createLogger, uniqueId } from '../utils'
 import { History } from './history'
@@ -44,6 +45,10 @@ export class Document {
 
   get nodesMap() {
     return this._nodesMap
+  }
+
+  get simulator(): Simulator | null {
+    return this.project.simulator
   }
 
   @observable.shallow private nodes = new Set<Node>()

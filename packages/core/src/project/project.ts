@@ -2,6 +2,7 @@ import type { Designer } from '@/designer'
 import type { DocumentSchema } from '@/document'
 
 import { DOCUMENT_EVENT, Document, isDocument } from '@/document'
+import type { Simulator } from '@/simulator'
 import { createEventBus } from '@/utils/event-bus'
 import { computed, observable } from 'mobx'
 import { createLogger } from '../utils'
@@ -23,6 +24,7 @@ const defaultSchema: ProjectSchema = {
 
 export enum PROJECT_EVENT {
   RENDERER_READY = 'renderer:ready',
+  SIMULATOR_READY = 'simulator:ready',
 }
 
 export class Project {
@@ -31,7 +33,6 @@ export class Project {
 
   private data: ProjectSchema = defaultSchema
 
-  // TODO： dragon 临时改为非 private
   @observable.shallow documents: Document[] = []
 
   private documentsMap = new Map<string, Document>()
@@ -48,6 +49,12 @@ export class Project {
 
   set config(value: Record<string, any>) {
     this._config = value
+  }
+
+  private _simulator?: Simulator
+
+  get simulator() {
+    return this._simulator || null
   }
 
   constructor(
@@ -215,6 +222,12 @@ export class Project {
   setRendererReady(renderer: any) {
     this.isRendererReady = true
     this.emitter.emit(PROJECT_EVENT.RENDERER_READY, renderer)
+  }
+
+  mountSimulator(simulator: Simulator) {
+    // TODO: 多设备 simulator 支持
+    this._simulator = simulator
+    this.emitter.emit(PROJECT_EVENT.SIMULATOR_READY, simulator)
   }
 
   /**
