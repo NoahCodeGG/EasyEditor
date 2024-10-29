@@ -1,4 +1,5 @@
 import type { Document as IDocument, Node as INode } from '@/document'
+import type { DragObject, Sensor } from './dragon'
 
 export interface Point {
   clientX: number
@@ -55,7 +56,41 @@ export interface LocationData<Node = INode> {
   target: Node // shadowNode | ConditionFlow | ElementNode | RootNode
   detail: LocationDetail
   source: string
-  // event: IPublicModelLocateEvent
+  event: LocateEvent
+}
+
+export interface LocateEvent {
+  get type(): string
+
+  /**
+   * browser window coordinate system
+   */
+  readonly globalX: number
+  readonly globalY: number
+
+  readonly originalEvent: MouseEvent | DragEvent
+
+  /**
+   * browser event response target
+   */
+  target?: Element | null
+
+  /**
+   * event correction identifier, initially constructed from the initiating end, missing canvasX,canvasY, needs to be corrected
+   */
+  fixed?: true
+
+  canvasX?: number
+  canvasY?: number
+
+  /**
+   * active or target document
+   */
+  document?: Document | null
+
+  get dragObject(): DragObject | null
+
+  sensor?: Sensor
 }
 
 export function isLocationData(obj: any): boolean {
@@ -133,7 +168,7 @@ export class DropLocation {
 
   readonly detail: LocationDetail
 
-  // readonly event: ILocateEvent
+  readonly event: LocateEvent
 
   readonly source: string
 
@@ -141,20 +176,21 @@ export class DropLocation {
     return this.target.document
   }
 
-  constructor({ target, detail, source }: LocationData<INode>) {
+  constructor({ target, detail, source, event }: LocationData) {
     this.target = target
     this.detail = detail
     this.source = source
+    this.event = event
   }
 
-  // clone(event: ILocateEvent): IDropLocation {
-  //   return new DropLocation({
-  //     target: this.target,
-  //     detail: this.detail,
-  //     source: this.source,
-  //     event,
-  //   })
-  // }
+  clone(event: LocateEvent): DropLocation {
+    return new DropLocation({
+      target: this.target,
+      detail: this.detail,
+      source: this.source,
+      event,
+    })
+  }
 
   // /**
   //  * @deprecated

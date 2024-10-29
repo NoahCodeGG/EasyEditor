@@ -1,10 +1,10 @@
-import type { Document, Node, NodeSchema } from '@/document'
+import type { Node, NodeSchema } from '@/document'
 import { type Simulator, isSimulator } from '@/simulator'
 import { createEventBus, cursor } from '@/utils'
 import { setNativeSelection } from '@/utils/navtive-selection'
 import { observable } from 'mobx'
 import type { Designer } from '.'
-import type { LocationDetail } from './location'
+import type { DropLocation, LocateEvent } from './location'
 
 export class DragObject {
   data: NodeSchema | NodeSchema[] | undefined
@@ -29,128 +29,64 @@ export interface DragNodeDataObject {
   [extra: string]: any
 }
 
-export interface DragAnyObject {
-  type: string
-  [key: string]: any
-}
+export type ComponentInstance = Element | object
 
-export interface LocateEvent {
-  get type(): string
-
-  /**
-   * 浏览器窗口坐标系
-   */
-  readonly globalX: number
-  readonly globalY: number
-
-  /**
-   * 原始事件
-   */
-  readonly originalEvent: MouseEvent | DragEvent
-
-  /**
-   * 浏览器事件响应目标
-   */
-  target?: Element | null
-
-  canvasX?: number
-
-  canvasY?: number
-
-  /**
-   * 事件订正标识，初始构造时，从发起端构造，缺少 canvasX,canvasY, 需要经过订正才有
-   */
-  fixed?: true
-
-  /**
-   * 激活或目标文档
-   */
-  document?: Document | null
-
-  get dragObject(): DragObject | null
-
-  sensor?: Sensor
-}
-
-export interface DropLocation {
-  /**
-   * 拖拽位置目标
-   * get target of dropLocation
-   */
-  get target(): Node | null
-
-  /**
-   * 拖拽放置位置详情
-   * get detail of dropLocation
-   */
-  get detail(): LocationDetail
-
-  /**
-   * 拖拽放置位置对应的事件
-   * get event of dropLocation
-   */
-  get event(): LocateEvent
-
-  /**
-   * 获取一份当前对象的克隆
-   * get a clone object of current dropLocation
-   */
-  clone(event: LocateEvent): DropLocation
+interface NodeInstance<T = ComponentInstance, N = Node> {
+  docId: string
+  nodeId: string
+  instance: T
+  node?: N | null
 }
 
 export interface Sensor<T = Node> {
   /**
-   * 是否可响应，比如面板被隐藏，可设置该值 false
+   * whether the sensor is available
    */
   readonly sensorAvailable: boolean
 
   /**
-   * 给事件打补丁
+   * fix location event, add canvasX,canvasY
    */
   fixEvent(e: LocateEvent): LocateEvent
 
   /**
-   * 定位并激活
+   * locate and activate
    */
   locate(e: LocateEvent): DropLocation | undefined | null
 
   /**
-   * 是否进入敏感板区域
+   * whether enter the sensitive area
    */
   isEnter(e: LocateEvent): boolean
 
   /**
-   * 取消激活
+   * deactivate
    */
   deactiveSensor(): void
 
   /**
-   * 获取节点实例
+   * get node instance from element
    */
-  // getNodeInstanceFromElement?: (e: Element | null) => IPublicTypeNodeInstance<IPublicTypeComponentInstance, Node> | null
+  getNodeInstanceFromElement?: (e: Element | null) => NodeInstance<ComponentInstance, Node> | null
 }
 
-export function isDragNodeObject(obj: any): obj is DragNodeObject {
+export const isDragNodeObject = (obj: any): obj is DragNodeObject => {
   return obj && obj.type === DragObjectType.Node
 }
 
-export function isDragNodeDataObject(obj: any): obj is DragNodeDataObject {
+export const isDragNodeDataObject = (obj: any): obj is DragNodeDataObject => {
   return obj && obj.type === DragObjectType.NodeData
 }
 
-export function isDragAnyObject(obj: any): obj is DragAnyObject {
-  return obj && obj.type !== DragObjectType.NodeData && obj.type !== DragObjectType.Node
-}
-
-export function isLocateEvent(e: any): e is LocateEvent {
+export const isLocateEvent = (e: any): e is LocateEvent => {
   return e && e.type === 'LocateEvent'
 }
 
-function isDragEvent(e: any): e is DragEvent {
+export const isDragEvent = (e: any): e is DragEvent => {
   return e?.type?.startsWith('drag')
 }
 
-export function isInvalidPoint(e: any, last: any): boolean {
+export const isInvalidPoint = (e: any, last: any): boolean => {
   return (
     e.clientX === 0 &&
     e.clientY === 0 &&
@@ -159,7 +95,7 @@ export function isInvalidPoint(e: any, last: any): boolean {
   )
 }
 
-export function isSameAs(e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean {
+export const isSameAs = (e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean => {
   return e1.clientY === e2.clientY && e1.clientX === e2.clientX
 }
 
@@ -168,7 +104,7 @@ const SHAKE_DISTANCE = 4
 /**
  * mouse shake check
  */
-export function isShaken(e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean {
+export const isShaken = (e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent): boolean => {
   if ((e1 as any).shaken) {
     return true
   }
@@ -178,11 +114,11 @@ export function isShaken(e1: MouseEvent | DragEvent, e2: MouseEvent | DragEvent)
   return (e1.clientY - e2.clientY) ** 2 + (e1.clientX - e2.clientX) ** 2 > SHAKE_DISTANCE
 }
 
-export function setShaken(e: any) {
+export const setShaken = (e: any) => {
   e.shaken = true
 }
 
-function getSourceSensor(dragObject: DragObject): Simulator | null {
+export const getSourceSensor = (dragObject: DragObject): Simulator | null => {
   if (!isDragNodeObject(dragObject)) {
     return null
   }
@@ -246,7 +182,7 @@ export class Dragon {
     const { designer } = this
     const masterSensors = this.getMasterSensors()
     const handleEvents = makeEventsHandler(boostEvent, masterSensors)
-    const newBie = !isDragNodeObject(dragObject)
+    const newNode = !isDragNodeObject(dragObject)
     const isBoostFromDragAPI = isDragEvent(boostEvent)
     let lastSensor: Sensor | undefined
 
@@ -289,7 +225,7 @@ export class Dragon {
       this._dragging = true
       setShaken(boostEvent)
       const locateEvent = createLocateEvent(boostEvent)
-      if (newBie) {
+      if (newNode) {
         this.setCopyState(true)
       } else {
         chooseSensor(locateEvent)
@@ -489,17 +425,17 @@ export class Dragon {
     })
   }
 
-  private getMasterSensors(): Simulator[] {
+  private getMasterSensors() {
     return Array.from(
       new Set(
         this.designer.project.documents
           .map(doc => {
-            // if (doc.active && doc.simulator?.sensorAvailable) {
-            //   return doc.simulator
-            // }
+            if (doc.opened && doc.simulator?.sensorAvailable) {
+              return doc.simulator
+            }
             return null
           })
-          .filter(Boolean) as any,
+          .filter(Boolean) as Simulator[],
       ),
     )
   }
