@@ -25,10 +25,6 @@ class Clipboard {
 
   private waitFn?: (data: any, e: ClipboardEvent) => void
 
-  constructor() {
-    this.injectCopyPaster(document)
-  }
-
   isCopyPasteEvent(e: Event) {
     this.isCopyPaster(e.target)
   }
