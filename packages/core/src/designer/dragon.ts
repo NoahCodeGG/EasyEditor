@@ -31,7 +31,7 @@ export interface DragNodeDataObject {
 
 export type ComponentInstance = Element | object
 
-interface NodeInstance<T = ComponentInstance, N = Node> {
+export interface NodeInstance<T = ComponentInstance, N = Node> {
   docId: string
   nodeId: string
   instance: T

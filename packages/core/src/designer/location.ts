@@ -151,11 +151,15 @@ export function isLocationChildrenDetail(obj: any): boolean {
 //   return isChildInline(el) || (el.parentElement ? isRowContainer(el.parentElement) : false)
 // }
 
-function isText(elem: any): elem is Text {
+export function isText(elem: any): elem is Text {
   return elem.nodeType === Node.TEXT_NODE
 }
 
-function isDocument(elem: any): elem is Document {
+export function isElement(node: any): node is Element {
+  return node.nodeType === Node.ELEMENT_NODE
+}
+
+export function isDocument(elem: any): elem is Document {
   return elem.nodeType === Node.DOCUMENT_NODE
 }
 
