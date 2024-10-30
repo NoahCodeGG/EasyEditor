@@ -1,4 +1,4 @@
-import type { Node } from '@/document'
+import { type Node, PositionNO, comparePosition } from '@/document'
 import { createEventBus } from '@/utils'
 import { observable } from 'mobx'
 import type { Designer } from './designer'
@@ -125,34 +125,34 @@ export class Selection {
     return nodes
   }
 
-  // getTopNodes(includeRoot = false) {
-  //   const nodes = []
-  //   for (const id of this._selected) {
-  //     const node = this.document.getNode(id)
-  //     // 排除根节点
-  //     if (!node || (!includeRoot && node.contains(this.document.focusNode))) {
-  //       continue
-  //     }
-  //     let i = nodes.length
-  //     let isTop = true
-  //     while (i-- > 0) {
-  //       const n = comparePosition(nodes[i], node)
-  //       // nodes[i] contains node
-  //       if (n === PositionNO.Contains || n === PositionNO.TheSame) {
-  //         isTop = false
-  //         break
-  //       } else if (n === PositionNO.ContainedBy) {
-  //         // node contains nodes[i], delete nodes[i]
-  //         nodes.splice(i, 1)
-  //       }
-  //     }
-  //     // node is top item, push to nodes
-  //     if (isTop) {
-  //       nodes.push(node)
-  //     }
-  //   }
-  //   return nodes
-  // }
+  getTopNodes(includeRoot = false) {
+    const nodes = []
+    for (const id of this._selected) {
+      const node = this.currentDocument.getNode(id)
+      // 排除根节点
+      if (!node || (!includeRoot && node.contains(this.currentDocument.rootNode!))) {
+        continue
+      }
+      let i = nodes.length
+      let isTop = true
+      while (i-- > 0) {
+        const n = comparePosition(nodes[i], node)
+        // nodes[i] contains node
+        if (n === PositionNO.Contains || n === PositionNO.TheSame) {
+          isTop = false
+          break
+        } else if (n === PositionNO.ContainedBy) {
+          // node contains nodes[i], delete nodes[i]
+          nodes.splice(i, 1)
+        }
+      }
+      // node is top item, push to nodes
+      if (isTop) {
+        nodes.push(node)
+      }
+    }
+    return nodes
+  }
 
   onSelectionChange(listener: (ids: string[]) => void): () => void {
     this.emitter.on(SELECTION_EVENT.CHANGE, listener)

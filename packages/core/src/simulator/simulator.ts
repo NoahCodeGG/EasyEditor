@@ -1,12 +1,12 @@
 import {
-  type Component,
   type ComponentInstance,
   type Designer,
+  DragObjectType,
   type LocateEvent,
   type NodeInstance,
   type Rect,
   clipboard,
-  isElement,
+  isShaken,
 } from '@/designer'
 import type { Node } from '@/document'
 import type { Project } from '@/project'
@@ -55,6 +55,8 @@ export class Simulator {
   readonly designer: Designer
 
   readonly viewport = new Viewport()
+
+  private _iframe?: HTMLElement
 
   autoRender = true
 
@@ -116,19 +118,6 @@ export class Simulator {
     return this._props[key]
   }
 
-  stopAutoRepaintNode() {
-    this.renderer?.stopAutoRepaintNode()
-  }
-
-  enableAutoRepaintNode() {
-    this.renderer?.enableAutoRepaintNode()
-  }
-
-  connect(renderer: SimulatorRenderer, effect: (reaction: IReactionPublic) => void, options?: IReactionOptions) {
-    this._renderer = renderer
-    return autorun(effect, options)
-  }
-
   reaction(
     expression: (reaction: IReactionPublic) => unknown,
     effect: (value: unknown, prev: unknown, reaction: IReactionPublic) => void,
@@ -148,47 +137,125 @@ export class Simulator {
     // todo
   }
 
-  mountViewport(viewport: HTMLElement | null) {
+  mountViewport(viewport: HTMLElement) {
+    this._iframe = viewport
+    this._contentDocument = viewport.ownerDocument
+    this._contentWindow = viewport.ownerDocument.defaultView!
     this.viewport.mount(viewport)
   }
 
-  rerender() {
-    this.designer.refreshComponentMetasMap()
-    this.renderer?.rerender?.()
-  }
-
-  async mountContentFrame(iframe: HTMLIFrameElement | null): Promise<void> {
-    if (!iframe || this._iframe === iframe) {
-      return
-    }
-    this._iframe = iframe
-
-    this._contentWindow = iframe.contentWindow!
-    this._contentDocument = this._contentWindow.document
-
-    // init events, overlays
-    this.setupEvents()
-
-    // bind hotkey & clipboard
-    // const hotkey = this.designer.editor.get('innerHotkey')
-    // hotkey.mount(this._contentWindow)
-    clipboard.injectCopyPaster(this._contentDocument)
-
-    // TODO: dispose the bindings
-  }
-
   setupEvents() {
-    // TODO: Thinkof move events control to simulator renderer
-    //       just listen special callback
-    // because iframe maybe reload
     this.setupDragAndClick()
     this.setupDetecting()
-    this.setupLiveEditing()
-    this.setupContextMenu()
+
+    clipboard.injectCopyPaster(this._contentDocument!)
   }
 
   postEvent(eventName: string, ...data: any[]) {
     this.emitter.emit(eventName, ...data)
+  }
+
+  setupDragAndClick() {
+    const { designer } = this
+    const doc = this.contentDocument!
+
+    // TODO: think of lock when edit a node
+    // 事件路由
+    doc.addEventListener(
+      'mousedown',
+      (downEvent: MouseEvent) => {
+        // fix for popups close logic
+        document.dispatchEvent(new Event('mousedown'))
+        const documentModel = this.project.currentDocument
+        if (!documentModel) {
+          return
+        }
+        const { selection } = this.designer
+        let isMulti = false
+        if (this.designMode === 'design') {
+          isMulti = downEvent.metaKey || downEvent.ctrlKey
+        } else if (!downEvent.metaKey) {
+          return
+        }
+        // FIXME: dirty fix remove label-for fro liveEditing
+        downEvent.target?.removeAttribute('for')
+        const nodeInst = this.getNodeInstanceFromElement(downEvent.target)
+        const { focusNode } = documentModel
+        const node = getClosestClickableNode(nodeInst?.node || focusNode, downEvent)
+        // 如果找不到可点击的节点，直接返回
+        if (!node) {
+          return
+        }
+        // stop response document focus event
+        // 禁止原生拖拽
+        downEvent.stopPropagation()
+        downEvent.preventDefault()
+        const isLeftButton = downEvent.which === 1 || downEvent.button === 0
+        const checkSelect = (e: MouseEvent) => {
+          doc.removeEventListener('mouseup', checkSelect, true)
+          // 鼠标是否移动 ? - 鼠标抖动应该也需要支持选中事件，偶尔点击不能选中，磁帖块移除 shaken 检测
+          if (!isShaken(downEvent, e)) {
+            let { id } = node
+            if (isMulti && focusNode && !node.contains(focusNode) && selection.has(id)) {
+              selection.remove(id)
+            } else {
+              // TODO: 避免选中 Page 组件，默认选中第一个子节点；新增规则 或 判断 Live 模式
+              if (node.isPage() && node.getChildren()?.notEmpty() && this.designMode === 'live') {
+                const firstChildId = node.getChildren()?.get(0)?.getId()
+                if (firstChildId) id = firstChildId
+              }
+              if (focusNode) {
+                selection.select(node.contains(focusNode) ? focusNode.id : id)
+              }
+
+              // dirty code should refector
+              const editor = this.designer?.editor
+              const npm = node?.componentMeta?.npm
+              const selected =
+                [npm?.package, npm?.componentName].filter(item => !!item).join('-') ||
+                node?.componentMeta?.componentName ||
+                ''
+              editor?.eventBus.emit('designer.builtinSimulator.select', {
+                selected,
+              })
+            }
+          }
+        }
+
+        if (isLeftButton && focusNode && !node.contains(focusNode)) {
+          let nodes: Node[] = [node]
+          let ignoreUpSelected = false
+          if (isMulti) {
+            // multi select mode, directily add
+            if (!selection.has(node.id)) {
+              selection.add(node.id)
+              ignoreUpSelected = true
+            }
+            focusNode?.id && selection.remove(focusNode.id)
+            // 获得顶层 nodes
+            nodes = selection.getTopNodes()
+          } else if (selection.containsNode(node, true)) {
+            nodes = selection.getTopNodes()
+          } else {
+            // will clear current selection & select dragment in dragstart
+          }
+          designer.dragon.boost(
+            {
+              type: DragObjectType.Node,
+              nodes,
+            },
+            downEvent,
+          )
+          if (ignoreUpSelected) {
+            // multi select mode has add selected, should return
+            return
+          }
+        }
+
+        doc.addEventListener('mouseup', checkSelect, true)
+      },
+      true,
+    )
   }
 
   setupDetecting() {
@@ -239,50 +306,6 @@ export class Simulator {
     // };
   }
 
-  setupLiveEditing() {
-    const doc = this.contentDocument!
-    // cause edit
-    doc.addEventListener(
-      'dblclick',
-      (e: MouseEvent) => {
-        // stop response document dblclick event
-        e.stopPropagation()
-        e.preventDefault()
-
-        const targetElement = e.target as HTMLElement
-        const nodeInst = this.getNodeInstanceFromElement(targetElement)
-        if (!nodeInst) {
-          return
-        }
-        const focusNode = this.project.currentDocument?.focusNode
-        const node = nodeInst.node || focusNode
-        if (!node || isLowCodeComponent(node)) {
-          return
-        }
-
-        const rootElement = this.findDOMNodes(nodeInst.instance, node.componentMeta.rootSelector)?.find(
-          item =>
-            // 可能是 [null];
-            item && item.contains(targetElement),
-        ) as HTMLElement
-        if (!rootElement) {
-          return
-        }
-
-        this.liveEditing.apply({
-          node,
-          rootElement,
-          event: e,
-        })
-      },
-      true,
-    )
-  }
-
-  getComponent(componentName: string): Component | null {
-    return this.renderer?.getComponent(componentName) || null
-  }
-
   setInstance(docId: string, id: string, instances: ComponentInstance[] | null) {
     if (!Object.prototype.hasOwnProperty.call(this.instancesMap, docId)) {
       this.instancesMap[docId] = new Map()
@@ -294,21 +317,14 @@ export class Simulator {
     }
   }
 
-  getComponentInstances(node: Node, context?: NodeInstance): ComponentInstance[] | null {
+  getComponentInstances(node: Node) {
     const docId = node.document?.id
     if (!docId) {
       return null
     }
 
     const instances = this.instancesMap[docId]?.get(node.id) || null
-    if (!instances || !context) {
-      return instances
-    }
-
-    // filter with context
-    return instances.filter(instance => {
-      return this.getClosestNodeInstance(instance, context?.nodeId)?.instance === context.instance
-    })
+    return instances
   }
 
   getNodeInstanceFromElement(target: Element | null): NodeInstance<ComponentInstance, Node> | null {
@@ -329,25 +345,7 @@ export class Simulator {
     }
   }
 
-  getClosestNodeInstance(from: ComponentInstance, specId?: string): NodeInstance<ComponentInstance> | null {
-    return this.renderer?.getClosestNodeInstance(from, specId) || null
-  }
-
-  findDOMNodes(instance: ComponentInstance, selector?: string): Array<Element | Text> | null {
-    const elements = this._renderer?.findDOMNodes(instance)
-    if (!elements) {
-      return null
-    }
-
-    if (selector) {
-      const matched = getMatched(elements, selector)
-      if (!matched) {
-        return null
-      }
-      return [matched]
-    }
-    return elements
-  }
+  findDOMNodes(instance: ComponentInstance, selector?: string) {}
 
   computeRect(node: Node): Rect | null {
     const instances = this.getComponentInstances(node)
@@ -357,84 +355,7 @@ export class Simulator {
     return this.computeComponentInstanceRect(instances[0], node.componentMeta.rootSelector)
   }
 
-  computeComponentInstanceRect(instance: ComponentInstance, selector?: string): IPublicTypeRect | null {
-    const renderer = this.renderer!
-    const elements = this.findDOMNodes(instance, selector)
-    if (!elements) {
-      return null
-    }
-
-    const elems = elements.slice()
-    let rects: DOMRect[] | undefined
-    let last: { x: number; y: number; r: number; b: number } | undefined
-    let _computed = false
-    while (true) {
-      if (!rects || rects.length < 1) {
-        const elem = elems.pop()
-        if (!elem) {
-          break
-        }
-        rects = renderer.getClientRects(elem)
-      }
-      const rect = rects!.pop()
-      if (!rect) {
-        break
-      }
-      if (rect.width === 0 && rect.height === 0) {
-        continue
-      }
-      if (!last) {
-        last = {
-          x: rect.left,
-          y: rect.top,
-          r: rect.right,
-          b: rect.bottom,
-        }
-        continue
-      }
-      if (rect.left < last.x) {
-        last.x = rect.left
-        _computed = true
-      }
-      if (rect.top < last.y) {
-        last.y = rect.top
-        _computed = true
-      }
-      if (rect.right > last.r) {
-        last.r = rect.right
-        _computed = true
-      }
-      if (rect.bottom > last.b) {
-        last.b = rect.bottom
-        _computed = true
-      }
-    }
-
-    if (last) {
-      const r: Rect = new DOMRect(last.x, last.y, last.r - last.x, last.b - last.y)
-      r.elements = elements
-      r.computed = _computed
-      return r
-    }
-
-    return null
-  }
-
-  setNativeSelection(enableFlag: boolean) {
-    this.renderer?.setNativeSelection(enableFlag)
-  }
-
-  setDraggingState(state: boolean) {
-    this.renderer?.setDraggingState(state)
-  }
-
-  setCopyState(state: boolean) {
-    this.renderer?.setCopyState(state)
-  }
-
-  clearState() {
-    this.renderer?.clearState()
-  }
+  computeComponentInstanceRect(instance: ComponentInstance, selector?: string) {}
 
   fixEvent(e: LocateEvent): LocateEvent {
     if (e.fixed) {
@@ -464,17 +385,11 @@ export class Simulator {
     return e
   }
 
-  /**
-   * @see IPublicModelSensor
-   */
   isEnter(e: LocateEvent): boolean {
     const rect = this.viewport.bounds
     return e.globalY >= rect.top && e.globalY <= rect.bottom && e.globalX >= rect.left && e.globalX <= rect.right
   }
 
-  /**
-   * @see IPublicModelSensor
-   */
   deactiveSensor() {
     this.sensing = false
   }
@@ -482,20 +397,4 @@ export class Simulator {
 
 export function isSimulator(obj: any): obj is Simulator {
   return obj && obj.isSimulator
-}
-
-function getMatched(elements: Array<Element | Text>, selector: string): Element | null {
-  let firstQueried: Element | null = null
-  for (const elem of elements) {
-    if (isElement(elem)) {
-      if (elem.matches(selector)) {
-        return elem
-      }
-
-      if (!firstQueried) {
-        firstQueried = elem.querySelector(selector)
-      }
-    }
-  }
-  return firstQueried
 }
