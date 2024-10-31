@@ -1,11 +1,15 @@
 import {
+  type CanvasPoint,
   type ComponentInstance,
   type Designer,
   DragObjectType,
   type LocateEvent,
+  type LocationChildrenDetail,
+  LocationDetailType,
   type NodeInstance,
   type Rect,
   clipboard,
+  isLocationData,
   isShaken,
 } from '@/designer'
 import type { Node } from '@/document'
@@ -81,8 +85,6 @@ export class Simulator {
   @observable private instancesMap: {
     [docId: string]: Map<string, ComponentInstance[]>
   } = {}
-
-  private _iframe?: HTMLIFrameElement
 
   private _sensorAvailable = true
 
@@ -180,8 +182,8 @@ export class Simulator {
         // FIXME: dirty fix remove label-for fro liveEditing
         downEvent.target?.removeAttribute('for')
         const nodeInst = this.getNodeInstanceFromElement(downEvent.target)
-        const { focusNode } = documentModel
-        const node = getClosestClickableNode(nodeInst?.node || focusNode, downEvent)
+        const { rootNode } = documentModel
+        const node = getClosestClickableNode(nodeInst?.node || rootNode, downEvent)
         // 如果找不到可点击的节点，直接返回
         if (!node) {
           return
@@ -196,7 +198,7 @@ export class Simulator {
           // 鼠标是否移动 ? - 鼠标抖动应该也需要支持选中事件，偶尔点击不能选中，磁帖块移除 shaken 检测
           if (!isShaken(downEvent, e)) {
             let { id } = node
-            if (isMulti && focusNode && !node.contains(focusNode) && selection.has(id)) {
+            if (isMulti && rootNode && !node.contains(rootNode) && selection.has(id)) {
               selection.remove(id)
             } else {
               // TODO: 避免选中 Page 组件，默认选中第一个子节点；新增规则 或 判断 Live 模式
@@ -204,8 +206,8 @@ export class Simulator {
                 const firstChildId = node.getChildren()?.get(0)?.getId()
                 if (firstChildId) id = firstChildId
               }
-              if (focusNode) {
-                selection.select(node.contains(focusNode) ? focusNode.id : id)
+              if (rootNode) {
+                selection.select(node.contains(rootNode) ? rootNode.id : id)
               }
 
               // dirty code should refector
@@ -222,7 +224,7 @@ export class Simulator {
           }
         }
 
-        if (isLeftButton && focusNode && !node.contains(focusNode)) {
+        if (isLeftButton && rootNode && !node.contains(rootNode)) {
           let nodes: Node[] = [node]
           let ignoreUpSelected = false
           if (isMulti) {
@@ -231,7 +233,7 @@ export class Simulator {
               selection.add(node.id)
               ignoreUpSelected = true
             }
-            focusNode?.id && selection.remove(focusNode.id)
+            rootNode?.id && selection.remove(rootNode.id)
             // 获得顶层 nodes
             nodes = selection.getTopNodes()
           } else if (selection.containsNode(node, true)) {
@@ -332,16 +334,17 @@ export class Simulator {
       return null
     }
 
-    const nodeInstance = this.getClosestNodeInstance(target)
-    if (!nodeInstance) {
-      return null
-    }
-    const { docId } = nodeInstance
-    const doc = this.project.getDocument(docId)!
-    const node = doc.getNode(nodeInstance.nodeId)
+    // TODO:
+    // const SYMBOL_VNID = Symbol('_LCNodeId');
+    // const SYMBOL_VDID = Symbol('_LCDocId');
+    const docId = this.project.currentDocument!.id
+    const nodeId = target.id
+
     return {
-      ...nodeInstance,
-      node,
+      docId,
+      nodeId,
+      instance: target,
+      node: this.project.getDocument(docId)?.getNode(nodeId) || null,
     }
   }
 
@@ -352,10 +355,12 @@ export class Simulator {
     if (!instances) {
       return null
     }
-    return this.computeComponentInstanceRect(instances[0], node.componentMeta.rootSelector)
+    return this.computeComponentInstanceRect(instances[0])
   }
 
-  computeComponentInstanceRect(instance: ComponentInstance, selector?: string) {}
+  computeComponentInstanceRect(instance: ComponentInstance) {
+    return instance.getBoundingClientRect()
+  }
 
   fixEvent(e: LocateEvent): LocateEvent {
     if (e.fixed) {
@@ -393,8 +398,215 @@ export class Simulator {
   deactiveSensor() {
     this.sensing = false
   }
+
+  locate(e: LocateEvent): any {
+    const { dragObject } = e
+    const nodes = dragObject?.nodes
+
+    const operationalNodes = nodes?.filter(node => {
+      // const onMoveHook = node.componentMeta?.advanced.callbacks?.onMoveHook;
+      // const canMove = onMoveHook && typeof onMoveHook === 'function' ? onMoveHook(node.internalToShellNode()) : true;
+      const canMove = true
+
+      // let parentContainerNode: Node | null = null
+      // let parentNode = node?.parent
+
+      // while (parentNode) {
+      //   if (parentNode.isContainer()) {
+      //     parentContainerNode = parentNode;
+      //     break;
+      //   }
+
+      //   parentNode = parentNode.parent;
+      // }
+
+      // const onChildMoveHook = parentContainerNode?.componentMeta?.advanced.callbacks?.onChildMoveHook;
+      // const childrenCanMove = onChildMoveHook && parentContainerNode && typeof onChildMoveHook === 'function' ? onChildMoveHook(node.internalToShellNode(), parentContainerNode.internalToShellNode()) : true;
+      const childrenCanMove = true
+
+      return canMove && childrenCanMove
+    })
+
+    if (nodes && (!operationalNodes || operationalNodes.length === 0)) {
+      return
+    }
+
+    this.sensing = true
+    const document = this.project.currentDocument
+    if (!document) {
+      return null
+    }
+    const dropContainer = this.getDropContainer(e)
+    // TODO
+    // const lockedNode = getClosestNode(dropContainer?.container, node => node.isLocked)
+    // if (lockedNode) return null
+    if (!dropContainer) {
+      return null
+    }
+
+    if (isLocationData(dropContainer)) {
+      return this.designer.createLocation(dropContainer)
+    }
+
+    const { container, instance: containerInstance } = dropContainer
+
+    const edge = this.computeComponentInstanceRect(containerInstance)
+
+    if (!edge) {
+      return null
+    }
+
+    const { children } = container
+
+    const detail: LocationChildrenDetail = {
+      type: LocationDetailType.Children,
+      index: 0,
+      edge,
+    }
+
+    const locationData = {
+      target: container,
+      detail,
+      source: `simulator${document.id}`,
+      event: e,
+    }
+
+    // if (
+    //   e.dragObject &&
+    //   e.dragObject.nodes &&
+    //   e.dragObject.nodes.length &&
+    //   e.dragObject.nodes[0].componentMeta.isModal &&
+    //   document.focusNode
+    // ) {
+    //   return this.designer.createLocation({
+    //     target: document.focusNode,
+    //     detail,
+    //     source: `simulator${document.id}`,
+    //     event: e,
+    //   })
+    // }
+
+    if (!children || children.size < 1 || !edge) {
+      return this.designer.createLocation(locationData)
+    }
+
+    let nearRect: Rect | null = null
+    let nearIndex = 0
+    let nearNode: Node | null = null
+    let nearDistance: number | null = null
+    let minTop: number | null = null
+    let maxBottom: number | null = null
+
+    for (let i = 0, l = children.size; i < l; i++) {
+      const node = children.get(i)!
+      const index = i
+      const instances = this.getComponentInstances(node)
+      const inst = instances
+        ? instances.length > 1
+          ? instances.find(_inst => this.getClosestNodeInstance(_inst, container.id)?.instance === containerInstance)
+          : instances[0]
+        : null
+      const rect = inst ? this.computeComponentInstanceRect(inst) : null
+
+      if (!rect) {
+        continue
+      }
+
+      const distance = isPointInRect(e as any, rect) ? 0 : distanceToRect(e as any, rect)
+
+      if (distance === 0) {
+        nearDistance = distance
+        nearNode = node
+        nearIndex = index
+        nearRect = rect
+        break
+      }
+
+      // 标记子节点最顶
+      if (minTop === null || rect.top < minTop) {
+        minTop = rect.top
+      }
+      // 标记子节点最底
+      if (maxBottom === null || rect.bottom > maxBottom) {
+        maxBottom = rect.bottom
+      }
+
+      if (nearDistance === null || distance < nearDistance) {
+        nearDistance = distance
+        nearNode = node
+        nearIndex = index
+        nearRect = rect
+      }
+    }
+
+    detail.index = nearIndex
+
+    // if (nearNode && nearRect) {
+    //   const el = getRectTarget(nearRect)
+    //   const inline = el ? isChildInline(el) : false
+    //   const row = el ? isRowContainer(el.parentElement!) : false
+    //   const vertical = inline || row
+
+    //   // TODO: fix type
+    //   const near: {
+    //     node: IPublicModelNode
+    //     pos: 'before' | 'after' | 'replace'
+    //     rect?: IPublicTypeRect
+    //     align?: 'V' | 'H'
+    //   } = {
+    //     node: nearNode.internalToShellNode()!,
+    //     pos: 'before',
+    //     align: vertical ? 'V' : 'H',
+    //   }
+    //   detail.near = near
+    //   if (isNearAfter(e as any, nearRect, vertical)) {
+    //     near.pos = 'after'
+    //     detail.index = nearIndex + 1
+    //   }
+    //   if (!row && nearDistance !== 0) {
+    //     const edgeDistance = distanceToEdge(e as any, edge)
+    //     if (edgeDistance.distance < nearDistance!) {
+    //       const { nearAfter } = edgeDistance
+    //       if (minTop == null) {
+    //         minTop = edge.top
+    //       }
+    //       if (maxBottom == null) {
+    //         maxBottom = edge.bottom
+    //       }
+    //       near.rect = new DOMRect(edge.left, minTop, edge.width, maxBottom - minTop)
+    //       near.align = 'H'
+    //       near.pos = nearAfter ? 'after' : 'before'
+    //       detail.index = nearAfter ? children.size : 0
+    //     }
+    //   }
+    // }
+
+    return this.designer.createLocation(locationData)
+  }
 }
 
-export function isSimulator(obj: any): obj is Simulator {
+export const isSimulator = (obj: any): obj is Simulator => {
   return obj && obj.isSimulator
+}
+
+const isPointInRect = (point: CanvasPoint, rect: Rect) => {
+  return (
+    point.canvasY >= rect.top &&
+    point.canvasY <= rect.bottom &&
+    point.canvasX >= rect.left &&
+    point.canvasX <= rect.right
+  )
+}
+
+const distanceToRect = (point: CanvasPoint, rect: Rect) => {
+  let minX = Math.min(Math.abs(point.canvasX - rect.left), Math.abs(point.canvasX - rect.right))
+  let minY = Math.min(Math.abs(point.canvasY - rect.top), Math.abs(point.canvasY - rect.bottom))
+  if (point.canvasX >= rect.left && point.canvasX <= rect.right) {
+    minX = 0
+  }
+  if (point.canvasY >= rect.top && point.canvasY <= rect.bottom) {
+    minY = 0
+  }
+
+  return Math.sqrt(minX ** 2 + minY ** 2)
 }

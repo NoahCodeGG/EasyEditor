@@ -4,7 +4,8 @@ import type { Document } from '@/document'
 import { createEventBus, createLogger } from '@/utils'
 import { computed, observable } from 'mobx'
 import { Detecting } from './detecting'
-import { Dragon, type DropLocation } from './dragon'
+import { Dragon, DropLocation } from './dragon'
+import type { LocationData } from './location'
 import { Selection } from './selection'
 
 // export type ComponentType<T> = React.ComponentType<T>
@@ -234,6 +235,20 @@ export class Designer {
 
   offEvent(event: string, listener: (...args: any[]) => void) {
     this.emitter.off(`designer:${event}`, listener)
+  }
+
+  createLocation(locationData: LocationData<Node>): DropLocation {
+    const loc = new DropLocation(locationData)
+    if (this._dropLocation && this._dropLocation.document && this._dropLocation.document !== loc.document) {
+      this._dropLocation.document.dropLocation = null
+    }
+    this._dropLocation = loc
+    this.postEvent('dropLocation.change', loc)
+    if (loc.document) {
+      loc.document.dropLocation = loc
+    }
+    // this.activeTracker.track({ node: loc.target, detail: loc.detail });
+    return loc
   }
 
   /**
