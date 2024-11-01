@@ -76,10 +76,6 @@ export class Document {
     return this.history
   }
 
-  // TODO: 不应该放在 document，这一块应该是属于 designer 的
-  // 原本的设计是每个 document 都有一个独立的 selection，但是感觉没必要
-  // readonly selection
-
   readonly project: Project
 
   readonly designer: Designer
@@ -343,20 +339,14 @@ export class Document {
     return componentsMap
   }
 
-  // isModified(): boolean {
-  //   return this.history.isSavePoint();
-  // }
-
+  // TODO: 是否需要获取组件类
   // getComponent(componentName: string): any {
-  //   return this.simulator!.getComponent(componentName);
+  //   return this.simulator!.getComponent(componentName)
   // }
 
-  // getComponentMeta(componentName: string): IComponentMeta {
-  //   return this.designer.getComponentMeta(
-  //     componentName,
-  //     () => this.simulator?.generateComponentMetadata(componentName) || null,
-  //   );
-  // }
+  getComponentMeta(componentName: string) {
+    return this.designer.getComponentMeta(componentName)
+  }
 
   onReady(listener: () => void) {
     this.designer.onEvent(DOCUMENT_EVENT.OPEN, listener)

@@ -1,26 +1,14 @@
 import { Project, type ProjectSchema } from '@/project'
 
 import type { Document } from '@/document'
+import { type Component, ComponentMeta, type ComponentMetadata, type ComponentType } from '@/meta'
 import { createEventBus, createLogger } from '@/utils'
 import { computed, observable } from 'mobx'
 import { Detecting } from './detecting'
-import { Dragon, DropLocation } from './dragon'
+import { Dragon } from './dragon'
 import type { LocationData } from './location'
+import { DropLocation } from './location'
 import { Selection } from './selection'
-
-// export type ComponentType<T> = React.ComponentType<T>
-export type ComponentType<T> = any
-
-export type Component = ComponentType<any> | object
-
-// TODO
-export interface ComponentMeta {
-  [key: string]: any
-}
-
-export interface ComponentMetadata {
-  [key: string]: any
-}
 
 export interface DesignerProps {
   [key: string]: any
@@ -213,13 +201,6 @@ export class Designer {
       const metaData = config.getMetadata()
       if (metaData.devMode === 'lowCode') {
         maps[key] = metaData.schema
-      } else {
-        const { view } = config.advanced
-        if (view) {
-          maps[key] = view
-        } else {
-          maps[key] = config.npm
-        }
       }
     })
     return maps

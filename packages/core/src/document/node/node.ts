@@ -312,6 +312,10 @@ export class Node {
     }
   }
 
+  @computed get componentMeta() {
+    return this.document.getComponentMeta(this.componentName)
+  }
+
   /**
    * whether child nodes are included
    */
