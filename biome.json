@@ -30,7 +30,8 @@
         "noNonNullAssertion": "off",
         "noUselessElse": "warn",
         "noInferrableTypes": "error",
-        "noNegationElse": "error"
+        "noNegationElse": "error",
+        "noParameterAssign": "off"
       },
       "correctness": {
         "useExhaustiveDependencies": "warn"

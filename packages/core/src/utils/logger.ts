@@ -21,7 +21,6 @@ export interface Logger {
   log: (...args: Parameters<(typeof console)['log']>) => void
   error: (...args: Parameters<(typeof console)['error']>) => void
   warn: (...args: Parameters<(typeof console)['warn']>) => void
-  active: () => void
 }
 
 /**
