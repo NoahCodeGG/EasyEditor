@@ -1,7 +1,8 @@
 import { Project, type ProjectSchema } from '@/project'
 
 import type { Document } from '@/document'
-import { type Component, ComponentMeta, type ComponentMetadata, type ComponentType } from '@/meta'
+import type { Editor } from '@/editor'
+import type { ComponentMetaManager, ComponentType } from '@/meta'
 import { createEventBus, createLogger } from '@/utils'
 import { computed, observable } from 'mobx'
 import { Detecting } from './detecting'
@@ -12,6 +13,7 @@ import { Selection } from './selection'
 
 export interface DesignerProps {
   [key: string]: any
+  editor: Editor
   defaultSchema?: ProjectSchema
   hotkeys?: object
   viewName?: string
@@ -31,6 +33,8 @@ export class Designer {
   private logger = createLogger('Designer')
   private emitter = createEventBus('Designer')
 
+  readonly editor: Editor
+
   readonly dragon: Dragon
 
   readonly detecting: Detecting
@@ -41,9 +45,9 @@ export class Designer {
 
   private _dropLocation?: DropLocation
 
-  @observable.ref private _componentMetasMap = new Map<string, ComponentMeta>()
-
-  private _lostComponentMetasMap = new Map<string, ComponentMeta>()
+  get componentMetaManager() {
+    return this.editor.get('componentMetaManager') as ComponentMetaManager
+  }
 
   @observable.ref private _simulatorComponent?: ComponentType<any>
 
@@ -55,6 +59,7 @@ export class Designer {
 
   constructor(props: DesignerProps) {
     this.setProps(props)
+    this.editor = props.editor
     this.project = new Project(this, props?.defaultSchema)
     this.dragon = new Dragon(this)
     this.detecting = new Detecting()
@@ -85,7 +90,7 @@ export class Designer {
       //   this._suspensed = props.suspensed
       // }
       if (props.componentMetadatas !== this.props.componentMetadatas && props.componentMetadatas != null) {
-        this.buildComponentMetasMap(props.componentMetadatas)
+        // this.buildComponentMetasMap(props.componentMetadatas)
       }
     } else {
       // init hotkeys
@@ -102,7 +107,7 @@ export class Designer {
       //   this.suspensed = props.suspensed
       // }
       if (props.componentMetadatas != null) {
-        this.buildComponentMetasMap(props.componentMetadatas)
+        // this.buildComponentMetasMap(props.componentMetadatas)
       }
     }
     this.props = props
@@ -136,74 +141,6 @@ export class Designer {
         // this.editor.set('simulator', simulator)
       },
     }
-  }
-
-  refreshComponentMetasMap() {
-    this._componentMetasMap = new Map(this._componentMetasMap)
-  }
-
-  buildComponentMetasMap(metas: ComponentMetadata[]) {
-    metas.forEach(data => this.createComponentMeta(data))
-  }
-
-  createComponentMeta(data: ComponentMetadata) {
-    const key = data.componentName
-    if (!key) {
-      return null
-    }
-    let meta = this._componentMetasMap.get(key)
-    if (meta) {
-      meta.setMetadata(data)
-
-      this._componentMetasMap.set(key, meta)
-    } else {
-      meta = this._lostComponentMetasMap.get(key)
-
-      if (meta) {
-        meta.setMetadata(data)
-        this._lostComponentMetasMap.delete(key)
-      } else {
-        meta = new ComponentMeta(this, data)
-      }
-
-      this._componentMetasMap.set(key, meta)
-    }
-
-    return meta
-  }
-
-  getComponentMeta(componentName: string, generateMetadata?: () => ComponentMetadata | null): ComponentMeta {
-    if (this._componentMetasMap.has(componentName)) {
-      return this._componentMetasMap.get(componentName)!
-    }
-
-    if (this._lostComponentMetasMap.has(componentName)) {
-      return this._lostComponentMetasMap.get(componentName)!
-    }
-
-    const meta = new ComponentMeta(this, {
-      componentName,
-      ...(generateMetadata ? generateMetadata() : null),
-    })
-
-    this._lostComponentMetasMap.set(componentName, meta)
-
-    return meta
-  }
-
-  getComponentMetasMap() {
-    return this._componentMetasMap
-  }
-
-  @computed get componentsMap(): { [key: string]: Component } {
-    const maps: any = {}
-    this._componentMetasMap.forEach((config, key) => {
-      const metaData = config.getMetadata()
-      if (metaData.devMode === 'lowCode') {
-        maps[key] = metaData.schema
-      }
-    })
-    return maps
   }
 
   postEvent(event: string, ...args: any[]) {

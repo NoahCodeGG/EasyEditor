@@ -1,11 +1,9 @@
 import { observable } from 'mobx'
+import { Designer } from './designer'
+import { ComponentMetaManager, SetterManager } from './meta'
+import { type PluginContextApiAssembler, PluginManager } from './plugin'
+import { Simulator } from './simulator'
 import { type EventBus, createEventBus } from './utils'
-
-export declare interface Editor {
-  prependListener(event: string | symbol, listener: (...args: any[]) => void): this
-  prependOnceListener(event: string | symbol, listener: (...args: any[]) => void): this
-  eventNames(): Array<string | symbol>
-}
 
 export type EditorValueKey = string | symbol
 
@@ -81,7 +79,6 @@ export interface LifeCyclesConfig {
   destroy?: (editor: Editor) => any
 }
 
-// eslint-disable-next-line no-redeclare
 export class Editor {
   @observable.shallow private context = new Map<EditorValueKey, any>()
 
@@ -93,7 +90,7 @@ export class Editor {
 
   // readonly utils = utils;
 
-  private hooks: HookConfig[] = []
+  // private hooks: HookConfig[] = []
 
   private waits = new Map<
     EditorValueKey,
@@ -103,10 +100,7 @@ export class Editor {
     }>
   >()
 
-  constructor(
-    readonly viewName: string = 'global',
-    readonly workspaceMode: boolean = false,
-  ) {
+  constructor() {
     this.eventBus = createEventBus('EasyEditor')
   }
 
@@ -119,101 +113,101 @@ export class Editor {
   }
 
   set(key: EditorValueKey, data: any): void | Promise<void> {
-    if (key === 'assets') {
-      return this.setAssets(data)
-    }
+    // if (key === 'assets') {
+    //   return this.setAssets(data)
+    // }
 
     this.context.set(key, data)
     this.notifyGot(key)
   }
 
-  async setAssets(assets: IPublicTypeAssetsJson) {
-    const { components } = assets
-    if (components && components.length) {
-      const componentDescriptions: IPublicTypeComponentDescription[] = []
-      const remoteComponentDescriptions: IPublicTypeRemoteComponentDescription[] = []
-      components.forEach((component: any) => {
-        if (!component) {
-          return
-        }
-        if (component.exportName && component.url) {
-          remoteComponentDescriptions.push(component)
-        } else {
-          componentDescriptions.push(component)
-        }
-      })
-      assets.components = componentDescriptions
-      assets.componentList = assets.componentList || []
+  // async setAssets(assets: IPublicTypeAssetsJson) {
+  //   const { components } = assets
+  //   if (components && components.length) {
+  //     const componentDescriptions: IPublicTypeComponentDescription[] = []
+  //     const remoteComponentDescriptions: IPublicTypeRemoteComponentDescription[] = []
+  //     components.forEach((component: any) => {
+  //       if (!component) {
+  //         return
+  //       }
+  //       if (component.exportName && component.url) {
+  //         remoteComponentDescriptions.push(component)
+  //       } else {
+  //         componentDescriptions.push(component)
+  //       }
+  //     })
+  //     assets.components = componentDescriptions
+  //     assets.componentList = assets.componentList || []
 
-      // 如果有远程组件描述协议，则自动加载并补充到资产包中，同时出发 designer.incrementalAssetsReady 通知组件面板更新数据
-      if (remoteComponentDescriptions && remoteComponentDescriptions.length) {
-        await Promise.all(
-          remoteComponentDescriptions.map(async (component: IPublicTypeRemoteComponentDescription) => {
-            const { exportName, url, npm } = component
-            if (!url || !exportName) {
-              return
-            }
-            if (!AssetsCache[exportName] || !npm?.version || AssetsCache[exportName].npm?.version !== npm?.version) {
-              await new AssetLoader().load(url)
-            }
-            AssetsCache[exportName] = component
-            function setAssetsComponent(component: any, extraNpmInfo: any = {}) {
-              const components = component.components
-              assets.componentList = assets.componentList?.concat(component.componentList || [])
-              if (Array.isArray(components)) {
-                components.forEach(d => {
-                  assets.components = assets.components.concat(
-                    {
-                      npm: {
-                        ...npm,
-                        ...extraNpmInfo,
-                      },
-                      ...d,
-                    } || [],
-                  )
-                })
-                return
-              }
-              if (component.components) {
-                assets.components = assets.components.concat(
-                  {
-                    npm: {
-                      ...npm,
-                      ...extraNpmInfo,
-                    },
-                    ...component.components,
-                  } || [],
-                )
-              }
-            }
-            function setArrayAssets(value: any[], preExportName = '', preSubName = '') {
-              value.forEach((d: any, i: number) => {
-                const exportName = [preExportName, i.toString()].filter(d => !!d).join('.')
-                const subName = [preSubName, i.toString()].filter(d => !!d).join('.')
-                Array.isArray(d)
-                  ? setArrayAssets(d, exportName, subName)
-                  : setAssetsComponent(d, {
-                      exportName,
-                      subName,
-                    })
-              })
-            }
-            if ((window as any)[exportName]) {
-              if (Array.isArray((window as any)[exportName])) {
-                setArrayAssets((window as any)[exportName] as any)
-              } else {
-                setAssetsComponent((window as any)[exportName] as any)
-              }
-            }
-            return (window as any)[exportName]
-          }),
-        )
-      }
-    }
-    const innerAssets = assetsTransform(assets)
-    this.context.set('assets', innerAssets)
-    this.notifyGot('assets')
-  }
+  //     // 如果有远程组件描述协议，则自动加载并补充到资产包中，同时出发 designer.incrementalAssetsReady 通知组件面板更新数据
+  //     if (remoteComponentDescriptions && remoteComponentDescriptions.length) {
+  //       await Promise.all(
+  //         remoteComponentDescriptions.map(async (component: IPublicTypeRemoteComponentDescription) => {
+  //           const { exportName, url, npm } = component
+  //           if (!url || !exportName) {
+  //             return
+  //           }
+  //           if (!AssetsCache[exportName] || !npm?.version || AssetsCache[exportName].npm?.version !== npm?.version) {
+  //             await new AssetLoader().load(url)
+  //           }
+  //           AssetsCache[exportName] = component
+  //           function setAssetsComponent(component: any, extraNpmInfo: any = {}) {
+  //             const components = component.components
+  //             assets.componentList = assets.componentList?.concat(component.componentList || [])
+  //             if (Array.isArray(components)) {
+  //               components.forEach(d => {
+  //                 assets.components = assets.components.concat(
+  //                   {
+  //                     npm: {
+  //                       ...npm,
+  //                       ...extraNpmInfo,
+  //                     },
+  //                     ...d,
+  //                   } || [],
+  //                 )
+  //               })
+  //               return
+  //             }
+  //             if (component.components) {
+  //               assets.components = assets.components.concat(
+  //                 {
+  //                   npm: {
+  //                     ...npm,
+  //                     ...extraNpmInfo,
+  //                   },
+  //                   ...component.components,
+  //                 } || [],
+  //               )
+  //             }
+  //           }
+  //           function setArrayAssets(value: any[], preExportName = '', preSubName = '') {
+  //             value.forEach((d: any, i: number) => {
+  //               const exportName = [preExportName, i.toString()].filter(d => !!d).join('.')
+  //               const subName = [preSubName, i.toString()].filter(d => !!d).join('.')
+  //               Array.isArray(d)
+  //                 ? setArrayAssets(d, exportName, subName)
+  //                 : setAssetsComponent(d, {
+  //                     exportName,
+  //                     subName,
+  //                   })
+  //             })
+  //           }
+  //           if ((window as any)[exportName]) {
+  //             if (Array.isArray((window as any)[exportName])) {
+  //               setArrayAssets((window as any)[exportName] as any)
+  //             } else {
+  //               setAssetsComponent((window as any)[exportName] as any)
+  //             }
+  //           }
+  //           return (window as any)[exportName]
+  //         }),
+  //       )
+  //     }
+  //   }
+  //   const innerAssets = assetsTransform(assets)
+  //   this.context.set('assets', innerAssets)
+  //   this.notifyGot('assets')
+  // }
 
   onceGot<T = undefined, KeyOrType extends EditorValueKey = any>(
     keyOrType: KeyOrType,
@@ -256,7 +250,8 @@ export class Editor {
     this.notifyGot(key || data)
   }
 
-  async init(config?: EditorConfig, components?: PluginClassSet): Promise<any> {
+  // async init(config?: EditorConfig, components?: PluginClassSet): Promise<any> {
+  async init(config?: EditorConfig): Promise<any> {
     this.config = config || {}
     // this.components = components || {}
     const { hooks = [], lifeCycles } = this.config
@@ -267,14 +262,51 @@ export class Editor {
     try {
       await init(this)
       // 注册快捷键
-      // 注册 hooks
-      this.registerHooks(hooks)
       this.eventBus.emit('editor.afterInit')
 
       return true
     } catch (err) {
       console.error(err)
     }
+
+    // mount
+    const setterManager = new SetterManager()
+    const componentMetaManager = new ComponentMetaManager(this)
+    const designer = new Designer({ editor: this, setterManager, componentMetaManager })
+    const project = designer.project
+
+    this.set('setterManager', setterManager)
+    this.set('componentMetaManager', componentMetaManager)
+    this.set('designer', designer)
+    this.set('project', project)
+
+    // TODO: designer.simulatorProps
+    const simulator = new Simulator(project, designer)
+    this.set('simulator', simulator)
+
+    const pluginContextApiAssembler: PluginContextApiAssembler = {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      assembleApis: (context, pluginName, meta) => {
+        // context.hotkey = hotkey
+        // context.project = project
+        // context.skeleton = new Skeleton(innerSkeleton, pluginName, false)
+        // context.setters = setters
+        // context.material = material
+        // const eventPrefix = meta?.eventPrefix || 'common'
+        // context.event = new Event(commonEvent, { prefix: eventPrefix })
+        // context.config = config
+        // context.common = common
+        // context.canvas = canvas
+        // context.plugins = plugins
+        // context.logger = new Logger({ level: 'warn', bizName: `plugin:${pluginName}` })
+        // context.workspace = workspace
+        // context.registerLevel = IPublicEnumPluginRegisterLevel.Default
+        // context.isPluginRegisteredInWorkspace = false
+      },
+    }
+
+    const pluginManager = new PluginManager(pluginContextApiAssembler)
+    this.set('pluginManager', pluginManager)
   }
 
   destroy(): void {
@@ -284,38 +316,12 @@ export class Editor {
     try {
       const { lifeCycles = {} } = this.config
 
-      this.unregisterHooks()
-
       if (lifeCycles.destroy) {
         lifeCycles.destroy(this)
       }
     } catch (err) {
       console.warn(err)
     }
-  }
-
-  initHooks = (hooks: HookConfig[]) => {
-    this.hooks = hooks.map(hook => ({
-      ...hook,
-      // 指定第一个参数为 editor
-      handler: hook.handler.bind(this, this),
-    }))
-
-    return this.hooks
-  }
-
-  registerHooks = (hooks: HookConfig[]) => {
-    this.initHooks(hooks).forEach(({ message, type, handler }) => {
-      if (['on', 'once'].indexOf(type) !== -1) {
-        this[type](message as any, handler)
-      }
-    })
-  }
-
-  unregisterHooks = () => {
-    this.hooks.forEach(({ message, handler }) => {
-      this.removeListener(message, handler)
-    })
   }
 
   private notifyGot(key: EditorValueKey) {

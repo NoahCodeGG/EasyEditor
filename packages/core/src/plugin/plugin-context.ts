@@ -1,5 +1,5 @@
 import { type EventBus, createEventBus } from '@/utils'
-import type { PluginMeta } from './plugin-manager'
+import type { PluginContextApiAssembler, PluginMeta } from './plugin-manager'
 
 export interface PluginContextOptions {
   pluginName: string
@@ -24,8 +24,9 @@ export class PluginContext {
   // registerLevel: IPublicEnumPluginRegisterLevel
   // editorWindow: IPublicModelWindow
 
-  constructor(options: PluginContextOptions) {
+  constructor(options: PluginContextOptions, contextApiAssembler: PluginContextApiAssembler) {
     const { pluginName = 'anonymous', meta = {} } = options
+    contextApiAssembler.assembleApis(this, pluginName, meta)
     this.pluginEvent = createEventBus(pluginName)
     // const enhancePluginContextHook = engineConfig.get('enhancePluginContextHook')
     // if (enhancePluginContextHook) {

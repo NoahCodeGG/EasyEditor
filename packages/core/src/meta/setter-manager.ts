@@ -22,7 +22,7 @@ interface RegisterSetterOption {
   overwrite?: boolean
 }
 
-export class Setters {
+export class SetterManager {
   private logger = createLogger('Setters')
 
   settersMap = new Map<

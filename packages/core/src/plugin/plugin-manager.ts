@@ -56,6 +56,10 @@ export interface PluginRegisterOptions {
   override?: boolean
 }
 
+export interface PluginContextApiAssembler {
+  assembleApis(context: PluginContext, pluginName: string, meta: PluginMeta): void
+}
+
 export class PluginManager {
   private logger = createLogger('PluginManager')
 
@@ -66,11 +70,17 @@ export class PluginManager {
 
   // private pluginPreference?: PluginPreference = new Map()
 
+  contextApiAssembler: PluginContextApiAssembler
+
+  constructor(contextApiAssembler: PluginContextApiAssembler) {
+    this.contextApiAssembler = contextApiAssembler
+  }
+
   _getLowCodePluginContext = (options: PluginContextOptions) => {
     const { pluginName } = options
     let context = this.pluginContextMap.get(pluginName)
     if (!context) {
-      context = new PluginContext(options)
+      context = new PluginContext(options, this.contextApiAssembler)
       this.pluginContextMap.set(pluginName, context)
     }
     return context
