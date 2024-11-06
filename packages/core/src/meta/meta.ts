@@ -1,4 +1,4 @@
-import type { Node, NodeSchema, Prop } from '@/document'
+import type { Node, NodeSchema, Prop } from '../document'
 
 export interface ComponentMetadata {
   /**

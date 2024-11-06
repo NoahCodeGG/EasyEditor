@@ -1,13 +1,13 @@
-import type { Document, Node } from '@/document'
-import { createEventBus } from '@/utils'
 import { observable } from 'mobx'
+import type { Document, Node } from '../document'
+import { createEventBus } from '../utils'
 
 export enum DETECTING_EVENT {
   CHANGE = 'detecting:change',
 }
 
 export class Detecting {
-  @observable.ref private _enable = true
+  @observable.ref private accessor _enable = true
 
   /**
    * 控制大纲树 hover 时是否出现悬停效果
@@ -24,9 +24,9 @@ export class Detecting {
     }
   }
 
-  @observable.ref xRayMode = false
+  @observable.ref accessor xRayMode = false
 
-  @observable.ref private _current: Node | null = null
+  @observable.ref private accessor _current: Node | null = null
 
   private emitter = createEventBus('Detecting')
 

@@ -1,6 +1,6 @@
-import { type Node, PositionNO, comparePosition } from '@/document'
-import { createEventBus } from '@/utils'
 import { observable } from 'mobx'
+import { type Node, PositionNO, comparePosition } from '../document'
+import { createEventBus } from '../utils'
 import type { Designer } from './designer'
 
 export enum SELECTION_EVENT {
@@ -10,7 +10,7 @@ export enum SELECTION_EVENT {
 export class Selection {
   private emitter = createEventBus('Selection')
 
-  @observable.shallow private _selected: string[] = []
+  @observable.shallow private accessor _selected: string[] = []
 
   get currentDocument() {
     return this.designer.project.currentDocument!

@@ -1,4 +1,4 @@
-import type { Document as IDocument, Node as INode } from '@/document'
+import type { Document as IDocument, Node as INode } from '../document'
 import type { DragObject, Sensor } from './dragon'
 
 export interface Point {
@@ -155,16 +155,16 @@ export function isText(elem: any): elem is Text {
   return elem.nodeType === Node.TEXT_NODE
 }
 
-export function isElement(node: any): node is Element {
+export function isElementNode(node: any): node is Element {
   return node.nodeType === Node.ELEMENT_NODE
 }
 
-export function isDocument(elem: any): elem is Document {
+export function isDocumentNode(elem: any): elem is Document {
   return elem.nodeType === Node.DOCUMENT_NODE
 }
 
 export function getWindow(elem: Element | Document): Window {
-  return (isDocument(elem) ? elem : elem.ownerDocument!).defaultView!
+  return (isDocumentNode(elem) ? elem : elem.ownerDocument!).defaultView!
 }
 
 export class DropLocation {

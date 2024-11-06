@@ -1,11 +1,11 @@
-import type { Designer } from '@/designer'
-import type { Editor } from '@/editor'
 import { computed, observable } from 'mobx'
+import type { Designer } from '../designer'
+import type { Editor } from '../editor'
 import { ComponentMeta, isComponentMeta } from './component-meta'
 import type { Component, ComponentMetadata } from './meta'
 
 export class ComponentMetaManager {
-  @observable.ref private _componentMetasMap = new Map<string, ComponentMeta>()
+  @observable.ref private accessor _componentMetasMap = new Map<string, ComponentMeta>()
 
   private _lostComponentMetasMap = new Map<string, ComponentMeta>()
 

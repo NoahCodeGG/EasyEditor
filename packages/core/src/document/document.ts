@@ -1,10 +1,10 @@
-import type { Designer } from '@/designer'
-import type { Project } from '@/project'
+import type { Designer } from '../designer'
+import type { Project } from '../project'
 import type { EventBus } from '../utils'
 import type { NodeSchema } from './node/node'
 
-import type { Simulator } from '@/simulator'
 import { action, observable } from 'mobx'
+import type { Simulator } from '../simulator'
 import { createEventBus, createLogger, uniqueId } from '../utils'
 import { History } from './history'
 import { NODE_EVENT, Node, isNode } from './node/node'
@@ -29,7 +29,7 @@ export class Document {
   id: string
 
   /** document is open or not */
-  @observable.ref _opened = false
+  @observable.ref accessor _opened = false
 
   /** document is blank or not */
   private _blank = true
@@ -51,7 +51,7 @@ export class Document {
     return this.project.simulator
   }
 
-  @observable.shallow private nodes = new Set<Node>()
+  @observable.shallow private accessor nodes = new Set<Node>()
 
   get name() {
     return (this.rootNode?.getExtraProp('name', false)?.getValue() as string) || this.id

@@ -1,11 +1,10 @@
-import type { Designer } from '@/designer'
-import type { DocumentSchema } from '@/document'
+import type { Designer } from '../designer'
+import type { DocumentSchema } from '../document'
 
-import { DOCUMENT_EVENT, Document, isDocument } from '@/document'
-import type { Simulator } from '@/simulator'
-import { createEventBus } from '@/utils/event-bus'
-import { computed, observable } from 'mobx'
-import { createLogger } from '../utils'
+import { action, computed, observable } from 'mobx'
+import { DOCUMENT_EVENT, Document, isDocument } from '../document'
+import type { Simulator } from '../simulator'
+import { createEventBus, createLogger } from '../utils'
 
 export interface ProjectSchema {
   version: string
@@ -33,7 +32,7 @@ export class Project {
 
   private data: ProjectSchema = defaultSchema
 
-  @observable.shallow documents: Document[] = []
+  @observable.shallow accessor documents: Document[] = []
 
   private documentsMap = new Map<string, Document>()
 
@@ -41,7 +40,7 @@ export class Project {
     return this.documents.find(document => document.open)
   }
 
-  @observable private _config: Record<string, any> | undefined
+  @observable private accessor _config: Record<string, any> | undefined
 
   @computed get config(): Record<string, any> | undefined {
     return this._config
@@ -100,6 +99,7 @@ export class Project {
     }
   }
 
+  @action
   unload() {
     if (this.documents.length < 1) {
       return

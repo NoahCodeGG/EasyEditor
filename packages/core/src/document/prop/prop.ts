@@ -1,8 +1,8 @@
 import type { Node } from '../node/node'
 import type { Props } from './props'
 
-import { uniqueId } from '@/utils'
 import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
+import { uniqueId } from '../../utils'
 
 export const UNSET = Symbol.for('unset')
 export type UNSET = typeof UNSET
@@ -28,7 +28,7 @@ export class Prop {
 
   readonly id = uniqueId('prop')
 
-  @observable.ref key: PropKey
+  @observable.ref accessor key: PropKey
 
   readonly owner: Node
 
@@ -42,13 +42,13 @@ export class Prop {
     return this.owner
   }
 
-  @observable.ref private _value: PropValue = UNSET
+  @observable.ref private accessor _value: PropValue = UNSET
 
   @computed get value(): unknown | UNSET {
     return this.export()
   }
 
-  @observable.ref private _type: ValueTypes = 'unset'
+  @observable.ref private accessor _type: ValueTypes = 'unset'
 
   get type() {
     return this._type
@@ -64,14 +64,14 @@ export class Prop {
   }
 
   /** use for list or map type */
-  @observable.shallow private _items: Prop[] | null = null
+  @observable.shallow private accessor _items: Prop[] | null = null
   /**
    * 作为一层缓存机制，主要是复用部分已存在的 Prop，保持响应式关系，比如：
    * 当前 Prop#_value 值为 { a: 1 }，当调用 setValue({ a: 2 }) 时，所有原来的子 Prop 均被销毁，
    * 导致假如外部有 mobx reaction（常见于 observer），此时响应式链路会被打断，
    * 因为 reaction 监听的是原 Prop(a) 的 _value，而不是新 Prop(a) 的 _value。
    */
-  @observable.shallow private _maps: Map<PropKey, Prop> | null = null
+  @observable.shallow private accessor _maps: Map<PropKey, Prop> | null = null
 
   /**
    * Construct the items and maps for the prop value
@@ -222,7 +222,7 @@ export class Prop {
   /**
    * whether the prop has been destroyed
    */
-  @observable.ref private purged = false
+  @observable.ref private accessor purged = false
 
   /**
    * clear internal data

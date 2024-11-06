@@ -1,4 +1,4 @@
-import { observable } from 'mobx'
+import { action, observable } from 'mobx'
 import { Designer } from './designer'
 import { ComponentMetaManager, SetterManager } from './meta'
 import { type PluginContextApiAssembler, PluginManager } from './plugin'
@@ -16,7 +16,7 @@ export type EditorGetResult<T, ClsType> = T extends undefined
   : T
 
 export interface EditorConfig {
-  plugins?: PluginsConfig
+  // plugins?: PluginsConfig
   hooks?: HooksConfig
   hotkeys?: HotkeysConfig
   utils?: UtilsConfig
@@ -24,30 +24,30 @@ export interface EditorConfig {
   lifeCycles?: LifeCyclesConfig
 }
 
-export interface PluginsConfig {
-  [key: string]: PluginConfig[]
-}
+// export interface PluginsConfig {
+//   [key: string]: PluginConfig[]
+// }
 
-export interface PluginConfig {
-  pluginKey: string
-  type: string
-  props: {
-    icon?: string
-    title?: string
-    width?: number
-    height?: number
-    visible?: boolean
-    disabled?: boolean
-    marked?: boolean
-    align?: 'left' | 'right' | 'top' | 'bottom'
-    onClick?: () => void
-    dialogProps?: Record<string, unknown>
-    balloonProps?: Record<string, unknown>
-    panelProps?: Record<string, unknown>
-    linkProps?: Record<string, unknown>
-  }
-  pluginProps?: Record<string, unknown>
-}
+// export interface PluginConfig {
+//   pluginKey: string
+//   type: string
+//   props: {
+//     icon?: string
+//     title?: string
+//     width?: number
+//     height?: number
+//     visible?: boolean
+//     disabled?: boolean
+//     marked?: boolean
+//     align?: 'left' | 'right' | 'top' | 'bottom'
+//     onClick?: () => void
+//     dialogProps?: Record<string, unknown>
+//     balloonProps?: Record<string, unknown>
+//     panelProps?: Record<string, unknown>
+//     linkProps?: Record<string, unknown>
+//   }
+//   pluginProps?: Record<string, unknown>
+// }
 
 export type HooksConfig = HookConfig[]
 
@@ -80,7 +80,7 @@ export interface LifeCyclesConfig {
 }
 
 export class Editor {
-  @observable.shallow private context = new Map<EditorValueKey, any>()
+  @observable.shallow private accessor context = new Map<EditorValueKey, any>()
 
   config?: EditorConfig
 
@@ -112,6 +112,7 @@ export class Editor {
     return this.context.has(keyOrType)
   }
 
+  @action
   set(key: EditorValueKey, data: any): void | Promise<void> {
     // if (key === 'assets') {
     //   return this.setAssets(data)
@@ -209,6 +210,7 @@ export class Editor {
   //   this.notifyGot('assets')
   // }
 
+  @action
   onceGot<T = undefined, KeyOrType extends EditorValueKey = any>(
     keyOrType: KeyOrType,
   ): Promise<EditorGetResult<T, KeyOrType>> {
@@ -264,7 +266,7 @@ export class Editor {
       // 注册快捷键
       this.eventBus.emit('editor.afterInit')
 
-      return true
+      // return true
     } catch (err) {
       console.error(err)
     }
@@ -368,4 +370,8 @@ export class Editor {
       this.waits.delete(key)
     }
   }
+}
+
+export const createEasyEditor = () => {
+  return new Editor()
 }

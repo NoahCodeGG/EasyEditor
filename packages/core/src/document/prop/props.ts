@@ -1,8 +1,8 @@
 import type { Node } from '../node/node'
 import type { PropKey, PropValue } from './prop'
 
-import { createLogger, uniqueId } from '@/utils'
 import { action, computed, observable } from 'mobx'
+import { createLogger, uniqueId } from '../../utils'
 import { Prop, UNSET, splitPath } from './prop'
 
 export interface PropsSchema {
@@ -57,7 +57,7 @@ export class Props {
     return this.owner
   }
 
-  @observable.shallow items: Prop[] = []
+  @observable.shallow accessor items: Prop[] = []
 
   @computed private get maps() {
     const maps = new Map<string, Prop>()

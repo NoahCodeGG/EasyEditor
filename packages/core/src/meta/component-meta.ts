@@ -1,6 +1,6 @@
-import type { Designer } from '@/designer'
-import { createEventBus } from '@/utils'
 import { computed } from 'mobx'
+import type { Designer } from '../designer'
+import { createEventBus } from '../utils'
 import type { ComponentMetadata, FieldConfig } from './meta'
 
 export enum COMPONENT_META_EVENT {

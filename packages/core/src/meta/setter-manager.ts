@@ -1,4 +1,4 @@
-import { createLogger } from '@/utils'
+import { createLogger } from '../utils'
 import type { Component } from './meta'
 
 export interface Setter {

@@ -1,9 +1,9 @@
-import type { Node, NodeSchema } from '@/document'
-import { type Simulator, isSimulator } from '@/simulator'
-import { createEventBus, cursor } from '@/utils'
-import { setNativeSelection } from '@/utils/navtive-selection'
 import { observable } from 'mobx'
 import type { Designer } from '.'
+import type { Node, NodeSchema } from '../document'
+import { type Simulator, isSimulator } from '../simulator'
+import { createEventBus, cursor } from '../utils'
+import { setNativeSelection } from '../utils/navtive-selection'
 import type { DropLocation, LocateEvent } from './location'
 
 export class DragObject {
@@ -131,13 +131,13 @@ export class Dragon {
   private sensors: Sensor[] = []
 
   /** current active sensor */
-  @observable.ref private _activeSensor: Sensor | undefined
+  @observable.ref private accessor _activeSensor: Sensor | undefined
 
   get activeSensor() {
     return this._activeSensor
   }
 
-  @observable.ref private _dragging = false
+  @observable.ref private accessor _dragging = false
 
   get dragging() {
     return this._dragging

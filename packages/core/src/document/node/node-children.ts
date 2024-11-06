@@ -1,7 +1,7 @@
 import type { Node, NodeSchema } from './node'
 
-import { createEventBus, createLogger } from '@/utils'
 import { action, computed, observable } from 'mobx'
+import { createEventBus, createLogger } from '../../utils'
 import { NODE_EVENT } from './node'
 
 export enum NODE_CHILDREN_EVENT {
@@ -15,7 +15,7 @@ export class NodeChildren {
 
   readonly owner: Node
 
-  @observable.shallow children: Node[] = []
+  @observable.shallow accessor children: Node[] = []
 
   getNode() {
     return this.owner

@@ -1,4 +1,13 @@
 import {
+  type IReactionDisposer,
+  type IReactionOptions,
+  type IReactionPublic,
+  autorun,
+  computed,
+  observable,
+  reaction,
+} from 'mobx'
+import {
   type CanvasPoint,
   type ComponentInstance,
   type Designer,
@@ -11,19 +20,10 @@ import {
   clipboard,
   isLocationData,
   isShaken,
-} from '@/designer'
-import type { Node } from '@/document'
-import type { Project } from '@/project'
-import { createEventBus } from '@/utils'
-import {
-  type IReactionDisposer,
-  type IReactionOptions,
-  type IReactionPublic,
-  autorun,
-  computed,
-  observable,
-  reaction,
-} from 'mobx'
+} from '../designer'
+import type { Node } from '../document'
+import type { Project } from '../project'
+import { createEventBus } from '../utils'
 import type { SimulatorRenderer } from './simulator-render'
 import Viewport from './viewport'
 
@@ -68,21 +68,21 @@ export class Simulator {
     return this.get('designMode') || 'design'
   }
 
-  @observable.ref _props: SimulatorProps = {}
+  @observable.ref accessor _props: SimulatorProps = {}
 
-  @observable.ref private _contentWindow?: Window
+  @observable.ref private accessor _contentWindow?: Window
 
   get contentWindow() {
     return this._contentWindow
   }
 
-  @observable.ref private _contentDocument?: Document
+  @observable.ref private accessor _contentDocument?: Document
 
   get contentDocument() {
     return this._contentDocument
   }
 
-  @observable private instancesMap: {
+  @observable private accessor instancesMap: {
     [docId: string]: Map<string, ComponentInstance[]>
   } = {}
 

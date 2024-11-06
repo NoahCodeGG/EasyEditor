@@ -1,7 +1,7 @@
 import type { Document, DocumentSchema } from './document'
 
-import { createEventBus, createLogger } from '@/utils'
 import { reaction, untracked } from 'mobx'
+import { createEventBus, createLogger } from '../utils'
 
 export interface Serialization<K = DocumentSchema, T = string> {
   serialize(data: K): T

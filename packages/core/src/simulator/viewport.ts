@@ -1,11 +1,11 @@
-import type { Point } from '@/designer'
 import { computed, observable } from 'mobx'
+import type { Point } from '../designer'
 
 export type AutoFit = '100%'
 export const AutoFit: AutoFit = '100%'
 
 export default class Viewport {
-  @observable.ref private rect?: DOMRect
+  @observable.ref private accessor rect?: DOMRect
 
   private _bounds?: DOMRect
 
@@ -71,7 +71,7 @@ export default class Viewport {
     }
   }
 
-  @observable.ref private _scale = 1
+  @observable.ref private accessor _scale = 1
 
   @computed get scale() {
     return this._scale
@@ -88,9 +88,9 @@ export default class Viewport {
     this._contentHeight = this.height / this.scale
   }
 
-  @observable.ref private _contentWidth: number | AutoFit = AutoFit
+  @observable.ref private accessor _contentWidth: number | AutoFit = AutoFit
 
-  @observable.ref private _contentHeight: number | AutoFit = AutoFit
+  @observable.ref private accessor _contentHeight: number | AutoFit = AutoFit
 
   @computed get contentHeight(): number | AutoFit {
     return this._contentHeight

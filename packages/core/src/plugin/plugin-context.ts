@@ -1,4 +1,4 @@
-import { type EventBus, createEventBus } from '@/utils'
+import { type EventBus, createEventBus } from '../utils'
 import type { PluginContextApiAssembler, PluginMeta } from './plugin-manager'
 
 export interface PluginContextOptions {

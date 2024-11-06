@@ -1,4 +1,4 @@
-import { type Logger, createLogger } from '@/utils'
+import { type Logger, createLogger } from '../utils'
 import type { PluginConfig, PluginManager, PluginMeta } from './plugin-manager'
 
 export class PluginRuntime {

@@ -1,10 +1,10 @@
-import { Project, type ProjectSchema } from '@/project'
+import { Project, type ProjectSchema } from '../project'
 
-import type { Document } from '@/document'
-import type { Editor } from '@/editor'
-import type { ComponentMetaManager, ComponentType } from '@/meta'
-import { createEventBus, createLogger } from '@/utils'
 import { computed, observable } from 'mobx'
+import type { Document } from '../document'
+import type { Editor } from '../editor'
+import type { ComponentMetaManager, ComponentType } from '../meta'
+import { createEventBus, createLogger } from '../utils'
 import { Detecting } from './detecting'
 import { Dragon } from './dragon'
 import type { LocationData } from './location'
@@ -49,9 +49,9 @@ export class Designer {
     return this.editor.get('componentMetaManager') as ComponentMetaManager
   }
 
-  @observable.ref private _simulatorComponent?: ComponentType<any>
+  @observable.ref private accessor _simulatorComponent?: ComponentType<any>
 
-  @observable.ref private _simulatorProps?: Record<string, any> | ((project: Project) => object)
+  @observable.ref private accessor _simulatorProps?: Record<string, any> | ((project: Project) => object)
 
   // @observable private _suspensed = false
 

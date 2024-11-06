@@ -1,9 +1,9 @@
-import type { EventBus } from '@/utils'
+import type { EventBus } from '../../utils'
 import type { Document } from '../document'
 import type { PropKey, PropValue } from '../prop/prop'
 
-import { createEventBus, createLogger, uniqueId } from '@/utils'
 import { action, computed, observable } from 'mobx'
+import { createEventBus, createLogger, uniqueId } from '../../utils'
 import { Props, getConvertedExtraKey } from '../prop/props'
 import { NodeChildren } from './node-children'
 
@@ -34,7 +34,7 @@ export class Node {
 
   protected _children: NodeChildren | null
 
-  @observable.ref private _parent: Node | null = null
+  @observable.ref private accessor _parent: Node | null = null
 
   get parent() {
     return this._parent

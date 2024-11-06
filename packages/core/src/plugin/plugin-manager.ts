@@ -1,4 +1,4 @@
-import { createLogger } from '@/utils'
+import { createLogger } from '../utils'
 import { PluginRuntime } from './plugin'
 import { PluginContext, type PluginContextOptions } from './plugin-context'
 
