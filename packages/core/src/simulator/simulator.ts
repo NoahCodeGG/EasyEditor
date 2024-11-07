@@ -2,6 +2,7 @@ import {
   type IReactionDisposer,
   type IReactionOptions,
   type IReactionPublic,
+  action,
   autorun,
   computed,
   observable,
@@ -22,6 +23,7 @@ import {
   isShaken,
 } from '../designer'
 import type { Node } from '../document'
+import type { Component } from '../meta'
 import type { Project } from '../project'
 import { createEventBus } from '../utils'
 import type { SimulatorRenderer } from './simulator-render'
@@ -80,6 +82,12 @@ export class Simulator {
 
   get contentDocument() {
     return this._contentDocument
+  }
+
+  @observable.ref private accessor _components: Record<string, Component> = {}
+
+  @computed get components() {
+    return this._components
   }
 
   @observable private accessor instancesMap: {
@@ -306,6 +314,12 @@ export class Simulator {
     //   doc.removeEventListener('mouseleave', leave, false);
     //   this.disableDetecting = undefined;
     // };
+  }
+
+  // TODO: 想想结构
+  @action
+  setComponents(components: Record<string, Component>) {
+    this._components = components
   }
 
   setInstance(docId: string, id: string, instances: ComponentInstance[] | null) {

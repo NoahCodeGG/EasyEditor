@@ -103,7 +103,7 @@ export interface Snippet {
   /**
    * 待插入的 schema
    */
-  schema?: NodeSchema
+  schema?: Omit<NodeSchema, 'id'>
 }
 
 export interface Configure {

@@ -1,6 +1,6 @@
 import { action, observable } from 'mobx'
 import { Designer } from './designer'
-import { ComponentMetaManager, SetterManager } from './meta'
+import { type Component, ComponentMetaManager, type ComponentMetadata, type Setter, SetterManager } from './meta'
 import { type PluginContextApiAssembler, PluginManager } from './plugin'
 import { Simulator } from './simulator'
 import { type EventBus, createEventBus } from './utils'
@@ -22,6 +22,10 @@ export interface EditorConfig {
   utils?: UtilsConfig
   constants?: ConstantsConfig
   lifeCycles?: LifeCyclesConfig
+
+  setters?: Record<string, Setter>
+  components?: Record<string, Component>
+  componentMetas?: Record<string, ComponentMetadata>
 }
 
 // export interface PluginsConfig {
@@ -256,10 +260,32 @@ export class Editor {
   async init(config?: EditorConfig): Promise<any> {
     this.config = config || {}
     // this.components = components || {}
-    const { hooks = [], lifeCycles } = this.config
+    const { hooks = [], lifeCycles, setters, components, componentMetas } = this.config
 
     this.eventBus.emit('editor.beforeInit')
+
     const init = (lifeCycles && lifeCycles.init) || ((): void => {})
+    const setterManager = new SetterManager()
+    const componentMetaManager = new ComponentMetaManager(this)
+    const designer = new Designer({ editor: this, setterManager, componentMetaManager })
+    const project = designer.project
+    // TODO: designer.simulatorProps
+    const simulator = new Simulator(project, designer)
+    this.set('setterManager', setterManager)
+    this.set('componentMetaManager', componentMetaManager)
+    this.set('designer', designer)
+    this.set('project', project)
+    this.set('simulator', simulator)
+
+    if (setters) {
+      setterManager.registerSettersMap(setters)
+    }
+    if (components) {
+      simulator.setComponents(components)
+    }
+    if (componentMetas) {
+      componentMetaManager.createComponentMetaMap(componentMetas)
+    }
 
     try {
       await init(this)
@@ -272,19 +298,6 @@ export class Editor {
     }
 
     // mount
-    const setterManager = new SetterManager()
-    const componentMetaManager = new ComponentMetaManager(this)
-    const designer = new Designer({ editor: this, setterManager, componentMetaManager })
-    const project = designer.project
-
-    this.set('setterManager', setterManager)
-    this.set('componentMetaManager', componentMetaManager)
-    this.set('designer', designer)
-    this.set('project', project)
-
-    // TODO: designer.simulatorProps
-    const simulator = new Simulator(project, designer)
-    this.set('simulator', simulator)
 
     const pluginContextApiAssembler: PluginContextApiAssembler = {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

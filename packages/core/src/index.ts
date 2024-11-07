@@ -6,6 +6,7 @@ export * from './editor'
 export * from './meta'
 export * from './plugin'
 export * from './project'
+export * from './simulator'
 export * from './utils'
 
 export const DEV = '_EASY_EDITOR_DEV_'

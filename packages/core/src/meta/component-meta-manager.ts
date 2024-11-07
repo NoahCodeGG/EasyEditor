@@ -1,4 +1,4 @@
-import { computed, observable } from 'mobx'
+import { action, computed, observable } from 'mobx'
 import type { Designer } from '../designer'
 import type { Editor } from '../editor'
 import { ComponentMeta, isComponentMeta } from './component-meta'
@@ -45,6 +45,13 @@ export class ComponentMetaManager {
     return meta
   }
 
+  @action
+  createComponentMetaMap = (maps: Record<string, ComponentMetadata>) => {
+    Object.keys(maps).forEach(type => {
+      this.createComponentMeta(maps[type])
+    })
+  }
+
   getComponentMeta(componentName: string, generateMetadata?: () => ComponentMetadata | null): ComponentMeta {
     if (this._componentMetasMap.has(componentName)) {
       return this._componentMetasMap.get(componentName)!
@@ -68,13 +75,13 @@ export class ComponentMetaManager {
     return this._componentMetasMap
   }
 
-  @computed get componentsMap(): { [key: string]: Component } {
+  @computed get componentMetasMap(): { [key: string]: Component } {
     const maps: any = {}
     this._componentMetasMap.forEach((config, key) => {
       const metaData = config.getMetadata()
-      if (metaData.devMode === 'lowCode') {
-        maps[key] = metaData.schema
-      }
+      // if (metaData.devMode === 'lowCode') {
+      maps[key] = metaData
+      // }
     })
     return maps
   }
