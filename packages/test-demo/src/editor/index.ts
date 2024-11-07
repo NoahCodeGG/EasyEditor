@@ -1,14 +1,20 @@
 import {
+  type Component,
   type ComponentMetaManager,
+  type ComponentMetadata,
   type Designer,
   type Project,
+  type Setter,
   type SetterManager,
   type Simulator,
   createEasyEditor,
 } from '@easy-editor/core'
+import { formatMapFromESModule } from './utils'
 
+const setterMap = await import('./setters')
 const componentMap = await import('./materials/component')
 const componentMetaMap = await import('./materials/meta')
+console.log('🚀 ~ setterMap:', setterMap)
 console.log('🚀 ~ componentMap:', componentMap)
 console.log('🚀 ~ componentMetaMap:', componentMetaMap)
 
@@ -37,8 +43,9 @@ easyEditor.init({
       },
     },
   ],
-  components: componentMap,
-  componentMetas: componentMetaMap,
+  setters: formatMapFromESModule<Setter>(setterMap),
+  components: formatMapFromESModule<Component>(componentMap),
+  componentMetas: formatMapFromESModule<ComponentMetadata>(componentMetaMap),
   // hotkeys: [],
   // components: {
   //   'text-block': TextBlock,
@@ -57,5 +64,6 @@ console.log('🚀 ~ componentMetaManager:', componentMetaManager)
 console.log('🚀 ~ simulator:', simulator)
 
 console.log('--------------------------------')
+console.log('setters', setterManager.settersMap)
 console.log('components', simulator.components)
 console.log('componentMetas', componentMetaManager.componentMetasMap)

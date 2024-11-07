@@ -48,7 +48,7 @@ export class SetterManager {
     // if (isCustomView(setter)) {
     const newSetter = {
       component: setter,
-      title: (setter as any).displayName || (setter as any).name || 'CustomSetter',
+      title: (setter as any).displayName || (setter as any).name || type,
     }
     this.settersMap.set(type, { type, ...newSetter })
   }
