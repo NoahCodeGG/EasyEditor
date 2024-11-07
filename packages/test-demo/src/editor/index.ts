@@ -11,9 +11,11 @@ import {
 } from '@easy-editor/core'
 import { formatMapFromESModule } from './utils'
 
+const plugins = (await import('./plugins')).default
 const setterMap = await import('./setters')
 const componentMap = await import('./materials/component')
 const componentMetaMap = await import('./materials/meta')
+console.log('🚀 ~ plugins:', plugins)
 console.log('🚀 ~ setterMap:', setterMap)
 console.log('🚀 ~ componentMap:', componentMap)
 console.log('🚀 ~ componentMetaMap:', componentMetaMap)
@@ -43,6 +45,7 @@ easyEditor.init({
       },
     },
   ],
+  plugins,
   setters: formatMapFromESModule<Setter>(setterMap),
   components: formatMapFromESModule<Component>(componentMap),
   componentMetas: formatMapFromESModule<ComponentMetadata>(componentMetaMap),
