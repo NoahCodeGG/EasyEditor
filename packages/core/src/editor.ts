@@ -1,9 +1,9 @@
 import { action, observable } from 'mobx'
 import { Designer } from './designer'
 import { type Component, ComponentMetaManager, type ComponentMetadata, type Setter, SetterManager } from './meta'
-import { type PluginContextApiAssembler, PluginManager } from './plugin'
+import { type Plugin, type PluginContextApiAssembler, PluginManager } from './plugin'
 import { Simulator } from './simulator'
-import { type EventBus, createEventBus } from './utils'
+import { type EventBus, createEventBus, createLogger } from './utils'
 
 export type EditorValueKey = string | symbol
 
@@ -16,51 +16,14 @@ export type EditorGetResult<T, ClsType> = T extends undefined
   : T
 
 export interface EditorConfig {
-  // plugins?: PluginsConfig
-  hooks?: HooksConfig
   hotkeys?: HotkeysConfig
-  utils?: UtilsConfig
-  constants?: ConstantsConfig
   lifeCycles?: LifeCyclesConfig
 
+  plugins?: Plugin[] | Array<{ plugin: Plugin; options?: any }>
   setters?: Record<string, Setter>
   components?: Record<string, Component>
   componentMetas?: Record<string, ComponentMetadata>
 }
-
-// export interface PluginsConfig {
-//   [key: string]: PluginConfig[]
-// }
-
-// export interface PluginConfig {
-//   pluginKey: string
-//   type: string
-//   props: {
-//     icon?: string
-//     title?: string
-//     width?: number
-//     height?: number
-//     visible?: boolean
-//     disabled?: boolean
-//     marked?: boolean
-//     align?: 'left' | 'right' | 'top' | 'bottom'
-//     onClick?: () => void
-//     dialogProps?: Record<string, unknown>
-//     balloonProps?: Record<string, unknown>
-//     panelProps?: Record<string, unknown>
-//     linkProps?: Record<string, unknown>
-//   }
-//   pluginProps?: Record<string, unknown>
-// }
-
-export type HooksConfig = HookConfig[]
-
-export interface HookConfig {
-  message: string
-  type: 'on' | 'once'
-  handler: (this: Editor, editor: Editor, ...args: any[]) => void
-}
-
 export type HotkeysConfig = HotkeyConfig[]
 
 export interface HotkeyConfig {
@@ -68,19 +31,15 @@ export interface HotkeyConfig {
   handler: (editor: Editor, ev: Event, keymaster: any) => void
 }
 
-export type UtilsConfig = UtilConfig[]
-
-export interface UtilConfig {
-  name: string
-  type: 'function'
-  content: (...args: []) => any
-}
-
-export type ConstantsConfig = Record<string, unknown>
-
 export interface LifeCyclesConfig {
   init?: (editor: Editor) => any
   destroy?: (editor: Editor) => any
+}
+
+export enum EditorEvent {
+  BEFORE_INIT = 'editor:beforeInit',
+  AFTER_INIT = 'editor:afterInit',
+  DESTROY = 'editor:destroy',
 }
 
 export class Editor {
@@ -89,12 +48,6 @@ export class Editor {
   config?: EditorConfig
 
   eventBus: EventBus
-
-  // components?: PluginClassSet
-
-  // readonly utils = utils;
-
-  // private hooks: HookConfig[] = []
 
   private waits = new Map<
     EditorValueKey,
@@ -118,101 +71,9 @@ export class Editor {
 
   @action
   set(key: EditorValueKey, data: any): void | Promise<void> {
-    // if (key === 'assets') {
-    //   return this.setAssets(data)
-    // }
-
     this.context.set(key, data)
     this.notifyGot(key)
   }
-
-  // async setAssets(assets: IPublicTypeAssetsJson) {
-  //   const { components } = assets
-  //   if (components && components.length) {
-  //     const componentDescriptions: IPublicTypeComponentDescription[] = []
-  //     const remoteComponentDescriptions: IPublicTypeRemoteComponentDescription[] = []
-  //     components.forEach((component: any) => {
-  //       if (!component) {
-  //         return
-  //       }
-  //       if (component.exportName && component.url) {
-  //         remoteComponentDescriptions.push(component)
-  //       } else {
-  //         componentDescriptions.push(component)
-  //       }
-  //     })
-  //     assets.components = componentDescriptions
-  //     assets.componentList = assets.componentList || []
-
-  //     // 如果有远程组件描述协议，则自动加载并补充到资产包中，同时出发 designer.incrementalAssetsReady 通知组件面板更新数据
-  //     if (remoteComponentDescriptions && remoteComponentDescriptions.length) {
-  //       await Promise.all(
-  //         remoteComponentDescriptions.map(async (component: IPublicTypeRemoteComponentDescription) => {
-  //           const { exportName, url, npm } = component
-  //           if (!url || !exportName) {
-  //             return
-  //           }
-  //           if (!AssetsCache[exportName] || !npm?.version || AssetsCache[exportName].npm?.version !== npm?.version) {
-  //             await new AssetLoader().load(url)
-  //           }
-  //           AssetsCache[exportName] = component
-  //           function setAssetsComponent(component: any, extraNpmInfo: any = {}) {
-  //             const components = component.components
-  //             assets.componentList = assets.componentList?.concat(component.componentList || [])
-  //             if (Array.isArray(components)) {
-  //               components.forEach(d => {
-  //                 assets.components = assets.components.concat(
-  //                   {
-  //                     npm: {
-  //                       ...npm,
-  //                       ...extraNpmInfo,
-  //                     },
-  //                     ...d,
-  //                   } || [],
-  //                 )
-  //               })
-  //               return
-  //             }
-  //             if (component.components) {
-  //               assets.components = assets.components.concat(
-  //                 {
-  //                   npm: {
-  //                     ...npm,
-  //                     ...extraNpmInfo,
-  //                   },
-  //                   ...component.components,
-  //                 } || [],
-  //               )
-  //             }
-  //           }
-  //           function setArrayAssets(value: any[], preExportName = '', preSubName = '') {
-  //             value.forEach((d: any, i: number) => {
-  //               const exportName = [preExportName, i.toString()].filter(d => !!d).join('.')
-  //               const subName = [preSubName, i.toString()].filter(d => !!d).join('.')
-  //               Array.isArray(d)
-  //                 ? setArrayAssets(d, exportName, subName)
-  //                 : setAssetsComponent(d, {
-  //                     exportName,
-  //                     subName,
-  //                   })
-  //             })
-  //           }
-  //           if ((window as any)[exportName]) {
-  //             if (Array.isArray((window as any)[exportName])) {
-  //               setArrayAssets((window as any)[exportName] as any)
-  //             } else {
-  //               setAssetsComponent((window as any)[exportName] as any)
-  //             }
-  //           }
-  //           return (window as any)[exportName]
-  //         }),
-  //       )
-  //     }
-  //   }
-  //   const innerAssets = assetsTransform(assets)
-  //   this.context.set('assets', innerAssets)
-  //   this.notifyGot('assets')
-  // }
 
   @action
   onceGot<T = undefined, KeyOrType extends EditorValueKey = any>(
@@ -227,6 +88,7 @@ export class Editor {
     })
   }
 
+  @action
   onGot<T = undefined, KeyOrType extends EditorValueKey = any>(
     keyOrType: KeyOrType,
     fn: (data: EditorGetResult<T, KeyOrType>) => void,
@@ -256,13 +118,11 @@ export class Editor {
     this.notifyGot(key || data)
   }
 
-  // async init(config?: EditorConfig, components?: PluginClassSet): Promise<any> {
-  async init(config?: EditorConfig): Promise<any> {
+  async init(config?: EditorConfig) {
     this.config = config || {}
-    // this.components = components || {}
-    const { hooks = [], lifeCycles, setters, components, componentMetas } = this.config
+    const { lifeCycles, plugins, setters, components, componentMetas } = this.config
 
-    this.eventBus.emit('editor.beforeInit')
+    this.eventBus.emit(EditorEvent.BEFORE_INIT)
 
     const init = (lifeCycles && lifeCycles.init) || ((): void => {})
     const setterManager = new SetterManager()
@@ -271,12 +131,27 @@ export class Editor {
     const project = designer.project
     // TODO: designer.simulatorProps
     const simulator = new Simulator(project, designer)
-    this.set('setterManager', setterManager)
-    this.set('componentMetaManager', componentMetaManager)
-    this.set('designer', designer)
-    this.set('project', project)
-    this.set('simulator', simulator)
 
+    const pluginEvent = createEventBus('plugin')
+    const pluginContextApiAssembler: PluginContextApiAssembler = {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      assembleApis: (context, pluginName, meta) => {
+        // context.hotkey = hotkey
+        context.editor = this
+        context.simulator = simulator
+        context.designer = designer
+        context.project = project
+        context.setterManager = setterManager
+        context.componentMetaManager = componentMetaManager
+        context.event = pluginEvent
+        context.logger = createLogger(`plugin:${pluginName}`)
+      },
+    }
+    const pluginManager = new PluginManager(pluginContextApiAssembler)
+
+    if (plugins) {
+      pluginManager.registerPlugins(plugins)
+    }
     if (setters) {
       setterManager.registerSettersMap(setters)
     }
@@ -288,40 +163,24 @@ export class Editor {
     }
 
     try {
+      await pluginManager.init()
+
       await init(this)
       // 注册快捷键
-      this.eventBus.emit('editor.afterInit')
 
       // return true
     } catch (err) {
       console.error(err)
     }
 
-    // mount
-
-    const pluginContextApiAssembler: PluginContextApiAssembler = {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      assembleApis: (context, pluginName, meta) => {
-        // context.hotkey = hotkey
-        // context.project = project
-        // context.skeleton = new Skeleton(innerSkeleton, pluginName, false)
-        // context.setters = setters
-        // context.material = material
-        // const eventPrefix = meta?.eventPrefix || 'common'
-        // context.event = new Event(commonEvent, { prefix: eventPrefix })
-        // context.config = config
-        // context.common = common
-        // context.canvas = canvas
-        // context.plugins = plugins
-        // context.logger = new Logger({ level: 'warn', bizName: `plugin:${pluginName}` })
-        // context.workspace = workspace
-        // context.registerLevel = IPublicEnumPluginRegisterLevel.Default
-        // context.isPluginRegisteredInWorkspace = false
-      },
-    }
-
-    const pluginManager = new PluginManager(pluginContextApiAssembler)
+    this.set('setterManager', setterManager)
+    this.set('componentMetaManager', componentMetaManager)
+    this.set('designer', designer)
+    this.set('project', project)
+    this.set('simulator', simulator)
     this.set('pluginManager', pluginManager)
+
+    this.eventBus.emit(EditorEvent.AFTER_INIT)
   }
 
   destroy(): void {
@@ -381,6 +240,30 @@ export class Editor {
     }
     if (waits.length < 1) {
       this.waits.delete(key)
+    }
+  }
+
+  onBeforeInit(listener: (editor: Editor) => void) {
+    this.eventBus.on(EditorEvent.BEFORE_INIT, listener)
+
+    return () => {
+      this.eventBus.off(EditorEvent.BEFORE_INIT, listener)
+    }
+  }
+
+  onAfterInit(listener: (editor: Editor) => void) {
+    this.eventBus.on(EditorEvent.AFTER_INIT, listener)
+
+    return () => {
+      this.eventBus.off(EditorEvent.AFTER_INIT, listener)
+    }
+  }
+
+  onDestroy(listener: (editor: Editor) => void) {
+    this.eventBus.on(EditorEvent.DESTROY, listener)
+
+    return () => {
+      this.eventBus.off(EditorEvent.DESTROY, listener)
     }
   }
 }

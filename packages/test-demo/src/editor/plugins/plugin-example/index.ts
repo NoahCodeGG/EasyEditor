@@ -3,7 +3,7 @@ import type { Plugin } from '@easy-editor/core'
 const ExamplePlugin: Plugin = ctx => {
   return {
     name: 'ExamplePlugin',
-    dep: [],
+    deps: [],
     init() {
       ctx.logger.log('打个日志', ctx)
     },

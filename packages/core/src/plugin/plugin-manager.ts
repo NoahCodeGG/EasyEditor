@@ -1,8 +1,10 @@
 import { createLogger } from '../utils'
 import { PluginRuntime } from './plugin'
 import { PluginContext, type PluginContextOptions } from './plugin-context'
+import sequencify from './sequencify'
 
 export interface PluginConfig {
+  deps?: string[]
   init(): Promise<void> | void
   destroy?(): Promise<void> | void
   exports?(): any
@@ -68,8 +70,6 @@ export class PluginManager {
   pluginsMap: Map<string, PluginRuntime> = new Map()
   pluginContextMap: Map<string, PluginContext> = new Map()
 
-  // private pluginPreference?: PluginPreference = new Map()
-
   contextApiAssembler: PluginContextApiAssembler
 
   constructor(contextApiAssembler: PluginContextApiAssembler) {
@@ -86,56 +86,32 @@ export class PluginManager {
     return context
   }
 
-  // isEngineVersionMatched(versionExp: string): boolean {
-  //   const engineVersion = engineConfig.get('ENGINE_VERSION')
-  //   // ref: https://github.com/npm/node-semver#functions
-  //   // 1.0.1-beta should match '^1.0.0'
-  //   return semverSatisfies(engineVersion, versionExp, { includePrerelease: true })
-  // }
-
   /**
    * register a plugin
    * @param pluginConfigCreator - a creator function which returns the plugin config
    * @param options - the plugin options
    * @param registerOptions - the plugin register options
    */
+  // async register(pluginModel: Plugin, registerOptions?: PluginRegisterOptions): Promise<void>
   async register(pluginModel: Plugin, options?: any, registerOptions?: PluginRegisterOptions): Promise<void> {
-    // registerOptions maybe in the second place
     if (isLowCodeRegisterOptions(options)) {
       registerOptions = options
       options = {}
     }
-    let { pluginName, meta = {} } = pluginModel
-    // const { engines } = meta
-    // filter invalid eventPrefix
-    // const { eventPrefix } = meta
-    // const isReservedPrefix = RESERVED_EVENT_PREFIX.find(item => item === eventPrefix)
-    // if (isReservedPrefix) {
-    //   meta.eventPrefix = undefined
-    //   logger.warn(
-    //     `plugin ${pluginName} is trying to use ${eventPrefix} as event prefix, which is a reserved event prefix, please use another one`,
-    //   )
-    // }
+
+    const { pluginName, meta = {} } = pluginModel
+    if (!pluginName) {
+      this.logger.error('pluginConfigCreator.pluginName required', pluginModel)
+      return
+    }
     const ctx = this._getLowCodePluginContext({ pluginName, meta })
-    // const customFilterValidOptions = engineConfig.get('customPluginFilterOptions', filterValidOptions)
-    // const pluginTransducer = engineConfig.get('customPluginTransducer', null)
-    // const newPluginModel = pluginTransducer ? await pluginTransducer(pluginModel, ctx, options) : pluginModel
     const newPluginModel = pluginModel
-    // const newOptions = customFilterValidOptions(options, newPluginModel.meta?.preferenceDeclaration)
     const newOptions = options
     const config = newPluginModel(ctx, newOptions)
-    // compat the legacy way to declare pluginName
-    // @ts-ignore
-    pluginName = pluginName || config.name
-    this.logger.error('pluginConfigCreator.pluginName required', config)
-
-    // ctx.setPreference(pluginName, preferenceDeclaration)
-
     const allowOverride = registerOptions?.override === true
 
     if (this.pluginsMap.has(pluginName)) {
       if (allowOverride) {
-        // clear existing plugin
         const originalPlugin = this.pluginsMap.get(pluginName)
         this.logger.log(
           'plugin override, originalPlugin with name ',
@@ -150,22 +126,26 @@ export class PluginManager {
       }
     }
 
-    // const engineVersionExp = engines && engines.lowcodeEngine
-    // if (engineVersionExp && !this.isEngineVersionMatched(engineVersionExp)) {
-    //   throw new Error(
-    //     `plugin ${pluginName} skipped, engine check failed, current engine version is ${engineConfig.get('ENGINE_VERSION')}, meta.engines.lowcodeEngine is ${engineVersionExp}`,
-    //   )
-    // }
-
     const plugin = new PluginRuntime(pluginName, this, config, meta)
-    // support initialization of those plugins which registered
-    // after normal initialization by plugin-manager
     if (registerOptions?.autoInit) {
       await plugin.init()
     }
     this.plugins.push(plugin)
     this.pluginsMap.set(pluginName, plugin)
     this.logger.log(`plugin registered with pluginName: ${pluginName}, config: `, config, 'meta:', meta)
+  }
+
+  async registerPlugins(
+    plugins: Plugin[] | Array<{ plugin: Plugin; options?: any }>,
+    registerOptions?: PluginRegisterOptions,
+  ) {
+    for (const plugin of plugins) {
+      if ('plugin' in plugin) {
+        await this.register(plugin.plugin, plugin.options, registerOptions)
+      } else {
+        await this.register(plugin, undefined, registerOptions)
+      }
+    }
   }
 
   get(pluginName: string): PluginRuntime | undefined {
@@ -196,12 +176,16 @@ export class PluginManager {
       pluginNames.push(plugin.name)
       pluginObj[plugin.name] = plugin
     })
-    // const { missingTasks, sequence } = sequencify(pluginObj, pluginNames)
-    // this.logger.error(!missingTasks.length, 'plugin dependency missing', missingTasks)
-    // this.logger.log('load plugin sequence:', sequence)
 
-    // for (const pluginName of sequence) {
-    for (const pluginName of pluginNames) {
+    // check plugin dependency
+    const { missingTasks, sequence } = sequencify(pluginObj, pluginNames)
+    if (missingTasks.length) {
+      this.logger.error('plugin dependency missing', missingTasks)
+      return
+    }
+    this.logger.log('load plugin sequence:', sequence)
+
+    for (const pluginName of sequence) {
       try {
         await this.pluginsMap.get(pluginName)!.init()
       } catch (e) {
@@ -220,28 +204,6 @@ export class PluginManager {
   get size() {
     return this.pluginsMap.size
   }
-
-  // getPluginPreference(pluginName: string): Record<string, IPublicTypePreferenceValueType> | null | undefined {
-  //   if (!this.pluginPreference) {
-  //     return null
-  //   }
-  //   return this.pluginPreference.get(pluginName)
-  // }
-
-  // toProxy() {
-  //   return new Proxy(this, {
-  //     get(target, prop, receiver) {
-  //       if (target.pluginsMap.has(prop as string)) {
-  //         // 禁用态的插件，直接返回 undefined
-  //         if (target.pluginsMap.get(prop as string)!.disabled) {
-  //           return undefined
-  //         }
-  //         return target.pluginsMap.get(prop as string)?.toProxy()
-  //       }
-  //       return Reflect.get(target, prop, receiver)
-  //     },
-  //   })
-  // }
 
   setDisabled(pluginName: string, flag = true) {
     this.logger.warn(`plugin:${pluginName} has been set disable:${flag}`)

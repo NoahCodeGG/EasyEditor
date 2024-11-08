@@ -25,9 +25,6 @@ console.log('🚀 ~ easyEditor:', easyEditor)
 
 // need param
 easyEditor.init({
-  constants: {
-    a: 1,
-  },
   lifeCycles: {
     init: () => {
       console.log('init')
@@ -36,23 +33,11 @@ easyEditor.init({
       console.log('destroy')
     },
   },
-  utils: [
-    {
-      name: 'test',
-      type: 'function',
-      content: () => {
-        console.log('test')
-      },
-    },
-  ],
   plugins,
   setters: formatMapFromESModule<Setter>(setterMap),
   components: formatMapFromESModule<Component>(componentMap),
   componentMetas: formatMapFromESModule<ComponentMetadata>(componentMetaMap),
   // hotkeys: [],
-  // components: {
-  //   'text-block': TextBlock,
-  // },
 })
 
 const designer = await easyEditor.onceGot<Designer>('designer')
