@@ -20,11 +20,7 @@ console.log('🚀 ~ setterMap:', setterMap)
 console.log('🚀 ~ componentMap:', componentMap)
 console.log('🚀 ~ componentMetaMap:', componentMetaMap)
 
-const easyEditor = createEasyEditor()
-console.log('🚀 ~ easyEditor:', easyEditor)
-
-// need param
-easyEditor.init({
+const easyEditor = createEasyEditor({
   lifeCycles: {
     init: () => {
       console.log('init')
@@ -37,8 +33,8 @@ easyEditor.init({
   setters: formatMapFromESModule<Setter>(setterMap),
   components: formatMapFromESModule<Component>(componentMap),
   componentMetas: formatMapFromESModule<ComponentMetadata>(componentMetaMap),
-  // hotkeys: [],
 })
+console.log('🚀 ~ easyEditor:', easyEditor)
 
 const designer = await easyEditor.onceGot<Designer>('designer')
 const project = await easyEditor.onceGot<Project>('project')

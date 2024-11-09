@@ -225,7 +225,6 @@ export class Project {
   }
 
   mountSimulator(simulator: Simulator) {
-    // TODO: 多设备 simulator 支持
     this._simulator = simulator
     this.emitter.emit(PROJECT_EVENT.SIMULATOR_READY, simulator)
   }

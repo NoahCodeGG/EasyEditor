@@ -14,8 +14,6 @@ import {
   type Designer,
   DragObjectType,
   type LocateEvent,
-  type LocationChildrenDetail,
-  LocationDetailType,
   type NodeInstance,
   type Rect,
   clipboard,
@@ -72,13 +70,13 @@ export class Simulator {
 
   @observable.ref accessor _props: SimulatorProps = {}
 
-  @observable.ref private accessor _contentWindow?: Window
+  @observable.ref private accessor _contentWindow: Window | undefined
 
   get contentWindow() {
     return this._contentWindow
   }
 
-  @observable.ref private accessor _contentDocument?: Document
+  @observable.ref private accessor _contentDocument: Document | undefined
 
   get contentDocument() {
     return this._contentDocument
@@ -86,12 +84,15 @@ export class Simulator {
 
   @observable.ref private accessor _components: Record<string, Component> = {}
 
+  /**
+   * material to component map
+   */
   @computed get components() {
     return this._components
   }
 
   @observable private accessor instancesMap: {
-    [docId: string]: Map<string, ComponentInstance[]>
+    [docId: string]: Map<string, ComponentInstance>
   } = {}
 
   private _sensorAvailable = true
@@ -100,6 +101,7 @@ export class Simulator {
     return this._sensorAvailable
   }
 
+  // TODO
   private _renderer?: SimulatorRenderer
 
   get renderer() {
@@ -118,10 +120,7 @@ export class Simulator {
   }
 
   set(key: string, value: any) {
-    this._props = {
-      ...this._props,
-      [key]: value,
-    }
+    this._props[key] = value
   }
 
   get(key: string): any {
@@ -143,15 +142,41 @@ export class Simulator {
     return autorun(effect, options)
   }
 
-  purge(): void {
-    // todo
+  purge() {
+    this._components = {}
+    this._renderer = undefined
+    this._contentDocument = undefined
+    this._contentWindow = undefined
+
+    for (const docId in this.instancesMap) {
+      this.instancesMap[docId].clear()
+    }
+    this.instancesMap = {}
   }
 
+  /**
+   * mount the viewport element
+   */
   mountViewport(viewport: HTMLElement) {
     this._iframe = viewport
     this._contentDocument = viewport.ownerDocument
     this._contentWindow = viewport.ownerDocument.defaultView!
     this.viewport.mount(viewport)
+  }
+
+  /**
+   * force to rerender the viewport
+   */
+  rerender() {
+    return this._renderer?.rerender()
+  }
+
+  getComponent(componentName: string) {
+    return this._components[componentName]
+  }
+
+  postEvent(eventName: string, ...data: any[]) {
+    this.emitter.emit(eventName, ...data)
   }
 
   setupEvents() {
@@ -161,10 +186,7 @@ export class Simulator {
     clipboard.injectCopyPaster(this._contentDocument!)
   }
 
-  postEvent(eventName: string, ...data: any[]) {
-    this.emitter.emit(eventName, ...data)
-  }
-
+  // TODO
   setupDragAndClick() {
     const { designer } = this
     const doc = this.contentDocument!
@@ -316,31 +338,29 @@ export class Simulator {
     // };
   }
 
-  // TODO: 想想结构
   @action
   setComponents(components: Record<string, Component>) {
     this._components = components
   }
 
-  setInstance(docId: string, id: string, instances: ComponentInstance[] | null) {
+  setInstance(docId: string, id: string, instance: ComponentInstance | null) {
     if (!Object.prototype.hasOwnProperty.call(this.instancesMap, docId)) {
       this.instancesMap[docId] = new Map()
     }
-    if (instances == null) {
+    if (instance == null) {
       this.instancesMap[docId].delete(id)
     } else {
-      this.instancesMap[docId].set(id, instances.slice())
+      this.instancesMap[docId].set(id, instance)
     }
   }
 
   getComponentInstances(node: Node) {
-    const docId = node.document?.id
+    const docId = node.document.id
     if (!docId) {
       return null
     }
 
-    const instances = this.instancesMap[docId]?.get(node.id) || null
-    return instances
+    return this.instancesMap[docId]?.get(node.id) || null
   }
 
   getNodeInstanceFromElement(target: Element | null): NodeInstance<ComponentInstance, Node> | null {
@@ -348,9 +368,7 @@ export class Simulator {
       return null
     }
 
-    // TODO:
-    // const SYMBOL_VNID = Symbol('_LCNodeId');
-    // const SYMBOL_VDID = Symbol('_LCDocId');
+    // TODO: 想办法从 target 身上获取到 docId
     const docId = this.project.currentDocument!.id
     const nodeId = target.id
 
@@ -362,27 +380,31 @@ export class Simulator {
     }
   }
 
-  findDOMNodes(instance: ComponentInstance, selector?: string) {}
-
-  computeRect(node: Node): Rect | null {
-    const instances = this.getComponentInstances(node)
-    if (!instances) {
+  /**
+   * compute the rect of node's instance
+   */
+  computeRect(node: Node) {
+    const instance = this.getComponentInstances(node)
+    if (!instance) {
       return null
     }
-    return this.computeComponentInstanceRect(instances[0])
+    return this.computeComponentInstanceRect(instance)
   }
 
   computeComponentInstanceRect(instance: ComponentInstance) {
     return instance.getBoundingClientRect()
   }
 
+  /**
+   * fix event's prop, canvasX、canvasY and target
+   */
   fixEvent(e: LocateEvent): LocateEvent {
     if (e.fixed) {
       return e
     }
 
     const notMyEvent = e.originalEvent.view?.document !== this.contentDocument
-    // fix canvasX canvasY : 当前激活文档画布坐标系
+    // fix canvasX canvasY
     if (notMyEvent || !('canvasX' in e) || !('canvasY' in e)) {
       const l = this.viewport.toLocalPoint({
         clientX: e.globalX,
@@ -392,19 +414,21 @@ export class Simulator {
       e.canvasY = l.clientY
     }
 
-    // fix target : 浏览器事件响应目标
+    // fix target
     if (!e.target || notMyEvent) {
       if (!Number.isNaN(e.canvasX!) && !Number.isNaN(e.canvasY!)) {
         e.target = this.contentDocument?.elementFromPoint(e.canvasX!, e.canvasY!)
       }
     }
 
-    // 事件已订正
     e.fixed = true
     return e
   }
 
-  isEnter(e: LocateEvent): boolean {
+  /**
+   * check the rect whether is in the viewport
+   */
+  isEnter(e: LocateEvent) {
     const rect = this.viewport.bounds
     return e.globalY >= rect.top && e.globalY <= rect.bottom && e.globalX >= rect.left && e.globalX <= rect.right
   }
@@ -413,32 +437,24 @@ export class Simulator {
     this.sensing = false
   }
 
+  // TODO
   locate(e: LocateEvent): any {
     const { dragObject } = e
+
     const nodes = dragObject?.nodes
-
+    // Calculate the nodes that can be moved
     const operationalNodes = nodes?.filter(node => {
-      // const onMoveHook = node.componentMeta?.advanced.callbacks?.onMoveHook;
-      // const canMove = onMoveHook && typeof onMoveHook === 'function' ? onMoveHook(node.internalToShellNode()) : true;
-      const canMove = true
+      const onMoveHook = node?.componentMeta?.advanced?.callbacks?.onMoveHook
+      const canMove = onMoveHook && typeof onMoveHook === 'function' ? onMoveHook(node) : true
 
-      // let parentContainerNode: Node | null = null
-      // let parentNode = node?.parent
+      const parentNode = node?.parent
+      const onChildMoveHook = parentNode?.componentMeta?.advanced?.callbacks?.onChildMoveHook
+      const childrenCanMove =
+        onChildMoveHook && parentNode && typeof onChildMoveHook === 'function'
+          ? onChildMoveHook(node, parentNode)
+          : true
 
-      // while (parentNode) {
-      //   if (parentNode.isContainer()) {
-      //     parentContainerNode = parentNode;
-      //     break;
-      //   }
-
-      //   parentNode = parentNode.parent;
-      // }
-
-      // const onChildMoveHook = parentContainerNode?.componentMeta?.advanced.callbacks?.onChildMoveHook;
-      // const childrenCanMove = onChildMoveHook && parentContainerNode && typeof onChildMoveHook === 'function' ? onChildMoveHook(node.internalToShellNode(), parentContainerNode.internalToShellNode()) : true;
-      const childrenCanMove = true
-
-      return canMove && childrenCanMove
+      return !node?.isLocked && canMove && childrenCanMove
     })
 
     if (nodes && (!operationalNodes || operationalNodes.length === 0)) {
@@ -451,9 +467,6 @@ export class Simulator {
       return null
     }
     const dropContainer = this.getDropContainer(e)
-    // TODO
-    // const lockedNode = getClosestNode(dropContainer?.container, node => node.isLocked)
-    // if (lockedNode) return null
     if (!dropContainer) {
       return null
     }
@@ -464,7 +477,7 @@ export class Simulator {
 
     const { container, instance: containerInstance } = dropContainer
 
-    const edge = this.computeComponentInstanceRect(containerInstance)
+    const edge = this.computeComponentInstanceRect(containerInstance, container.componentMeta.rootSelector)
 
     if (!edge) {
       return null
@@ -472,8 +485,8 @@ export class Simulator {
 
     const { children } = container
 
-    const detail: LocationChildrenDetail = {
-      type: LocationDetailType.Children,
+    const detail: IPublicTypeLocationChildrenDetail = {
+      type: IPublicTypeLocationDetailType.Children,
       index: 0,
       edge,
     }
@@ -485,28 +498,28 @@ export class Simulator {
       event: e,
     }
 
-    // if (
-    //   e.dragObject &&
-    //   e.dragObject.nodes &&
-    //   e.dragObject.nodes.length &&
-    //   e.dragObject.nodes[0].componentMeta.isModal &&
-    //   document.focusNode
-    // ) {
-    //   return this.designer.createLocation({
-    //     target: document.focusNode,
-    //     detail,
-    //     source: `simulator${document.id}`,
-    //     event: e,
-    //   })
-    // }
+    if (
+      e.dragObject &&
+      e.dragObject.nodes &&
+      e.dragObject.nodes.length &&
+      e.dragObject.nodes[0].componentMeta.isModal &&
+      document.focusNode
+    ) {
+      return this.designer.createLocation({
+        target: document.focusNode,
+        detail,
+        source: `simulator${document.id}`,
+        event: e,
+      })
+    }
 
     if (!children || children.size < 1 || !edge) {
       return this.designer.createLocation(locationData)
     }
 
-    let nearRect: Rect | null = null
+    let nearRect: IPublicTypeRect | null = null
     let nearIndex = 0
-    let nearNode: Node | null = null
+    let nearNode: INode | null = null
     let nearDistance: number | null = null
     let minTop: number | null = null
     let maxBottom: number | null = null
@@ -520,7 +533,7 @@ export class Simulator {
           ? instances.find(_inst => this.getClosestNodeInstance(_inst, container.id)?.instance === containerInstance)
           : instances[0]
         : null
-      const rect = inst ? this.computeComponentInstanceRect(inst) : null
+      const rect = inst ? this.computeComponentInstanceRect(inst, node.componentMeta.rootSelector) : null
 
       if (!rect) {
         continue
@@ -555,45 +568,45 @@ export class Simulator {
 
     detail.index = nearIndex
 
-    // if (nearNode && nearRect) {
-    //   const el = getRectTarget(nearRect)
-    //   const inline = el ? isChildInline(el) : false
-    //   const row = el ? isRowContainer(el.parentElement!) : false
-    //   const vertical = inline || row
+    if (nearNode && nearRect) {
+      const el = getRectTarget(nearRect)
+      const inline = el ? isChildInline(el) : false
+      const row = el ? isRowContainer(el.parentElement!) : false
+      const vertical = inline || row
 
-    //   // TODO: fix type
-    //   const near: {
-    //     node: IPublicModelNode
-    //     pos: 'before' | 'after' | 'replace'
-    //     rect?: IPublicTypeRect
-    //     align?: 'V' | 'H'
-    //   } = {
-    //     node: nearNode.internalToShellNode()!,
-    //     pos: 'before',
-    //     align: vertical ? 'V' : 'H',
-    //   }
-    //   detail.near = near
-    //   if (isNearAfter(e as any, nearRect, vertical)) {
-    //     near.pos = 'after'
-    //     detail.index = nearIndex + 1
-    //   }
-    //   if (!row && nearDistance !== 0) {
-    //     const edgeDistance = distanceToEdge(e as any, edge)
-    //     if (edgeDistance.distance < nearDistance!) {
-    //       const { nearAfter } = edgeDistance
-    //       if (minTop == null) {
-    //         minTop = edge.top
-    //       }
-    //       if (maxBottom == null) {
-    //         maxBottom = edge.bottom
-    //       }
-    //       near.rect = new DOMRect(edge.left, minTop, edge.width, maxBottom - minTop)
-    //       near.align = 'H'
-    //       near.pos = nearAfter ? 'after' : 'before'
-    //       detail.index = nearAfter ? children.size : 0
-    //     }
-    //   }
-    // }
+      // TODO: fix type
+      const near: {
+        node: IPublicModelNode
+        pos: 'before' | 'after' | 'replace'
+        rect?: IPublicTypeRect
+        align?: 'V' | 'H'
+      } = {
+        node: nearNode.internalToShellNode()!,
+        pos: 'before',
+        align: vertical ? 'V' : 'H',
+      }
+      detail.near = near
+      if (isNearAfter(e as any, nearRect, vertical)) {
+        near.pos = 'after'
+        detail.index = nearIndex + 1
+      }
+      if (!row && nearDistance !== 0) {
+        const edgeDistance = distanceToEdge(e as any, edge)
+        if (edgeDistance.distance < nearDistance!) {
+          const { nearAfter } = edgeDistance
+          if (minTop == null) {
+            minTop = edge.top
+          }
+          if (maxBottom == null) {
+            maxBottom = edge.bottom
+          }
+          near.rect = new DOMRect(edge.left, minTop, edge.width, maxBottom - minTop)
+          near.align = 'H'
+          near.pos = nearAfter ? 'after' : 'before'
+          detail.index = nearAfter ? children.size : 0
+        }
+      }
+    }
 
     return this.designer.createLocation(locationData)
   }

@@ -57,6 +57,8 @@ export class Props {
     return this.owner
   }
 
+  @observable type: 'map' | 'list' = 'map'
+
   @observable.shallow accessor items: Prop[] = []
 
   @computed private get maps() {
@@ -85,14 +87,24 @@ export class Props {
   @action
   import(props?: PropsSchema, extras?: PropsSchema) {
     // TODO: 是否需要继承之前相同的 key，来保持响应式
-    this.purge()
 
-    if (props) {
+    const originItems = this.items
+    if (Array.isArray(props)) {
+      this.type = 'list'
+      this.items = props.map((item, idx) => new Prop(this, item.name || idx, item.value))
+    } else if (props != null) {
+      this.type = 'map'
       this.items = Object.keys(props).map(key => new Prop(this, key, props[key]))
+    } else {
+      this.type = 'map'
+      this.items = []
     }
     if (extras) {
-      this.items.push(...Object.keys(extras).map(key => new Prop(this, getConvertedExtraKey(key), extras[key])))
+      Object.keys(extras).forEach(key => {
+        this.items.push(new Prop(this, getConvertedExtraKey(key), extras[key]))
+      })
     }
+    originItems.forEach(item => item.purge())
   }
 
   export() {

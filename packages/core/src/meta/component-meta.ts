@@ -1,5 +1,5 @@
 import type { Designer } from '../designer'
-import type { ComponentMetadata, FieldConfig } from './meta'
+import type { ComponentMetadata, Configure, FieldConfig } from './meta'
 
 import { computed } from 'mobx'
 import { createEventBus } from '../utils'
@@ -38,8 +38,21 @@ export class ComponentMeta {
     return this._title || this.componentName
   }
 
-  @computed get icon() {
+  get icon() {
     return this._metadata?.icon
+  }
+
+  get isOnlyFieldConfig() {
+    const config = this._metadata?.configure
+    return Array.isArray(config)
+  }
+
+  get advanced() {
+    if (this.isOnlyFieldConfig) {
+      return null
+    }
+
+    return (this._metadata!.configure as Configure)?.advanced || {}
   }
 
   constructor(

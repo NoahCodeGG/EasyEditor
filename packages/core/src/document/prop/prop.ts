@@ -9,6 +9,9 @@ export type UNSET = typeof UNSET
 
 export type ValueTypes = 'unset' | 'literal' | 'list' | 'map'
 
+/**
+ * a common interface for Prop and Props
+ */
 export interface PropParent {
   readonly props: Props
 
@@ -100,7 +103,7 @@ export class Prop {
   }
 
   /**
-   * 元素个数
+   * item length
    */
   get size(): number {
     return this.items?.length || 0

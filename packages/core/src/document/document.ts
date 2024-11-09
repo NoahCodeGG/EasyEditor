@@ -220,7 +220,7 @@ export class Document {
   }
 
   /**
-   * 插入多个节点
+   * insert multiple nodes
    */
   insertNodes(parent: Node, nodes: Node[] | NodeSchema[], at?: number) {
     let index = at
@@ -292,60 +292,43 @@ export class Document {
    * @param extraComps - extra components that will be added to the components map, use for custom components
    */
   getComponentsMap(extraComps?: string[]) {
-    // TODO: component 类型
     const componentsMap: Record<Node['componentName'], any> = []
     // use map to avoid duplicate
     const existedMap: Record<Node['componentName'], boolean> = {}
 
     for (const node of this._nodesMap.values()) {
       // TODO: 组件具体内容添加
-      // const { componentName } = node || {}
-      // if (!existedMap[componentName]) {
-      //   existedMap[componentName] = true
-      //   if (node.componentMeta?.npm?.package) {
-      //     componentsMap.push({
-      //       ...node.componentMeta.npm,
-      //       componentName,
-      //     })
-      //   } else {
-      //     componentsMap.push({
-      //       devMode: 'lowCode',
-      //       componentName,
-      //     })
-      //   }
-      // }
+      const { componentName } = node || {}
+      if (!existedMap[componentName]) {
+        existedMap[componentName] = true
+        componentsMap.push({
+          devMode: 'lowCode',
+          componentName,
+        })
+      }
     }
 
     // combine extra components
     if (Array.isArray(extraComps)) {
       extraComps.forEach(componentName => {
-        // if (componentName && !existedMap[componentName]) {
-        //   const meta = this.getComponentMeta(componentName)
-        //   if (meta?.npm?.package) {
-        //     componentsMap.push({
-        //       ...meta?.npm,
-        //       componentName,
-        //     })
-        //   } else {
-        //     componentsMap.push({
-        //       devMode: 'lowCode',
-        //       componentName,
-        //     })
-        //   }
-        // }
+        if (componentName && !existedMap[componentName]) {
+          componentsMap.push({
+            devMode: 'lowCode',
+            componentName,
+          })
+        }
       })
     }
 
     return componentsMap
   }
 
-  // TODO: 是否需要获取组件类
-  // getComponent(componentName: string): any {
-  //   return this.simulator!.getComponent(componentName)
-  // }
+  getComponent(componentName: string) {
+    return this.simulator!.getComponent(componentName)
+  }
 
   getComponentMeta(componentName: string) {
-    return this.designer.getComponentMeta(componentName)
+    return this.designer.componentMetaManager.getComponentMeta(componentName)
   }
 
   onReady(listener: () => void) {

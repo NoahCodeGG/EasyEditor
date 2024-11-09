@@ -292,12 +292,10 @@ export class Node {
     return false
   }
 
-  // TODO
   canSelect() {
-    // const onSelectHook = this.componentMeta?.advanced?.callbacks?.onSelectHook
-    // const canSelect = typeof onSelectHook === 'function' ? onSelectHook(this.internalToShellNode()!) : true
-    // return canSelect
-    return true
+    const onSelectHook = this.componentMeta?.advanced?.callbacks?.onSelectHook
+    const canSelect = typeof onSelectHook === 'function' ? onSelectHook(this) : true
+    return canSelect
   }
 
   select() {

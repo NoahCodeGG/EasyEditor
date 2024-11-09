@@ -21,6 +21,8 @@
     "editor.defaultFormatter": "biomejs.biome"
   },
   "cSpell.words": [
+    "autorun",
+    "deactive",
     "easyeditor",
     "inited",
     "Metas"

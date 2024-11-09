@@ -53,8 +53,13 @@ export class Editor {
     }>
   >()
 
-  constructor() {
+  constructor(config?: EditorConfig) {
     this.eventBus = createEventBus('EasyEditor')
+
+    // if config is provided, initialize the editor
+    if (config) {
+      this.init(config)
+    }
   }
 
   get<T = undefined, KeyOrType extends EditorValueKey = any>(
@@ -265,6 +270,6 @@ export class Editor {
   }
 }
 
-export const createEasyEditor = () => {
-  return new Editor()
+export const createEasyEditor = (config?: EditorConfig) => {
+  return new Editor(config)
 }
