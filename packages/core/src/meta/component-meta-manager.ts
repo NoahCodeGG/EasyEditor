@@ -1,8 +1,9 @@
-import { action, computed, observable } from 'mobx'
 import type { Designer } from '../designer'
 import type { Editor } from '../editor'
+import type { ComponentMetadata } from './meta'
+
+import { action, computed, observable } from 'mobx'
 import { ComponentMeta, isComponentMeta } from './component-meta'
-import type { Component, ComponentMetadata } from './meta'
 
 export class ComponentMetaManager {
   @observable.ref private accessor _componentMetasMap = new Map<string, ComponentMeta>()
@@ -15,10 +16,7 @@ export class ComponentMetaManager {
 
   constructor(readonly editor: Editor) {}
 
-  buildComponentMetasMap(metas: ComponentMetadata[]) {
-    metas.forEach(data => this.createComponentMeta(data))
-  }
-
+  @action
   createComponentMeta(data: ComponentMetadata) {
     const key = data.componentName
     if (!key) {
@@ -45,7 +43,6 @@ export class ComponentMetaManager {
     return meta
   }
 
-  @action
   createComponentMetaMap = (maps: Record<string, ComponentMetadata>) => {
     Object.keys(maps).forEach(type => {
       this.createComponentMeta(maps[type])
@@ -71,17 +68,11 @@ export class ComponentMetaManager {
     return meta
   }
 
-  getComponentMetasMap() {
-    return this._componentMetasMap
-  }
-
-  @computed get componentMetasMap(): { [key: string]: Component } {
-    const maps: any = {}
+  @computed get componentMetasMap() {
+    const maps: Record<string, ComponentMetadata> = {}
     this._componentMetasMap.forEach((config, key) => {
       const metaData = config.getMetadata()
-      // if (metaData.devMode === 'lowCode') {
       maps[key] = metaData
-      // }
     })
     return maps
   }

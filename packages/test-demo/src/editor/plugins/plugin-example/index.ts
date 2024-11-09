@@ -6,6 +6,10 @@ const ExamplePlugin: Plugin = ctx => {
     deps: [],
     init() {
       ctx.logger.log('打个日志', ctx)
+
+      ctx.project.set('example', {
+        aaa: 'bbb',
+      })
     },
   }
 }

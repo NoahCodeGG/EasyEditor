@@ -1,7 +1,7 @@
-interface StringSetterProps {
-  value: string
+import type { SetterProps } from '@easy-editor/core'
+
+interface StringSetterProps extends SetterProps<string> {
   placeholder: string
-  onChange: (val: string) => void
 }
 
 const StringSetter = (props: StringSetterProps) => {

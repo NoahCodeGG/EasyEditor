@@ -6,7 +6,7 @@
   },
   "editor.formatOnSave": true,
   "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "biomejs.biome"
   },
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
@@ -20,5 +20,9 @@
   "[json]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
-  "cSpell.words": ["easyeditor"]
+  "cSpell.words": [
+    "easyeditor",
+    "inited",
+    "Metas"
+  ]
 }

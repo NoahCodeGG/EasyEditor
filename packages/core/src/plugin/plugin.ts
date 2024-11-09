@@ -15,7 +15,7 @@ export class PluginRuntime {
   meta: PluginMeta
 
   /**
-   * 标识插件状态，是否被 disabled
+   * indicates whether the plugin is disabled
    */
   private _disabled: boolean
 
@@ -31,16 +31,12 @@ export class PluginRuntime {
     return this.pluginName
   }
 
-  get dep() {
+  get deps() {
     if (typeof this.meta.dependencies === 'string') {
       return [this.meta.dependencies]
     }
-    // compat legacy way to declare dependencies
-    const legacyDepValue = (this.config as any).dep
-    if (typeof legacyDepValue === 'string') {
-      return [legacyDepValue]
-    }
-    return this.meta.dependencies || legacyDepValue || []
+
+    return this.meta.dependencies || []
   }
 
   get disabled() {

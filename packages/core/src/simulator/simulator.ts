@@ -108,9 +108,9 @@ export class Simulator {
 
   private sensing = false
 
-  constructor(project: Project, designer: Designer) {
-    this.project = project
+  constructor(designer: Designer) {
     this.designer = designer
+    this.project = designer.project
   }
 
   setProps(props: SimulatorProps) {

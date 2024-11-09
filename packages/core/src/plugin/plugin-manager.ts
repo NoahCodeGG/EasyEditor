@@ -1,6 +1,8 @@
+import type { PluginContextOptions } from './plugin-context'
+
 import { createLogger } from '../utils'
 import { PluginRuntime } from './plugin'
-import { PluginContext, type PluginContextOptions } from './plugin-context'
+import { PluginContext } from './plugin-context'
 import sequencify from './sequencify'
 
 export interface PluginConfig {
@@ -15,32 +17,16 @@ export interface PluginMeta {
    * define dependencies which the plugin depends on
    */
   dependencies?: string[]
-  /**
-   * specify which engine version is compatible with the plugin
-   */
-  engines?: {
-    /** e.g. '^1.0.0' */
-    lowcodeEngine?: string
-  }
-  // preferenceDeclaration?: IPublicTypePluginDeclaration
 
   /**
    * use 'common' as event prefix when eventPrefix is not set.
-   * strongly recommend using pluginName as eventPrefix
-   *
-   * eg.
-   *   case 1, when eventPrefix is not specified
-   *        event.emit('someEventName') is actually sending event with name 'common:someEventName'
-   *
-   *   case 2, when eventPrefix is 'myEvent'
-   *        event.emit('someEventName') is actually sending event with name 'myEvent:someEventName'
    */
   eventPrefix?: string
 }
 
-export type PluginCreator = (ctx: PluginContext, options: any) => PluginConfig
+export type PluginCreator<O = any> = (ctx: PluginContext, options: O) => PluginConfig
 
-export interface Plugin extends PluginCreator {
+export interface Plugin<O = any> extends PluginCreator<O> {
   pluginName: string
   meta?: PluginMeta
 }
@@ -52,12 +38,16 @@ export interface PluginRegisterOptions {
    * It is helpful when plugin register is later than plugin-manager initialization.
    */
   autoInit?: boolean
+
   /**
    * allow overriding existing plugin with same name when override === true
    */
   override?: boolean
 }
 
+/**
+ * Assemble APIs for plugins to create context
+ */
 export interface PluginContextApiAssembler {
   assembleApis(context: PluginContext, pluginName: string, meta: PluginMeta): void
 }
@@ -70,13 +60,13 @@ export class PluginManager {
   pluginsMap: Map<string, PluginRuntime> = new Map()
   pluginContextMap: Map<string, PluginContext> = new Map()
 
-  contextApiAssembler: PluginContextApiAssembler
+  private contextApiAssembler: PluginContextApiAssembler
 
   constructor(contextApiAssembler: PluginContextApiAssembler) {
     this.contextApiAssembler = contextApiAssembler
   }
 
-  _getLowCodePluginContext = (options: PluginContextOptions) => {
+  private getPluginContext = (options: PluginContextOptions) => {
     const { pluginName } = options
     let context = this.pluginContextMap.get(pluginName)
     if (!context) {
@@ -94,7 +84,7 @@ export class PluginManager {
    */
   // async register(pluginModel: Plugin, registerOptions?: PluginRegisterOptions): Promise<void>
   async register(pluginModel: Plugin, options?: any, registerOptions?: PluginRegisterOptions): Promise<void> {
-    if (isLowCodeRegisterOptions(options)) {
+    if (isRegisterOptions(options)) {
       registerOptions = options
       options = {}
     }
@@ -104,10 +94,8 @@ export class PluginManager {
       this.logger.error('pluginConfigCreator.pluginName required', pluginModel)
       return
     }
-    const ctx = this._getLowCodePluginContext({ pluginName, meta })
-    const newPluginModel = pluginModel
-    const newOptions = options
-    const config = newPluginModel(ctx, newOptions)
+    const ctx = this.getPluginContext({ pluginName, meta })
+    const config = pluginModel(ctx, options)
     const allowOverride = registerOptions?.override === true
 
     if (this.pluginsMap.has(pluginName)) {
@@ -135,6 +123,9 @@ export class PluginManager {
     this.logger.log(`plugin registered with pluginName: ${pluginName}, config: `, config, 'meta:', meta)
   }
 
+  /**
+   * batch register plugins
+   */
   async registerPlugins(
     plugins: Plugin[] | Array<{ plugin: Plugin; options?: any }>,
     registerOptions?: PluginRegisterOptions,
@@ -152,11 +143,11 @@ export class PluginManager {
     return this.pluginsMap.get(pluginName)
   }
 
-  getAll(): PluginRuntime[] {
+  getAll() {
     return this.plugins
   }
 
-  has(pluginName: string): boolean {
+  has(pluginName: string) {
     return this.pluginsMap.has(pluginName)
   }
 
@@ -171,7 +162,7 @@ export class PluginManager {
 
   async init() {
     const pluginNames: string[] = []
-    const pluginObj: { [name: string]: PluginRuntime } = {}
+    const pluginObj: Record<string, PluginRuntime> = {}
     this.plugins.forEach(plugin => {
       pluginNames.push(plugin.name)
       pluginObj[plugin.name] = plugin
@@ -195,6 +186,9 @@ export class PluginManager {
     }
   }
 
+  /**
+   * destroy all plugins
+   */
   async destroy() {
     for (const plugin of this.plugins) {
       await plugin.destroy()
@@ -210,6 +204,9 @@ export class PluginManager {
     this.pluginsMap.get(pluginName)?.setDisabled(flag)
   }
 
+  /**
+   * reset plugin manager
+   */
   async dispose() {
     await this.destroy()
     this.plugins = []
@@ -217,6 +214,6 @@ export class PluginManager {
   }
 }
 
-export const isLowCodeRegisterOptions = (opts: any): opts is PluginRegisterOptions => {
+export const isRegisterOptions = (opts: any): opts is PluginRegisterOptions => {
   return opts && ('autoInit' in opts || 'override' in opts)
 }

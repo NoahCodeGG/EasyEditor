@@ -1,9 +1,10 @@
-interface ITaks {
-  [key: string]: {
+type ITaks = Record<
+  string,
+  {
     name: string
-    dep: string[]
+    deps: string[]
   }
-}
+>
 
 export function sequence({
   tasks,
@@ -33,12 +34,12 @@ export function sequence({
       nest.push(name)
       recursive.push(nest.slice(0))
       nest.pop()
-    } else if (node.dep.length) {
+    } else if (node.deps.length) {
       nest.push(name)
       sequence({
         tasks,
         parentName: name,
-        names: node.dep,
+        names: node.deps,
         results,
         missing,
         recursive,
@@ -64,6 +65,7 @@ export default function (tasks: ITaks, names: string[]) {
     missing,
     recursive,
     nest: [],
+    parentName: '',
   })
 
   if (missing.length || recursive.length) {

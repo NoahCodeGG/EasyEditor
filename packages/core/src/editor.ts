@@ -1,9 +1,13 @@
+import type { Component, ComponentMetadata, Setter } from './meta'
+import type { Plugin } from './plugin'
+import type { EventBus } from './utils'
+
 import { action, observable } from 'mobx'
 import { Designer } from './designer'
-import { type Component, ComponentMetaManager, type ComponentMetadata, type Setter, SetterManager } from './meta'
-import { type Plugin, type PluginContextApiAssembler, PluginManager } from './plugin'
+import { ComponentMetaManager, SetterManager } from './meta'
+import { PluginManager } from './plugin'
 import { Simulator } from './simulator'
-import { type EventBus, createEventBus, createLogger } from './utils'
+import { createEventBus, createLogger } from './utils'
 
 export type EditorValueKey = string | symbol
 
@@ -16,19 +20,11 @@ export type EditorGetResult<T, ClsType> = T extends undefined
   : T
 
 export interface EditorConfig {
-  hotkeys?: HotkeysConfig
   lifeCycles?: LifeCyclesConfig
-
   plugins?: Plugin[] | Array<{ plugin: Plugin; options?: any }>
   setters?: Record<string, Setter>
   components?: Record<string, Component>
   componentMetas?: Record<string, ComponentMetadata>
-}
-export type HotkeysConfig = HotkeyConfig[]
-
-export interface HotkeyConfig {
-  keyboard: string
-  handler: (editor: Editor, ev: Event, keymaster: any) => void
 }
 
 export interface LifeCyclesConfig {
@@ -61,8 +57,10 @@ export class Editor {
     this.eventBus = createEventBus('EasyEditor')
   }
 
-  get<T = undefined, KeyOrType = any>(keyOrType: KeyOrType): EditorGetResult<T, KeyOrType> | undefined {
-    return this.context.get(keyOrType as any)
+  get<T = undefined, KeyOrType extends EditorValueKey = any>(
+    keyOrType: KeyOrType,
+  ): EditorGetResult<T, KeyOrType> | undefined {
+    return this.context.get(keyOrType)
   }
 
   has(keyOrType: EditorValueKey): boolean {
@@ -75,6 +73,9 @@ export class Editor {
     this.notifyGot(key)
   }
 
+  /**
+   * get value until value is set
+   */
   @action
   onceGot<T = undefined, KeyOrType extends EditorValueKey = any>(
     keyOrType: KeyOrType,
@@ -88,6 +89,9 @@ export class Editor {
     })
   }
 
+  /**
+   * listen value when value is set
+   */
   @action
   onGot<T = undefined, KeyOrType extends EditorValueKey = any>(
     keyOrType: KeyOrType,
@@ -103,6 +107,9 @@ export class Editor {
     }
   }
 
+  /**
+   * listen value when value is changed
+   */
   onChange<T = undefined, KeyOrType extends EditorValueKey = any>(
     keyOrType: KeyOrType,
     fn: (data: EditorGetResult<T, KeyOrType>) => void,
@@ -113,30 +120,22 @@ export class Editor {
     }
   }
 
-  register(data: any, key?: EditorValueKey): void {
-    this.context.set(key || data, data)
-    this.notifyGot(key || data)
-  }
-
   async init(config?: EditorConfig) {
     this.config = config || {}
     const { lifeCycles, plugins, setters, components, componentMetas } = this.config
 
     this.eventBus.emit(EditorEvent.BEFORE_INIT)
 
-    const init = (lifeCycles && lifeCycles.init) || ((): void => {})
     const setterManager = new SetterManager()
     const componentMetaManager = new ComponentMetaManager(this)
     const designer = new Designer({ editor: this, setterManager, componentMetaManager })
     const project = designer.project
-    // TODO: designer.simulatorProps
-    const simulator = new Simulator(project, designer)
+    const simulator = new Simulator(designer)
 
+    // pluginEvent is a unified eventBus for all plugins
     const pluginEvent = createEventBus('plugin')
-    const pluginContextApiAssembler: PluginContextApiAssembler = {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const pluginManager = new PluginManager({
       assembleApis: (context, pluginName, meta) => {
-        // context.hotkey = hotkey
         context.editor = this
         context.simulator = simulator
         context.designer = designer
@@ -146,8 +145,14 @@ export class Editor {
         context.event = pluginEvent
         context.logger = createLogger(`plugin:${pluginName}`)
       },
-    }
-    const pluginManager = new PluginManager(pluginContextApiAssembler)
+    })
+
+    this.set('setterManager', setterManager)
+    this.set('componentMetaManager', componentMetaManager)
+    this.set('designer', designer)
+    this.set('project', project)
+    this.set('simulator', simulator)
+    this.set('pluginManager', pluginManager)
 
     if (plugins) {
       pluginManager.registerPlugins(plugins)
@@ -163,41 +168,33 @@ export class Editor {
     }
 
     try {
+      await lifeCycles?.init?.(this)
       await pluginManager.init()
-
-      await init(this)
-      // 注册快捷键
-
-      // return true
     } catch (err) {
       console.error(err)
     }
 
-    this.set('setterManager', setterManager)
-    this.set('componentMetaManager', componentMetaManager)
-    this.set('designer', designer)
-    this.set('project', project)
-    this.set('simulator', simulator)
-    this.set('pluginManager', pluginManager)
-
     this.eventBus.emit(EditorEvent.AFTER_INIT)
   }
 
-  destroy(): void {
+  destroy() {
     if (!this.config) {
       return
     }
+
     try {
       const { lifeCycles = {} } = this.config
-
-      if (lifeCycles.destroy) {
-        lifeCycles.destroy(this)
-      }
+      lifeCycles?.destroy?.(this)
     } catch (err) {
       console.warn(err)
     }
+
+    this.eventBus.emit(EditorEvent.DESTROY)
   }
 
+  /**
+   * notify all listeners when value is got
+   */
   private notifyGot(key: EditorValueKey) {
     let waits = this.waits.get(key)
     if (!waits) {
