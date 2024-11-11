@@ -1,5 +1,6 @@
 import type { Document as IDocument, Node as INode } from '../document'
-import type { DragObject, Sensor } from './dragon'
+import type { DragObject } from './dragon'
+import type { Sensor } from './sensor'
 
 export interface Point {
   clientX: number
@@ -30,7 +31,7 @@ export interface LocationChildrenDetail {
   index?: number | null
 
   /**
-   * 是否有效位置
+   * is valid location
    */
   valid?: boolean
   edge?: DOMRect
@@ -40,11 +41,10 @@ export interface LocationChildrenDetail {
     rect?: Rect
     align?: 'V' | 'H'
   }
-  focus?: { type: 'slots' } | { type: 'node'; node: INode }
+  focus?: { type: 'node'; node: INode }
 }
 
 export interface LocationPropDetail {
-  // cover 形态，高亮 domNode，如果 domNode 为空，取 container 的值
   type: LocationDetailType.Prop
   name: string
   domNode?: HTMLElement
@@ -53,7 +53,7 @@ export interface LocationPropDetail {
 export type LocationDetail = LocationChildrenDetail | LocationPropDetail | { [key: string]: any; type: string }
 
 export interface LocationData<Node = INode> {
-  target: Node // shadowNode | ConditionFlow | ElementNode | RootNode
+  target: Node
   detail: LocationDetail
   source: string
   event: LocateEvent
@@ -100,56 +100,6 @@ export function isLocationData(obj: any): obj is LocationData {
 export function isLocationChildrenDetail(obj: any): obj is LocationChildrenDetail {
   return obj && obj.type === LocationDetailType.Children
 }
-
-// export function isRowContainer(container: Element | Text, win?: Window) {
-//   if (isText(container)) {
-//     return true
-//   }
-//   const style = (win || getWindow(container)).getComputedStyle(container)
-//   const display = style.getPropertyValue('display')
-//   if (/flex$/.test(display)) {
-//     const direction = style.getPropertyValue('flex-direction') || 'row'
-//     if (direction === 'row' || direction === 'row-reverse') {
-//       return true
-//     }
-//   }
-//   if (/grid$/.test(display)) {
-//     return true
-//   }
-//   return false
-// }
-
-// export function isChildInline(child: Element | Text, win?: Window) {
-//   if (isText(child)) {
-//     return true
-//   }
-//   const style = (win || getWindow(child)).getComputedStyle(child)
-//   return /^inline/.test(style.getPropertyValue('display')) || /^(left|right)$/.test(style.getPropertyValue('float'))
-// }
-
-// export function getRectTarget(rect: Rect | null) {
-//   if (!rect || rect.computed) {
-//     return null
-//   }
-//   const els = rect.elements
-//   return els && els.length > 0 ? els[0]! : null
-// }
-
-// export function isVerticalContainer(rect: Rect | null) {
-//   const el = getRectTarget(rect)
-//   if (!el) {
-//     return false
-//   }
-//   return isRowContainer(el)
-// }
-
-// export function isVertical(rect: Rect | null) {
-//   const el = getRectTarget(rect)
-//   if (!el) {
-//     return false
-//   }
-//   return isChildInline(el) || (el.parentElement ? isRowContainer(el.parentElement) : false)
-// }
 
 export function isText(elem: any): elem is Text {
   return elem.nodeType === Node.TEXT_NODE

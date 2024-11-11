@@ -1,19 +1,23 @@
-import { observable } from 'mobx'
 import type { Designer } from '.'
 import type { Node, NodeSchema } from '../document'
-import { type Simulator, isSimulator } from '../simulator'
-import { createEventBus, cursor } from '../utils'
-import { setNativeSelection } from '../utils/navtive-selection'
-import type { DropLocation, LocateEvent } from './location'
+import type { ComponentInstance } from '../meta'
+import type { Simulator } from '../simulator'
+import type { LocateEvent } from './location'
+import type { Sensor } from './sensor'
 
-export class DragObject {
-  data: NodeSchema | NodeSchema[] | undefined
-  nodes: (Node | null)[] | undefined
-}
+import { observable } from 'mobx'
+import { isSimulator } from '../simulator'
+import { createEventBus } from '../utils'
 
 export enum DragObjectType {
   Node = 'node',
   NodeData = 'nodedata',
+}
+
+export class DragObject {
+  type: DragObjectType
+  data?: NodeSchema | NodeSchema[] | undefined
+  nodes?: (Node | null)[] | undefined
 }
 
 export interface DragNodeObject<T = Node> {
@@ -29,45 +33,11 @@ export interface DragNodeDataObject {
   [extra: string]: any
 }
 
-export type ComponentInstance = Element
-
 export interface NodeInstance<T = ComponentInstance, N = Node> {
   docId: string
   nodeId: string
   instance: T
   node?: N | null
-}
-
-export interface Sensor<T = Node> {
-  /**
-   * whether the sensor is available
-   */
-  readonly sensorAvailable: boolean
-
-  /**
-   * fix location event, add canvasX,canvasY
-   */
-  fixEvent(e: LocateEvent): LocateEvent
-
-  /**
-   * locate and activate
-   */
-  locate(e: LocateEvent): DropLocation | undefined | null
-
-  /**
-   * whether enter the sensitive area
-   */
-  isEnter(e: LocateEvent): boolean
-
-  /**
-   * deactivate
-   */
-  deactiveSensor(): void
-
-  /**
-   * get node instance from element
-   */
-  getNodeInstanceFromElement?: (e: Element | null) => NodeInstance<ComponentInstance, Node> | null
 }
 
 export const isDragNodeObject = (obj: any): obj is DragNodeObject => {
@@ -174,9 +144,9 @@ export class Dragon {
   }
 
   /**
-   * boost your dragObject for dragging(flying) 发射拖拽对象
-   * @param dragObject 拖拽对象
-   * @param boostEvent 拖拽初始时事件
+   * boost your dragObject for dragging(flying)
+   * @param dragObject drag object
+   * @param boostEvent drag start event
    */
   boost(dragObject: DragObject, boostEvent: MouseEvent | DragEvent) {
     const { designer } = this
@@ -190,9 +160,8 @@ export class Dragon {
 
     /**
      * When you press esc while dragging, it will stop dnd
-     * @param e
      */
-    const checkesc = (e: KeyboardEvent) => {
+    const checkEsc = (e: KeyboardEvent) => {
       if (e.keyCode === 27) {
         designer.clearLocation()
         over()
@@ -200,6 +169,7 @@ export class Dragon {
     }
 
     let lastArrive: any
+    /** adjust event format  */
     const drag = (e: MouseEvent | DragEvent) => {
       if (isInvalidPoint(e, lastArrive)) return
 
@@ -221,27 +191,26 @@ export class Dragon {
       this.emitter.emit('drag', locateEvent)
     }
 
+    // drag start
     const dragstart = () => {
       this._dragging = true
       setShaken(boostEvent)
       const locateEvent = createLocateEvent(boostEvent)
       if (newNode) {
-        this.setCopyState(true)
       } else {
         chooseSensor(locateEvent)
       }
-      this.setDraggingState(true)
       // ESC cancel drag
       if (!isBoostFromDragAPI) {
         handleEvents(doc => {
-          doc.addEventListener('keydown', checkesc, false)
+          doc.addEventListener('keydown', checkEsc, false)
         })
       }
 
       this.emitter.emit('dragstart', locateEvent)
     }
 
-    // route: drag-move
+    // drag move
     const move = (e: MouseEvent | DragEvent) => {
       if (isBoostFromDragAPI) {
         e.preventDefault()
@@ -261,14 +230,14 @@ export class Dragon {
     }
 
     let didDrop = true
-
+    // drop
     const drop = (e: DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
       didDrop = true
     }
 
-    // end-tail drag process
+    // drag end
     const over = (e?: any) => {
       if (e && isDragEvent(e)) {
         e.preventDefault()
@@ -281,10 +250,7 @@ export class Dragon {
         if (!didDrop) {
           designer.clearLocation()
         }
-      } else {
-        this.setNativeSelection(true)
       }
-      this.clearState()
 
       let exception: unknown
       if (this._dragging) {
@@ -307,7 +273,7 @@ export class Dragon {
           doc.removeEventListener('mouseup', over, true)
         }
         doc.removeEventListener('mousedown', over, true)
-        doc.removeEventListener('keydown', checkesc, false)
+        doc.removeEventListener('keydown', checkEsc, false)
       })
 
       if (exception) {
@@ -330,7 +296,7 @@ export class Dragon {
       if (!sourceDocument || sourceDocument === document) {
         evt.globalX = e.clientX
         evt.globalY = e.clientY
-      } /* istanbul ignore next */ else {
+      } else {
         // event from simulator sandbox
         let srcSim: Simulator | undefined
         const lastSim = lastSensor && isSimulator(lastSensor) ? lastSensor : null
@@ -390,7 +356,6 @@ export class Dragon {
       return sensor
     }
 
-    /* istanbul ignore next */
     if (isDragEvent(boostEvent)) {
       const { dataTransfer } = boostEvent
 
@@ -405,8 +370,6 @@ export class Dragon {
       }
 
       dragstart()
-    } else {
-      this.setNativeSelection(false)
     }
 
     handleEvents(doc => {
@@ -443,45 +406,6 @@ export class Dragon {
   private getSimulators() {
     return new Set(this.designer.project.documents.map(doc => doc.simulator))
   }
-
-  // #region ======== drag and drop helpers ============
-  private setNativeSelection(enableFlag: boolean) {
-    setNativeSelection(enableFlag)
-    this.getSimulators().forEach(sim => {
-      // sim?.setNativeSelection(enableFlag)
-    })
-  }
-
-  /**
-   * 设置拖拽态
-   */
-  private setDraggingState(state: boolean) {
-    cursor.setDragging(state)
-    this.getSimulators().forEach(sim => {
-      // sim?.setDraggingState(state)
-    })
-  }
-
-  /**
-   * 设置拷贝态
-   */
-  private setCopyState(state: boolean) {
-    cursor.setCopy(state)
-    this.getSimulators().forEach(sim => {
-      // sim?.setCopyState(state)
-    })
-  }
-
-  /**
-   * 清除所有态：拖拽态、拷贝态
-   */
-  private clearState() {
-    cursor.release()
-    this.getSimulators().forEach(sim => {
-      // sim?.clearState()
-    })
-  }
-  // #endregion
 
   /**
    * 添加投放感应区

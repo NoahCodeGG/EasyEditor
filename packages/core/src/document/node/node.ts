@@ -299,6 +299,12 @@ export class Node {
     return canSelect
   }
 
+  canClick(e: MouseEvent) {
+    const onClickHook = this.componentMeta?.advanced?.callbacks?.onClickHook
+    const canClick = typeof onClickHook === 'function' ? onClickHook(e, this) : true
+    return canClick
+  }
+
   select() {
     this.document.designer.selection.select(this.id)
   }
@@ -608,4 +614,36 @@ export const insertChildren = (
     index = node.index
   }
   return results
+}
+
+export const getClosestNode = (node: Node | null, until: (n: Node) => boolean): Node | undefined => {
+  if (!node) {
+    return undefined
+  }
+  if (until(node)) {
+    return node
+  } else {
+    return getClosestNode(node.parent, until)
+  }
+}
+
+export const getClosestClickableNode = (currentNode: Node | undefined | null, event: MouseEvent) => {
+  let node = currentNode
+  while (node) {
+    // check if the current node is clickable
+    let canClick = node.canClick(event)
+    const lockedNode = getClosestNode(node, n => {
+      // if the current node is locked, start searching from the parent node
+      return !!(node?.isLocked ? n.parent?.isLocked : n.isLocked)
+    })
+    if (lockedNode && lockedNode.getId() !== node.getId()) {
+      canClick = false
+    }
+    if (canClick) {
+      break
+    }
+    // for unclickable nodes, continue searching up
+    node = node.parent
+  }
+  return node
 }

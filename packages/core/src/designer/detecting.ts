@@ -12,8 +12,8 @@ export class Detecting {
   @observable.ref private accessor _enable = true
 
   /**
-   * 控制大纲树 hover 时是否出现悬停效果
-   * TODO: 将该逻辑从设计器中抽离出来
+   * control whether to show the hover effect when the outline tree is hovered
+   * TODO: extract this logic from the designer
    */
   get enable() {
     return this._enable

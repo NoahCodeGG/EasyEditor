@@ -288,6 +288,8 @@ export interface SetterConfig {
   // condition?: (target: SettingField) => boolean
 }
 
+export type ComponentInstance = Element
+
 // export type ComponentType<T> = React.ComponentType<T>
 export type ComponentType<T> = any
 

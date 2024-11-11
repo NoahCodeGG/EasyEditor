@@ -119,7 +119,9 @@ export class Designer {
 
     // select root node
     this.project.onCurrentDocumentChange(() => {
-      if (this.selection && this.selection.selected.length === 0 && this.get('designMode') === 'live') {
+      this.selection.clear()
+
+      if (this.selection && this.selection.selected.length === 0) {
         const rootNode = this.project.currentDocument?.getRoot()
         if (rootNode) {
           this.selection.select(rootNode.id)

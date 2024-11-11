@@ -1,33 +1,25 @@
-import {
-  type IReactionDisposer,
-  type IReactionOptions,
-  type IReactionPublic,
-  action,
-  autorun,
-  computed,
-  observable,
-  reaction,
-} from 'mobx'
-import {
-  type CanvasPoint,
-  type ComponentInstance,
-  type Designer,
-  DragObjectType,
-  type LocateEvent,
-  type NodeInstance,
-  type Rect,
-  clipboard,
-  isLocationData,
-  isShaken,
+import type { IReactionDisposer, IReactionOptions, IReactionPublic } from 'mobx'
+import type {
+  CanvasPoint,
+  Designer,
+  LocateEvent,
+  LocationChildrenDetail,
+  LocationData,
+  NodeInstance,
+  Rect,
 } from '../designer'
 import type { Node } from '../document'
-import type { Component } from '../meta'
+import type { Component, ComponentInstance } from '../meta'
 import type { Project } from '../project'
-import { createEventBus } from '../utils'
 import type { SimulatorRenderer } from './simulator-render'
+
+import { action, autorun, computed, observable, reaction } from 'mobx'
+import { DragObjectType, LocationDetailType, clipboard, isLocationData, isShaken } from '../designer'
+import { getClosestClickableNode } from '../document'
+import { createEventBus } from '../utils'
 import Viewport from './viewport'
 
-type DesignMode = 'live' | 'design' | 'preview'
+export type DesignMode = 'design' | 'preview' | 'live'
 
 export interface SimulatorProps {
   // 从 documentModel 上获取
@@ -196,8 +188,6 @@ export class Simulator {
     doc.addEventListener(
       'mousedown',
       (downEvent: MouseEvent) => {
-        // fix for popups close logic
-        document.dispatchEvent(new Event('mousedown'))
         const documentModel = this.project.currentDocument
         if (!documentModel) {
           return
@@ -209,9 +199,7 @@ export class Simulator {
         } else if (!downEvent.metaKey) {
           return
         }
-        // FIXME: dirty fix remove label-for fro liveEditing
-        downEvent.target?.removeAttribute('for')
-        const nodeInst = this.getNodeInstanceFromElement(downEvent.target)
+        const nodeInst = this.getNodeInstanceFromElement(downEvent.target as Element)
         const { rootNode } = documentModel
         const node = getClosestClickableNode(nodeInst?.node || rootNode, downEvent)
         // 如果找不到可点击的节点，直接返回
@@ -219,7 +207,6 @@ export class Simulator {
           return
         }
         // stop response document focus event
-        // 禁止原生拖拽
         downEvent.stopPropagation()
         downEvent.preventDefault()
         const isLeftButton = downEvent.which === 1 || downEvent.button === 0
@@ -227,26 +214,17 @@ export class Simulator {
           doc.removeEventListener('mouseup', checkSelect, true)
           // 鼠标是否移动 ? - 鼠标抖动应该也需要支持选中事件，偶尔点击不能选中，磁帖块移除 shaken 检测
           if (!isShaken(downEvent, e)) {
-            let { id } = node
+            const { id } = node
             if (isMulti && rootNode && !node.contains(rootNode) && selection.has(id)) {
               selection.remove(id)
             } else {
-              // TODO: 避免选中 Page 组件，默认选中第一个子节点；新增规则 或 判断 Live 模式
-              if (node.isPage() && node.getChildren()?.notEmpty() && this.designMode === 'live') {
-                const firstChildId = node.getChildren()?.get(0)?.getId()
-                if (firstChildId) id = firstChildId
-              }
               if (rootNode) {
                 selection.select(node.contains(rootNode) ? rootNode.id : id)
               }
 
               // dirty code should refector
               const editor = this.designer?.editor
-              const npm = node?.componentMeta?.npm
-              const selected =
-                [npm?.package, npm?.componentName].filter(item => !!item).join('-') ||
-                node?.componentMeta?.componentName ||
-                ''
+              const selected = node?.componentMeta?.componentName || ''
               editor?.eventBus.emit('designer.builtinSimulator.select', {
                 selected,
               })
@@ -297,18 +275,14 @@ export class Simulator {
       if (!detecting.enable || this.designMode !== 'design') {
         return
       }
-      const nodeInst = this.getNodeInstanceFromElement(e.target as Element)
-      if (nodeInst?.node) {
-        let { node } = nodeInst
-        const focusNode = node.document?.focusNode
-        if (focusNode && node.contains(focusNode)) {
-          node = focusNode
-        }
+      const nodeInstance = this.getNodeInstanceFromElement(e.target as Element)
+      if (nodeInstance?.node) {
+        const { node } = nodeInstance
         detecting.capture(node)
       } else {
         detecting.capture(null)
       }
-      if (!engineConfig.get('enableMouseEventPropagationInCanvas', false) || dragon.dragging) {
+      if (dragon.dragging) {
         e.stopPropagation()
       }
     }
@@ -323,7 +297,7 @@ export class Simulator {
     doc.addEventListener(
       'mousemove',
       (e: Event) => {
-        if (!engineConfig.get('enableMouseEventPropagationInCanvas', false) || dragon.dragging) {
+        if (dragon.dragging) {
           e.stopPropagation()
         }
       },
@@ -454,7 +428,7 @@ export class Simulator {
           ? onChildMoveHook(node, parentNode)
           : true
 
-      return !node?.isLocked && canMove && childrenCanMove
+      return canMove && childrenCanMove
     })
 
     if (nodes && (!operationalNodes || operationalNodes.length === 0)) {
@@ -466,7 +440,12 @@ export class Simulator {
     if (!document) {
       return null
     }
-    const dropContainer = this.getDropContainer(e)
+    // const dropContainer = this.getDropContainer(e)
+    // TODO: 暂时只支持 rootNode
+    const dropContainer = {
+      container: document.rootNode,
+      instance: this.getComponentInstances(document.rootNode!)!,
+    }
     if (!dropContainer) {
       return null
     }
@@ -477,36 +456,30 @@ export class Simulator {
 
     const { container, instance: containerInstance } = dropContainer
 
-    const edge = this.computeComponentInstanceRect(containerInstance, container.componentMeta.rootSelector)
+    const edge = this.computeComponentInstanceRect(containerInstance)
 
     if (!edge) {
       return null
     }
 
-    const { children } = container
+    const { children } = container!
 
-    const detail: IPublicTypeLocationChildrenDetail = {
-      type: IPublicTypeLocationDetailType.Children,
+    const detail: LocationChildrenDetail = {
+      type: LocationDetailType.Children,
       index: 0,
       edge,
     }
 
-    const locationData = {
-      target: container,
+    const locationData: LocationData<Node> = {
+      target: container!,
       detail,
       source: `simulator${document.id}`,
       event: e,
     }
 
-    if (
-      e.dragObject &&
-      e.dragObject.nodes &&
-      e.dragObject.nodes.length &&
-      e.dragObject.nodes[0].componentMeta.isModal &&
-      document.focusNode
-    ) {
+    if (e.dragObject && e.dragObject.nodes && e.dragObject.nodes.length) {
       return this.designer.createLocation({
-        target: document.focusNode,
+        target: document.rootNode!,
         detail,
         source: `simulator${document.id}`,
         event: e,
@@ -515,97 +488,6 @@ export class Simulator {
 
     if (!children || children.size < 1 || !edge) {
       return this.designer.createLocation(locationData)
-    }
-
-    let nearRect: IPublicTypeRect | null = null
-    let nearIndex = 0
-    let nearNode: INode | null = null
-    let nearDistance: number | null = null
-    let minTop: number | null = null
-    let maxBottom: number | null = null
-
-    for (let i = 0, l = children.size; i < l; i++) {
-      const node = children.get(i)!
-      const index = i
-      const instances = this.getComponentInstances(node)
-      const inst = instances
-        ? instances.length > 1
-          ? instances.find(_inst => this.getClosestNodeInstance(_inst, container.id)?.instance === containerInstance)
-          : instances[0]
-        : null
-      const rect = inst ? this.computeComponentInstanceRect(inst, node.componentMeta.rootSelector) : null
-
-      if (!rect) {
-        continue
-      }
-
-      const distance = isPointInRect(e as any, rect) ? 0 : distanceToRect(e as any, rect)
-
-      if (distance === 0) {
-        nearDistance = distance
-        nearNode = node
-        nearIndex = index
-        nearRect = rect
-        break
-      }
-
-      // 标记子节点最顶
-      if (minTop === null || rect.top < minTop) {
-        minTop = rect.top
-      }
-      // 标记子节点最底
-      if (maxBottom === null || rect.bottom > maxBottom) {
-        maxBottom = rect.bottom
-      }
-
-      if (nearDistance === null || distance < nearDistance) {
-        nearDistance = distance
-        nearNode = node
-        nearIndex = index
-        nearRect = rect
-      }
-    }
-
-    detail.index = nearIndex
-
-    if (nearNode && nearRect) {
-      const el = getRectTarget(nearRect)
-      const inline = el ? isChildInline(el) : false
-      const row = el ? isRowContainer(el.parentElement!) : false
-      const vertical = inline || row
-
-      // TODO: fix type
-      const near: {
-        node: IPublicModelNode
-        pos: 'before' | 'after' | 'replace'
-        rect?: IPublicTypeRect
-        align?: 'V' | 'H'
-      } = {
-        node: nearNode.internalToShellNode()!,
-        pos: 'before',
-        align: vertical ? 'V' : 'H',
-      }
-      detail.near = near
-      if (isNearAfter(e as any, nearRect, vertical)) {
-        near.pos = 'after'
-        detail.index = nearIndex + 1
-      }
-      if (!row && nearDistance !== 0) {
-        const edgeDistance = distanceToEdge(e as any, edge)
-        if (edgeDistance.distance < nearDistance!) {
-          const { nearAfter } = edgeDistance
-          if (minTop == null) {
-            minTop = edge.top
-          }
-          if (maxBottom == null) {
-            maxBottom = edge.bottom
-          }
-          near.rect = new DOMRect(edge.left, minTop, edge.width, maxBottom - minTop)
-          near.align = 'H'
-          near.pos = nearAfter ? 'after' : 'before'
-          detail.index = nearAfter ? children.size : 0
-        }
-      }
     }
 
     return this.designer.createLocation(locationData)
