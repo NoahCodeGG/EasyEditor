@@ -1,7 +1,9 @@
-import { observable } from 'mobx'
-import { type Node, PositionNO, comparePosition } from '../document'
-import { createEventBus } from '../utils'
+import type { Node } from '../document'
 import type { Designer } from './designer'
+
+import { observable } from 'mobx'
+import { PositionNO, comparePosition } from '../document'
+import { createEventBus } from '../utils'
 
 export enum SELECTION_EVENT {
   CHANGE = 'selection:change',

@@ -1,32 +1,31 @@
 import { Project, type ProjectSchema } from '../project'
 
-import { computed, observable } from 'mobx'
-import type { Document } from '../document'
+import { type Node, insertChildren, isNodeSchema } from '../document'
 import type { Editor } from '../editor'
-import type { ComponentMetaManager, ComponentType } from '../meta'
+import type { ComponentMetaManager } from '../meta'
 import { createEventBus, createLogger } from '../utils'
 import { Detecting } from './detecting'
-import { Dragon } from './dragon'
+import { Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
 import type { LocationData } from './location'
-import { DropLocation } from './location'
+import { DropLocation, isLocationChildrenDetail } from './location'
 import { Selection } from './selection'
 
 export interface DesignerProps {
-  [key: string]: any
   editor: Editor
   defaultSchema?: ProjectSchema
-  hotkeys?: object
-  viewName?: string
-  simulatorProps?: Record<string, any> | ((document: Document) => object)
-  simulatorComponent?: ComponentType<any>
-  // dragGhostComponent?: ComponentType<any>
-  suspensed?: boolean
-  // componentMetadatas?: IPublicTypeComponentMetadata[]
-  // globalComponentActions?: IPublicTypeComponentAction[]
-  onMount?: (designer: Designer) => void
   // onDragstart?: (e: IPublicModelLocateEvent) => void
   // onDrag?: (e: IPublicModelLocateEvent) => void
   // onDragend?: (e: { dragObject: IPublicModelDragObject; copy: boolean }, loc?: DropLocation) => void
+
+  [key: string]: any
+}
+
+export enum DESIGNER_EVENT {
+  INIT = 'designer:init',
+  DRAG_START = 'designer:dragstart',
+  DRAG = 'designer:drag',
+  DRAG_END = 'designer:dragend',
+  DROP_LOCATION_CHANGE = 'designer:dropLocation.change',
 }
 
 export class Designer {
@@ -49,12 +48,6 @@ export class Designer {
     return this.editor.get('componentMetaManager') as ComponentMetaManager
   }
 
-  @observable.ref private accessor _simulatorComponent?: ComponentType<any>
-
-  @observable.ref private accessor _simulatorProps?: Record<string, any> | ((project: Project) => object)
-
-  // @observable private _suspensed = false
-
   private props?: DesignerProps
 
   constructor(props: DesignerProps) {
@@ -62,85 +55,87 @@ export class Designer {
     this.editor = props.editor
     this.project = new Project(this, props?.defaultSchema)
     this.dragon = new Dragon(this)
-    this.detecting = new Detecting()
+    this.detecting = new Detecting(this)
     this.selection = new Selection(this)
 
-    // TODO: dragon event
+    this.dragon.onDragstart(e => {
+      this.detecting.enable = false
+      const { dragObject } = e
+      if (isDragNodeObject(dragObject)) {
+        if (dragObject.nodes.length === 1) {
+          if (dragObject.nodes[0].parent) {
+            // ensure current selecting
+            dragObject.nodes[0].select()
+          } else {
+            this.selection.clear()
+          }
+        }
+      } else {
+        this.selection.clear()
+      }
+      if (this.props?.onDragstart) {
+        this.props.onDragstart(e)
+      }
+      this.postEvent(DESIGNER_EVENT.DRAG_START, e)
+    })
 
-    // TODO: 初始化 选 中根节点，是否需要？
+    this.dragon.onDrag(e => {
+      if (this.props?.onDrag) {
+        this.props.onDrag(e)
+      }
+      this.postEvent(DESIGNER_EVENT.DRAG, e)
+    })
+
+    // insert node
+    this.dragon.onDragend(e => {
+      const { dragObject, copy } = e
+      this.logger.log('onDragend: dragObject ', dragObject, ' copy ', copy)
+      const loc = this._dropLocation
+      if (loc) {
+        if (isLocationChildrenDetail(loc.detail) && loc.detail.valid !== false) {
+          let nodes: Node[] | undefined
+          if (isDragNodeObject(dragObject)) {
+            nodes = insertChildren(loc.target, [...dragObject.nodes], loc.detail.index, copy)
+          } else if (isDragNodeDataObject(dragObject)) {
+            // process nodeData
+            const nodeData = Array.isArray(dragObject.data) ? dragObject.data : [dragObject.data]
+            const isNotNodeSchema = nodeData.find(item => !isNodeSchema(item))
+            if (isNotNodeSchema) {
+              return
+            }
+            nodes = insertChildren(loc.target, nodeData, loc.detail.index)
+          }
+          if (nodes) {
+            this.selection.selectAll(nodes.map(o => o.id))
+          }
+        }
+      }
+      if (this.props?.onDragend) {
+        this.props.onDragend(e, loc)
+      }
+      this.detecting.enable = true
+      this.postEvent(DESIGNER_EVENT.DRAG_END, e)
+    })
+
+    // select root node
+    this.project.onCurrentDocumentChange(() => {
+      if (this.selection && this.selection.selected.length === 0 && this.get('designMode') === 'live') {
+        const rootNode = this.project.currentDocument?.getRoot()
+        if (rootNode) {
+          this.selection.select(rootNode.id)
+        }
+      }
+    })
+    this.postEvent(DESIGNER_EVENT.INIT, this)
   }
 
   setProps(nextProps: DesignerProps) {
     const props = this.props ? { ...this.props, ...nextProps } : nextProps
-    if (this.props) {
-      // check hotkeys
-      // TODO:
-      // check simulatorConfig
-      if (props.simulatorComponent !== this.props.simulatorComponent) {
-        this._simulatorComponent = props.simulatorComponent
-      }
-      if (props.simulatorProps !== this.props.simulatorProps) {
-        this._simulatorProps = props.simulatorProps
-        // 重新 setupSelection
-        // if (props.simulatorProps?.designMode !== this.props.simulatorProps?.designMode) {
-        //   this.setupSelection()
-        // }
-      }
-      // if (props.suspensed !== this.props.suspensed && props.suspensed != null) {
-      //   this._suspensed = props.suspensed
-      // }
-      if (props.componentMetadatas !== this.props.componentMetadatas && props.componentMetadatas != null) {
-        // this.buildComponentMetasMap(props.componentMetadatas)
-      }
-    } else {
-      // init hotkeys
-      // todo:
-      // init simulatorConfig
-      if (props.simulatorComponent) {
-        this._simulatorComponent = props.simulatorComponent
-      }
-      if (props.simulatorProps) {
-        this._simulatorProps = props.simulatorProps
-      }
-      // init suspensed
-      // if (props.suspensed != null) {
-      //   this.suspensed = props.suspensed
-      // }
-      if (props.componentMetadatas != null) {
-        // this.buildComponentMetasMap(props.componentMetadatas)
-      }
-    }
     this.props = props
   }
 
   get(key: string) {
     return this.props?.[key]
-  }
-
-  @computed get simulatorComponent(): ComponentType<any> | undefined {
-    return this._simulatorComponent
-  }
-
-  @computed get simulatorProps(): Record<string, any> {
-    if (typeof this._simulatorProps === 'function') {
-      return this._simulatorProps(this.project)
-    }
-    return this._simulatorProps || {}
-  }
-
-  /**
-   * provide props for simulator
-   */
-  @computed get projectSimulatorProps(): any {
-    return {
-      ...this.simulatorProps,
-      project: this.project,
-      designer: this,
-      onMount: (simulator: any) => {
-        // this.project.mountSimulator(simulator)
-        // this.editor.set('simulator', simulator)
-      },
-    }
   }
 
   postEvent(event: string, ...args: any[]) {
@@ -149,34 +144,25 @@ export class Designer {
 
   onEvent(event: string, listener: (...args: any[]) => void) {
     this.emitter.on(`designer:${event}`, listener)
-  }
 
-  offEvent(event: string, listener: (...args: any[]) => void) {
-    this.emitter.off(`designer:${event}`, listener)
+    return () => {
+      this.emitter.off(`designer:${event}`, listener)
+    }
   }
 
   createLocation(locationData: LocationData<Node>): DropLocation {
     const loc = new DropLocation(locationData)
-    if (this._dropLocation && this._dropLocation.document && this._dropLocation.document !== loc.document) {
-      this._dropLocation.document.dropLocation = null
-    }
     this._dropLocation = loc
-    this.postEvent('dropLocation.change', loc)
-    if (loc.document) {
-      loc.document.dropLocation = loc
-    }
-    // this.activeTracker.track({ node: loc.target, detail: loc.detail });
+    this.postEvent(DESIGNER_EVENT.DROP_LOCATION_CHANGE, loc)
     return loc
   }
 
-  /**
-   * 清除插入位置
-   */
   clearLocation() {
-    if (this._dropLocation && this._dropLocation.document) {
-      this._dropLocation.document.dropLocation = null
-    }
-    this.postEvent('dropLocation.change', undefined)
     this._dropLocation = undefined
+    this.postEvent(DESIGNER_EVENT.DROP_LOCATION_CHANGE, undefined)
+  }
+
+  onInit(listener: (designer: Designer) => void) {
+    this.onEvent(DESIGNER_EVENT.INIT, listener)
   }
 }

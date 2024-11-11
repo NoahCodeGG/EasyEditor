@@ -4,6 +4,7 @@ import type { PropKey, PropValue } from '../prop/prop'
 
 import { action, computed, observable } from 'mobx'
 import { createEventBus, createLogger, uniqueId } from '../../utils'
+import { isObject } from '../prop/prop'
 import { Props, getConvertedExtraKey } from '../prop/props'
 import { NodeChildren } from './node-children'
 
@@ -484,7 +485,14 @@ export const isNode = (node: any): node is Node => {
   return node && node.isNode
 }
 
-export function getZLevelTop(child: Node, zLevel: number): Node | null {
+export const isNodeSchema = (data: any): data is NodeSchema => {
+  if (!isObject(data)) {
+    return false
+  }
+  return 'componentName' in data && !data.isNode
+}
+
+export const getZLevelTop = (child: Node, zLevel: number): Node | null => {
   let l = child.zLevel
   if (l < zLevel || zLevel < 0) {
     return null
@@ -502,7 +510,7 @@ export function getZLevelTop(child: Node, zLevel: number): Node | null {
 /**
  * check if node1 contains node2
  */
-export function contains(node1: Node, node2: Node): boolean {
+export const contains = (node1: Node, node2: Node): boolean => {
   if (node1 === node2) {
     return true
   }
@@ -533,7 +541,7 @@ export enum PositionNO {
 /**
  * compare the position of two nodes
  */
-export function comparePosition(node1: Node, node2: Node): PositionNO {
+export const comparePosition = (node1: Node, node2: Node): PositionNO => {
   if (node1 === node2) {
     return PositionNO.TheSame
   }
@@ -558,4 +566,46 @@ export function comparePosition(node1: Node, node2: Node): PositionNO {
   }
 
   return PositionNO.BeforeOrAfter
+}
+
+export const insertChild = (
+  container: Node,
+  thing: Node | NodeSchema,
+  at?: number | null,
+  copy?: boolean,
+): Node | null => {
+  let node: Node | null | undefined
+  let nodeSchema: NodeSchema
+  if (isNode(thing) && copy) {
+    nodeSchema = thing.export()
+    node = container.document?.createNode(nodeSchema)
+  } else if (isNode(thing)) {
+    node = thing
+  } else if (isNodeSchema(thing)) {
+    node = container.document?.createNode(thing)
+  }
+
+  if (isNode(node)) {
+    container.children?.insert(node, at)
+    return node
+  }
+
+  return null
+}
+
+export const insertChildren = (
+  container: Node,
+  nodes: Node[] | NodeSchema[],
+  at?: number | null,
+  copy?: boolean,
+): Node[] => {
+  let index = at
+  let node: any
+  const results: Node[] = []
+  while ((node = nodes.pop())) {
+    node = insertChild(container, node, index, copy)
+    results.push(node)
+    index = node.index
+  }
+  return results
 }

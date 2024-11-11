@@ -244,26 +244,26 @@ export class Project {
   }
 
   onDocumentAdd(listener: (document: Document) => void) {
-    this.designer.onEvent(DOCUMENT_EVENT.ADD, listener)
+    const dispose = this.designer.onEvent(DOCUMENT_EVENT.ADD, listener)
 
     return () => {
-      this.designer.offEvent(DOCUMENT_EVENT.ADD, listener)
+      dispose()
     }
   }
 
   onDocumentRemove(listener: (id: string) => void) {
-    this.designer.onEvent(DOCUMENT_EVENT.REMOVE, listener)
+    const dispose = this.designer.onEvent(DOCUMENT_EVENT.REMOVE, listener)
 
     return () => {
-      this.designer.offEvent(DOCUMENT_EVENT.REMOVE, listener)
+      dispose()
     }
   }
 
   onCurrentDocumentChange(listener: (document: Document) => void) {
-    this.designer.onEvent(DOCUMENT_EVENT.OPEN_CHANGE, listener)
+    const dispose = this.designer.onEvent(DOCUMENT_EVENT.OPEN_CHANGE, listener)
 
     return () => {
-      this.designer.offEvent(DOCUMENT_EVENT.OPEN_CHANGE, listener)
+      dispose()
     }
   }
 }

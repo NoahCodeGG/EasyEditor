@@ -28,7 +28,7 @@
       },
       "style": {
         "noNonNullAssertion": "off",
-        "noUselessElse": "warn",
+        "noUselessElse": "off",
         "noInferrableTypes": "error",
         "noNegationElse": "error",
         "noParameterAssign": "off"

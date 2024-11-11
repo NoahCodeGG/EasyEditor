@@ -136,6 +136,7 @@ export class Editor {
     const designer = new Designer({ editor: this, setterManager, componentMetaManager })
     const project = designer.project
     const simulator = new Simulator(designer)
+    project.mountSimulator(simulator)
 
     // pluginEvent is a unified eventBus for all plugins
     const pluginEvent = createEventBus('plugin')

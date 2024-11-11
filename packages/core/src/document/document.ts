@@ -332,26 +332,26 @@ export class Document {
   }
 
   onReady(listener: () => void) {
-    this.designer.onEvent(DOCUMENT_EVENT.OPEN, listener)
+    const dispose = this.designer.onEvent(DOCUMENT_EVENT.OPEN, listener)
 
     return () => {
-      this.designer.offEvent(DOCUMENT_EVENT.OPEN, listener)
+      dispose()
     }
   }
 
   onNodeAdd(listener: (node: Node) => void) {
-    this.designer.onEvent(NODE_EVENT.ADD, listener)
+    const dispose = this.designer.onEvent(NODE_EVENT.ADD, listener)
 
     return () => {
-      this.designer.offEvent(NODE_EVENT.ADD, listener)
+      dispose()
     }
   }
 
   onNodeRemove(listener: (id: string) => void) {
-    this.designer.onEvent(NODE_EVENT.REMOVE, listener)
+    const dispose = this.designer.onEvent(NODE_EVENT.REMOVE, listener)
 
     return () => {
-      this.designer.offEvent(NODE_EVENT.REMOVE, listener)
+      dispose()
     }
   }
 }

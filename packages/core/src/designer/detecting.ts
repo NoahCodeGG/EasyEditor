@@ -1,5 +1,7 @@
-import { observable } from 'mobx'
+import type { Designer } from '..'
 import type { Document, Node } from '../document'
+
+import { observable } from 'mobx'
 import { createEventBus } from '../utils'
 
 export enum DETECTING_EVENT {
@@ -33,6 +35,8 @@ export class Detecting {
   get current() {
     return this._current
   }
+
+  constructor(readonly designer: Designer) {}
 
   capture(node: Node | null) {
     if (this._current !== node) {

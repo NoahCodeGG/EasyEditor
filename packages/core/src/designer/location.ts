@@ -93,11 +93,11 @@ export interface LocateEvent {
   sensor?: Sensor
 }
 
-export function isLocationData(obj: any): boolean {
+export function isLocationData(obj: any): obj is LocationData {
   return obj && obj.target && obj.detail
 }
 
-export function isLocationChildrenDetail(obj: any): boolean {
+export function isLocationChildrenDetail(obj: any): obj is LocationChildrenDetail {
   return obj && obj.type === LocationDetailType.Children
 }
 
