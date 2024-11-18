@@ -57,7 +57,7 @@ export class Props {
     return this.owner
   }
 
-  @observable type: 'map' | 'list' = 'map'
+  @observable accessor type: 'map' | 'list' = 'map'
 
   @observable.shallow accessor items: Prop[] = []
 
