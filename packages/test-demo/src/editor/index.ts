@@ -32,13 +32,16 @@ export const editor = createEasyEditor({
 })
 console.log('🚀 ~ easyEditor:', editor)
 
-const designer = await editor.onceGot<Designer>('designer')
-const project = await editor.onceGot<Project>('project')
+export const designer = await editor.onceGot<Designer>('designer')
+export const project = await editor.onceGot<Project>('project')
+export const simulator = await editor.onceGot<Simulator>('simulator')
 const setterManager = await editor.onceGot<SetterManager>('setterManager')
 const componentMetaManager = await editor.onceGot<ComponentMetaManager>('componentMetaManager')
-const simulator = await editor.onceGot<Simulator>('simulator')
 
 console.log('--------------------------------')
 console.log('setters', setterManager.settersMap)
 console.log('components', simulator.components)
 console.log('componentMetas', componentMetaManager.componentMetasMap)
+
+console.log('--------------------------------')
+// simulator.setupEvents()
