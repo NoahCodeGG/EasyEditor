@@ -8,7 +8,7 @@ const configure: Configure = {
       type: 'group',
       items: [
         {
-          name: 'children',
+          name: 'text',
           title: '内容',
           setter: 'StringSetter',
         },

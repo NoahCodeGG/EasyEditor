@@ -8,7 +8,7 @@ const snippets: Snippet[] = [
       componentName: 'Button',
       props: {
         type: 'primary',
-        children: '主按钮',
+        text: '主按钮',
       },
     },
   },
@@ -19,7 +19,7 @@ const snippets: Snippet[] = [
       componentName: 'Button',
       props: {
         type: 'default',
-        children: '次按钮',
+        text: '次按钮',
       },
     },
   },
