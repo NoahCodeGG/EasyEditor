@@ -55,6 +55,10 @@ export class ComponentMeta {
     return (this._metadata!.configure as Configure)?.advanced || {}
   }
 
+  get snippets() {
+    return this._metadata?.snippets || []
+  }
+
   constructor(
     readonly designer: Designer,
     metadata: ComponentMetadata,

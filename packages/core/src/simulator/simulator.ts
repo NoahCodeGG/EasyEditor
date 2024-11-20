@@ -9,7 +9,7 @@ import type {
   Rect,
 } from '../designer'
 import type { Node } from '../document'
-import type { Component, ComponentInstance } from '../meta'
+import type { Component, ComponentInstance, Snippet } from '../meta'
 import type { Project } from '../project'
 import type { SimulatorRenderer } from './simulator-render'
 
@@ -169,6 +169,24 @@ export class Simulator {
 
   postEvent(eventName: string, ...data: any[]) {
     this.emitter.emit(eventName, ...data)
+  }
+
+  linkSnippet(ref: HTMLElement, snippet: Snippet) {
+    const handleMouseDown = (e: MouseEvent) => {
+      this.designer.dragon.boost(
+        {
+          type: DragObjectType.NodeData,
+          data: snippet,
+        },
+        e,
+      )
+    }
+
+    ref.addEventListener('mousedown', handleMouseDown)
+
+    return () => {
+      ref.removeEventListener('mousedown', handleMouseDown)
+    }
   }
 
   setupEvents() {

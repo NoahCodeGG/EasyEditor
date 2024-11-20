@@ -1,4 +1,4 @@
-import type { Component, DesignMode, DocumentSchema, Editor, ProjectSchema } from '@easy-editor/core'
+import type { DesignMode, DocumentSchema, Editor, ProjectSchema } from '@easy-editor/core'
 import { createContext, useContext } from 'react'
 
 export interface RendererContext {
@@ -7,8 +7,6 @@ export interface RendererContext {
   projectSchema?: ProjectSchema
 
   documentSchema?: DocumentSchema
-
-  components: Record<string, Component>
 
   designMode: DesignMode
 

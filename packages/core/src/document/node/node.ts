@@ -119,11 +119,11 @@ export class Node {
   ) {
     const { id, componentName, children, props, ...extras } = nodeSchema
 
+    this.emitter = createEventBus('Node')
     this.id = id || uniqueId('node')
     this.componentName = componentName
     this.props = new Props(this, props, extras)
     this._children = new NodeChildren(this, children)
-    this.emitter = createEventBus('Node')
 
     this.initBuiltinProps()
   }

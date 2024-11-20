@@ -17,7 +17,6 @@ export const NodeSchemaRenderer = memo(
     const Comp = components[schema.componentName]
 
     const defaultProps = {
-      key: schema.id,
       __id: schema.id,
       __designMode: designMode,
       __componentName: schema.componentName,
@@ -31,7 +30,7 @@ export const NodeSchemaRenderer = memo(
     Object.assign(compProps, schema?.props ?? {})
 
     return (
-      <Comp {...compProps}>
+      <Comp key={schema.id} {...compProps}>
         {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
       </Comp>
     )

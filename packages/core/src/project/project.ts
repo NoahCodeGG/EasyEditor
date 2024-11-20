@@ -2,7 +2,7 @@ import type { Designer } from '../designer'
 import type { DocumentSchema } from '../document'
 
 import { action, computed, observable } from 'mobx'
-import { DOCUMENT_EVENT, Document, isDocument } from '../document'
+import { DOCUMENT_EVENT, Document } from '../document'
 import type { Simulator } from '../simulator'
 import { createEventBus, createLogger } from '../utils'
 
@@ -164,7 +164,9 @@ export class Project {
       const got = this.documents.find(doc => doc.id === idOrDoc)
       return got?.open()
     }
-    if (isDocument(idOrDoc)) {
+    // if (isDocument(idOrDoc)) {
+    // TODO
+    if (idOrDoc instanceof Document) {
       return idOrDoc.open()
     }
 

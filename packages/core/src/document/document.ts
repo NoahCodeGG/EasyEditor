@@ -81,12 +81,10 @@ export class Document {
   readonly designer: Designer
 
   constructor(project: Project, schema?: DocumentSchema) {
+    this.emitter = createEventBus('Document')
     this.id = schema?.id ?? uniqueId('doc')
     this.project = project
     this.designer = project.designer
-    this.emitter = createEventBus('Document')
-    this.import(schema)
-
     this.history = new History(
       () => this.export(),
       schema => {
@@ -95,6 +93,16 @@ export class Document {
       },
       this,
     )
+
+    if (schema) {
+      this.name = schema?.name
+      if (schema?.rootNode) {
+        this.rootNode = this.createNode(schema.rootNode)
+        this._blank = false
+      }
+    } else {
+      this._blank = true
+    }
   }
 
   @action

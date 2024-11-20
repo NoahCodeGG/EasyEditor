@@ -68,6 +68,10 @@ export class ComponentMetaManager {
     return meta
   }
 
+  getComponentSnippets() {
+    return Array.from(this._componentMetasMap.values()).flatMap(meta => meta.snippets)
+  }
+
   @computed get componentMetasMap() {
     const maps: Record<string, ComponentMetadata> = {}
     this._componentMetasMap.forEach((config, key) => {

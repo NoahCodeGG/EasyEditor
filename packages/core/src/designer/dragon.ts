@@ -331,7 +331,9 @@ export class Dragon {
     const chooseSensor = (e: LocateEvent) => {
       // this.sensors will change on dragstart
       const sensors: Sensor[] = this.sensors.concat(masterSensors as Sensor[])
-      let sensor = e.sensor && e.sensor.isEnter(e) ? e.sensor : sensors.find(s => s.sensorAvailable && s.isEnter(e))
+      // TODO: 这里需要优化，因为e.sensor可能为空
+      // let sensor = e.sensor && e.sensor.isEnter(e) ? e.sensor : sensors.find(s => s.sensorAvailable && s.isEnter(e))
+      let sensor = e.sensor && e.sensor.isEnter(e) ? e.sensor : sensors.find(s => s.sensorAvailable)
       if (!sensor) {
         // TODO: enter some area like componentspanel cancel
         if (lastSensor) {

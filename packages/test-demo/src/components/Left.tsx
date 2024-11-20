@@ -1,5 +1,24 @@
-import { designer } from '@/editor'
+import { designer, simulator } from '@/editor'
+import type { Snippet as ISnippet } from '@easy-editor/core'
 import { observer } from 'mobx-react-lite'
+import { useEffect, useRef } from 'react'
+
+const Snippet = ({ snippet }: { snippet: ISnippet }) => {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const unlink = simulator.linkSnippet(ref.current!, snippet.schema)
+    return () => {
+      unlink()
+    }
+  }, [snippet])
+
+  return (
+    <div ref={ref} className='p-3 bg-gray-50 rounded-md cursor-move hover:bg-gray-100 text-center select-none'>
+      {snippet?.title}
+    </div>
+  )
+}
 
 const Left = observer(() => {
   const snippets = designer.componentMetaManager.getComponentSnippets()
@@ -12,9 +31,7 @@ const Left = observer(() => {
       <div className='flex-1 overflow-y-auto p-4'>
         <div className='space-y-2'>
           {snippets.map(snippet => (
-            <div className='p-3 bg-gray-50 rounded-md cursor-move hover:bg-gray-100 text-center' key={snippet?.title}>
-              {snippet?.title}
-            </div>
+            <Snippet key={snippet?.title} snippet={snippet} />
           ))}
         </div>
       </div>
