@@ -20,6 +20,11 @@ export class DragObject {
   nodes?: (Node | null)[] | undefined
 }
 
+export interface DragAnyObject {
+  type: string
+  [key: string]: any
+}
+
 export interface DragNodeObject<T = Node> {
   type: DragObjectType.Node
   nodes: T[]
@@ -38,6 +43,10 @@ export interface NodeInstance<T = ComponentInstance, N = Node> {
   nodeId: string
   instance: T
   node?: N | null
+}
+
+export function isDragAnyObject(obj: any): obj is DragAnyObject {
+  return obj && obj.type !== DragObjectType.NodeData && obj.type !== DragObjectType.Node
 }
 
 export const isDragNodeObject = (obj: any): obj is DragNodeObject => {
@@ -148,7 +157,7 @@ export class Dragon {
         shell.draggable = false
         shell.removeEventListener('dragstart', handleEvent as any)
       }
-    } else if (eventType === 'mouse') {
+    } else {
       shell.addEventListener('mousedown', handleEvent as any)
 
       return () => {
@@ -166,7 +175,7 @@ export class Dragon {
     const { designer } = this
     const masterSensors = this.getMasterSensors()
     const handleEvents = makeEventsHandler(boostEvent, masterSensors)
-    const newNode = !isDragNodeObject(dragObject)
+    const isNode = isDragNodeObject(dragObject)
     const isBoostFromDragAPI = isDragEvent(boostEvent)
     let lastSensor: Sensor | undefined
 
@@ -210,8 +219,7 @@ export class Dragon {
       this._dragging = true
       setShaken(boostEvent)
       const locateEvent = createLocateEvent(boostEvent)
-      if (newNode) {
-      } else {
+      if (isNode) {
         chooseSensor(locateEvent)
       }
       // ESC cancel drag
@@ -346,8 +354,7 @@ export class Dragon {
       // this.sensors will change on dragstart
       const sensors: Sensor[] = this.sensors.concat(masterSensors as Sensor[])
       // TODO: 这里需要优化，因为e.sensor可能为空
-      // let sensor = e.sensor && e.sensor.isEnter(e) ? e.sensor : sensors.find(s => s.sensorAvailable && s.isEnter(e))
-      let sensor = e.sensor && e.sensor.isEnter(e) ? e.sensor : sensors.find(s => s.sensorAvailable)
+      let sensor = e.sensor && e.sensor.isEnter(e) ? e.sensor : sensors.find(s => s.sensorAvailable && s.isEnter(e))
       if (!sensor) {
         // TODO: enter some area like componentspanel cancel
         if (lastSensor) {

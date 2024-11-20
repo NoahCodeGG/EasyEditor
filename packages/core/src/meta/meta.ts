@@ -158,6 +158,10 @@ export interface FieldExtraProps {
 }
 
 export interface ComponentConfigure {
+  isContainer?: boolean
+
+  descriptor?: string
+
   /**
    * disable some behaviors, such as `'copy'`, `'move'`, `'remove'` or array of them
    */

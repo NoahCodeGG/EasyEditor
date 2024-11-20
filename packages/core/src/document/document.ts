@@ -1,4 +1,10 @@
-import type { Designer } from '../designer'
+import {
+  type Designer,
+  type DragNodeDataObject,
+  type DragNodeObject,
+  isDragNodeDataObject,
+  isDragNodeObject,
+} from '../designer'
 import type { Project } from '../project'
 import type { EventBus } from '../utils'
 import type { NodeSchema } from './node/node'
@@ -7,7 +13,7 @@ import { action, observable } from 'mobx'
 import type { Simulator } from '../simulator'
 import { createEventBus, createLogger, uniqueId } from '../utils'
 import { History } from './history'
-import { NODE_EVENT, Node, isNode } from './node/node'
+import { NODE_EVENT, Node, isNode, isNodeSchema } from './node/node'
 
 export interface DocumentSchema {
   id: string
@@ -143,6 +149,21 @@ export class Document {
     this.nodes.clear()
     this._nodesMap.clear()
     this.rootNode = null
+  }
+
+  checkNesting(dropTarget: Node, dragObject: DragNodeObject | NodeSchema | Node | DragNodeDataObject): boolean {
+    let items: Array<Node | NodeSchema>
+    if (isDragNodeDataObject(dragObject)) {
+      items = Array.isArray(dragObject.data) ? dragObject.data : [dragObject.data]
+    } else if (isDragNodeObject(dragObject)) {
+      items = dragObject.nodes
+    } else if (isNode(dragObject) || isNodeSchema(dragObject)) {
+      items = [dragObject]
+    } else {
+      console.warn('the dragObject is not in the correct type, dragObject:', dragObject)
+      return true
+    }
+    return true
   }
 
   @action

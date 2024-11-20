@@ -14,10 +14,15 @@ import type { Project } from '../project'
 import type { SimulatorRenderer } from './simulator-render'
 
 import { action, autorun, computed, observable, reaction } from 'mobx'
-import { DragObjectType, LocationDetailType, clipboard, isLocationData, isShaken } from '../designer'
+import { DragObjectType, LocationDetailType, clipboard, isDragAnyObject, isLocationData, isShaken } from '../designer'
 import { getClosestClickableNode } from '../document'
 import { createEventBus } from '../utils'
 import Viewport from './viewport'
+
+export interface DropContainer {
+  container: Node
+  instance: ComponentInstance
+}
 
 export type DesignMode = 'design' | 'preview' | 'live'
 
@@ -344,21 +349,43 @@ export class Simulator {
     return this.instancesMap[docId]?.get(node.id) || null
   }
 
+  getClosestNodeInstance(from: ComponentInstance, specId?: string): NodeInstance<ComponentInstance, Node> | null {
+    const docId = this.project.currentDocument!.id
+
+    if (specId && this.instancesMap[docId].has(specId)) {
+      return {
+        docId,
+        nodeId: specId,
+        instance: this.instancesMap[docId].get(specId)!,
+        node: this.project.getDocument(docId)?.getNode(specId) || null,
+      }
+    }
+
+    let current: Element | null = from
+    while (current) {
+      if (current.id) {
+        // Check if element exists in instancesMap
+        if (this.instancesMap[docId].has(current.id)) {
+          return {
+            docId,
+            nodeId: current.id,
+            instance: this.instancesMap[docId].get(current.id)!,
+            node: this.project.getDocument(docId)?.getNode(current.id) || null,
+          }
+        }
+      }
+      current = current.parentElement
+    }
+
+    return null
+  }
+
   getNodeInstanceFromElement(target: Element | null): NodeInstance<ComponentInstance, Node> | null {
     if (!target) {
       return null
     }
 
-    // TODO: 想办法从 target 身上获取到 docId
-    const docId = this.project.currentDocument!.id
-    const nodeId = target.id
-
-    return {
-      docId,
-      nodeId,
-      instance: target,
-      node: this.project.getDocument(docId)?.getNode(nodeId) || null,
-    }
+    return this.getClosestNodeInstance(target)
   }
 
   /**
@@ -418,12 +445,11 @@ export class Simulator {
     this.sensing = false
   }
 
-  // TODO
   locate(e: LocateEvent): any {
     const { dragObject } = e
 
     const nodes = dragObject?.nodes
-    // Calculate the nodes that can be moved
+    // calculate the nodes that can be moved
     const operationalNodes = nodes?.filter(node => {
       const onMoveHook = node?.componentMeta?.advanced?.callbacks?.onMoveHook
       const canMove = onMoveHook && typeof onMoveHook === 'function' ? onMoveHook(node) : true
@@ -447,12 +473,7 @@ export class Simulator {
     if (!document) {
       return null
     }
-    // const dropContainer = this.getDropContainer(e)
-    // TODO: 暂时只支持 rootNode
-    const dropContainer = {
-      container: document.rootNode,
-      instance: this.getComponentInstances(document.rootNode!)!,
-    }
+    const dropContainer = this.getDropContainer(e)
     if (!dropContainer) {
       return null
     }
@@ -498,6 +519,103 @@ export class Simulator {
     }
 
     return this.designer.createLocation(locationData)
+  }
+
+  /**
+   * find the suitable drop container
+   */
+  getDropContainer(e: LocateEvent): DropContainer | null {
+    const { target, dragObject } = e
+    const isAny = isDragAnyObject(dragObject)
+    const document = this.project.currentDocument!
+    const { rootNode } = document
+    let container: Node | null
+    let nodeInstance: NodeInstance<ComponentInstance, Node> | undefined
+
+    if (target) {
+      const ref = this.getNodeInstanceFromElement(target)
+      if (ref?.node) {
+        nodeInstance = ref
+        container = ref.node
+      } else if (isAny) {
+        return null
+      } else {
+        container = rootNode
+      }
+    } else if (isAny) {
+      return null
+    } else {
+      container = rootNode
+    }
+
+    if (!container?.isParental()) {
+      container = container?.parent || rootNode
+    }
+
+    // TODO: use spec container to accept specialData
+    if (isAny) {
+      // will return locationData
+      return null
+    }
+
+    let instance: any
+    if (nodeInstance) {
+      if (nodeInstance.node === container) {
+        instance = nodeInstance.instance
+      } else {
+        instance = this.getClosestNodeInstance(nodeInstance.instance as any, container?.id)?.instance
+      }
+    } else {
+      instance = container && this.getComponentInstances(container!)
+    }
+
+    let dropContainer: DropContainer = {
+      container: container as any,
+      instance,
+    }
+
+    let res: any
+    let upward: DropContainer | null = null
+    while (container) {
+      res = this.handleAccept(dropContainer, e)
+      if (res === true) {
+        return dropContainer
+      }
+      if (!res) {
+        if (upward) {
+          dropContainer = upward
+          container = dropContainer.container
+          upward = null
+        } else if (container.parent) {
+          container = container.parent
+          instance = this.getClosestNodeInstance(dropContainer.instance, container.id)?.instance
+          dropContainer = {
+            container,
+            instance,
+          }
+        } else {
+          return null
+        }
+      }
+    }
+    return null
+  }
+
+  handleAccept({ container }: DropContainer, e: LocateEvent): boolean {
+    const { dragObject } = e
+    const document = this.project.currentDocument!
+    const { rootNode } = document
+    if (container.isRoot() || container.contains(rootNode!)) {
+      return document.checkNesting(rootNode!, dragObject as any)
+    }
+
+    const meta = (container as Node).componentMeta
+
+    if (!meta.isContainer) {
+      return false
+    }
+
+    return document.checkNesting(container, dragObject as any)
   }
 }
 

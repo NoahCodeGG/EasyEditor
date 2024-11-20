@@ -4,11 +4,12 @@ import { useRendererContext } from './context'
 
 export interface NodeSchemaRendererProps {
   schema: NodeSchema
+  isRootNode?: boolean
 }
 
 export const NodeSchemaRenderer = memo(
   (props: NodeSchemaRendererProps) => {
-    const { schema } = props
+    const { schema, isRootNode = false } = props
     const { components, designMode, editor, docId } = useRendererContext()
     const simulator = editor?.get<Simulator>('simulator')
 
@@ -23,6 +24,9 @@ export const NodeSchemaRenderer = memo(
       __componentName: schema.componentName,
       __schema: schema,
       ref: (ref: HTMLElement) => {
+        if (ref) {
+          ref.id = schema.id
+        }
         simulator?.setInstance(docId, schema.id, ref)
       },
     }
@@ -30,9 +34,20 @@ export const NodeSchemaRenderer = memo(
     Object.assign(compProps, defaultProps)
     Object.assign(compProps, schema?.props ?? {})
 
-    return (
-      <div id={`${schema.id}-mask`} style={{ position: 'absolute', left: schema.$position.x, top: schema.$position.y }}>
-        <Comp id={schema.id} {...compProps}>
+    return isRootNode ? (
+      <Comp {...compProps}>
+        {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
+      </Comp>
+    ) : (
+      <div
+        id={`${schema.id}-mask`}
+        style={{
+          position: 'absolute',
+          left: schema.$position.x,
+          top: schema.$position.y,
+        }}
+      >
+        <Comp {...compProps}>
           {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
         </Comp>
       </div>

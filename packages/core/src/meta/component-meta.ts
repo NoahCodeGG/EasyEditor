@@ -19,6 +19,12 @@ export class ComponentMeta {
     return this._componentName!
   }
 
+  private _isContainer?: boolean
+
+  get isContainer() {
+    return this._isContainer!
+  }
+
   private _descriptor?: string
 
   get descriptor(): string | undefined {
@@ -71,9 +77,19 @@ export class ComponentMeta {
     this._metadata = metadata
     this._componentName = componentName
 
-    const { title } = this._metadata
+    const { title, configure = {} } = this._metadata
     if (title) {
       this._title = title
+    }
+
+    if (!this.isOnlyFieldConfig) {
+      const { component } = configure as Configure
+      if (component) {
+        this._isContainer = !!component.isContainer
+        this._descriptor = component.descriptor
+      } else {
+        this._isContainer = false
+      }
     }
 
     this.emitter.emit('metadata_change')

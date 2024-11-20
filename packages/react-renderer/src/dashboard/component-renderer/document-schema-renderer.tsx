@@ -33,7 +33,7 @@ export const DocumentSchemaRender = (props: DocumentSchemaRenderProps) => {
 
   return (
     <RendererContextProvider value={ctx}>
-      <NodeSchemaRenderer schema={schema.rootNode} />
+      <NodeSchemaRenderer schema={schema.rootNode} isRootNode />
     </RendererContextProvider>
   )
 }
