@@ -172,21 +172,10 @@ export class Simulator {
   }
 
   linkSnippet(ref: HTMLElement, snippet: Snippet) {
-    const handleMouseDown = (e: MouseEvent) => {
-      this.designer.dragon.boost(
-        {
-          type: DragObjectType.NodeData,
-          data: snippet,
-        },
-        e,
-      )
-    }
-
-    ref.addEventListener('mousedown', handleMouseDown)
-
-    return () => {
-      ref.removeEventListener('mousedown', handleMouseDown)
-    }
+    return this.designer.dragon.from(ref, e => ({
+      type: DragObjectType.NodeData,
+      data: snippet,
+    }))
   }
 
   setupEvents() {

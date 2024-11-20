@@ -119,9 +119,14 @@ export class Dragon {
    * Quick listen a shell(container element) drag behavior
    * @param shell container element
    * @param boost boost got a drag object
+   * @param eventType choose a event to trigger the dnd
    */
-  from(shell: Element, boost: (e: MouseEvent) => DragObject | null) {
-    const mousedown = (e: MouseEvent) => {
+  from(
+    shell: HTMLElement,
+    boost: (e: MouseEvent | DragEvent) => DragObject | null,
+    eventType: 'mouse' | 'drag' = 'drag',
+  ) {
+    const handleEvent = (e: MouseEvent | DragEvent) => {
       // ESC or RightClick
       if (e.which === 3 || e.button === 2) {
         return
@@ -135,11 +140,20 @@ export class Dragon {
 
       this.boost(dragObject, e)
     }
+    if (eventType === 'drag') {
+      shell.draggable = true
+      shell.addEventListener('dragstart', handleEvent as any)
 
-    shell.addEventListener('mousedown', mousedown as any)
+      return () => {
+        shell.draggable = false
+        shell.removeEventListener('dragstart', handleEvent as any)
+      }
+    } else if (eventType === 'mouse') {
+      shell.addEventListener('mousedown', handleEvent as any)
 
-    return () => {
-      shell.removeEventListener('mousedown', mousedown as any)
+      return () => {
+        shell.removeEventListener('mousedown', handleEvent as any)
+      }
     }
   }
 
