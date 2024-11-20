@@ -28,3 +28,5 @@ export const ProjectSchemaRender = (props: ProjectSchemaRenderProps) => {
 
   return <DocumentSchemaRender {...props} schema={currentDocumentSchema} renderByProject />
 }
+
+export const ComponentRenderer = ProjectSchemaRender

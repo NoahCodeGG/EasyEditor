@@ -1,4 +1,4 @@
-import type { NodeSchema } from '@easy-editor/core'
+import type { NodeSchema, Simulator } from '@easy-editor/core'
 import { memo } from 'react'
 import { useRendererContext } from './context'
 
@@ -9,7 +9,8 @@ export interface NodeSchemaRendererProps {
 export const NodeSchemaRenderer = memo(
   (props: NodeSchemaRendererProps) => {
     const { schema } = props
-    const { components, designMode } = useRendererContext()
+    const { components, designMode, editor, docId } = useRendererContext()
+    const simulator = editor?.get<Simulator>('simulator')
 
     if (!components[schema.componentName]) {
       throw new Error(`component ${schema.componentName} not found`)
@@ -21,18 +22,20 @@ export const NodeSchemaRenderer = memo(
       __designMode: designMode,
       __componentName: schema.componentName,
       __schema: schema,
-      // ref: ref => {
-      //   bindDomRef?.(schema.id, ref)
-      // },
+      ref: (ref: HTMLElement) => {
+        simulator?.setInstance(docId, schema.id, ref)
+      },
     }
     const compProps = {}
     Object.assign(compProps, defaultProps)
     Object.assign(compProps, schema?.props ?? {})
 
     return (
-      <Comp key={schema.id} {...compProps}>
-        {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
-      </Comp>
+      <div id={`${schema.id}-mask`} style={{ position: 'absolute', left: schema.$position.x, top: schema.$position.y }}>
+        <Comp id={schema.id} {...compProps}>
+          {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
+        </Comp>
+      </div>
     )
   },
   (prev, next) => {

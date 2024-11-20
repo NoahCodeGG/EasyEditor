@@ -20,6 +20,7 @@ export const DocumentSchemaRender = (props: DocumentSchemaRenderProps) => {
   const ctx = useMemo(() => {
     const ctx = {} as RendererContext
 
+    ctx.docId = schema.id
     ctx.components = components
     ctx.designMode = designMode
     ctx.forceUpdate = forceUpdate

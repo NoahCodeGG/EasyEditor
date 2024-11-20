@@ -1,7 +1,6 @@
 import { editor, project, simulator } from '@/editor'
 import { defaultDocumentSchema } from '@/editor/const'
-import type { DocumentSchema } from '@easy-editor/core'
-import { DocumentSchemaRender } from '@easy-editor/react-renderer'
+import { DocumentSchemaRender } from '@easy-editor/dashboard-react-renderer'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
 
@@ -11,7 +10,7 @@ const Center = observer(() => {
 
   useEffect(() => {
     if (viewportRef.current) {
-      project.open(defaultDocumentSchema as DocumentSchema)
+      project.open(defaultDocumentSchema)
 
       simulator.mountViewport(viewportRef.current)
       // simulator.setupEvents()

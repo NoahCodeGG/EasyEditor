@@ -13,6 +13,8 @@ export interface NodeSchema {
   componentName: string
   props?: any
   children?: NodeSchema[]
+
+  [key: string]: any
 }
 
 export enum NODE_EVENT {

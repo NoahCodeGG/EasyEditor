@@ -103,6 +103,12 @@ export class Designer {
             if (isNotNodeSchema) {
               return
             }
+            nodeData.forEach(item => {
+              item.$position = {
+                x: loc.event.canvasX,
+                y: loc.event.canvasY,
+              }
+            })
             nodes = insertChildren(loc.target, nodeData, loc.detail.index)
           }
           if (nodes) {
