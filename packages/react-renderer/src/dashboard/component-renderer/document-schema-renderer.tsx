@@ -1,6 +1,6 @@
 import type { DocumentSchema, Simulator } from '@easy-editor/core'
 import { useMemo } from 'react'
-import { useForceUpdate } from '../hooks/useForceUpdate'
+import { useForceUpdate } from '../../hooks/useForceUpdate'
 import { type RendererContext, RendererContextProvider } from './context'
 import { NodeSchemaRenderer } from './node-schema-renderer'
 

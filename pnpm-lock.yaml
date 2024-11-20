@@ -83,9 +83,9 @@ importers:
       '@easy-editor/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@easy-editor/dashboard-react-renderer':
+      '@easy-editor/react-renderer':
         specifier: workspace:*
-        version: link:../../packages/dashboard-react-renderer
+        version: link:../../packages/react-renderer
       mobx-react-lite:
         specifier: ^4.0.5
         version: 4.0.7(mobx@6.13.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -127,7 +127,7 @@ importers:
         specifier: ^5.0.7
         version: 5.0.8
 
-  packages/dashboard-react-renderer:
+  packages/react-renderer:
     dependencies:
       '@easy-editor/core':
         specifier: workspace:*

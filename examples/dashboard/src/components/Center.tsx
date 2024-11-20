@@ -1,6 +1,6 @@
 import { editor, project, simulator } from '@/editor'
 import { defaultDocumentSchema } from '@/editor/const'
-import { DocumentSchemaRender } from '@easy-editor/dashboard-react-renderer'
+import { DocumentSchemaRender } from '@easy-editor/react-renderer/dashboard'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
 

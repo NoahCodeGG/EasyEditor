@@ -1,9 +1,12 @@
 {
-  "name": "@easy-editor/dashboard-react-renderer",
+  "name": "@easy-editor/react-renderer",
   "private": true,
   "description": "React Render package for EasyEditor.",
   "type": "module",
   "main": "./src/index.ts",
+  "exports": {
+    "./dashboard": "./src/dashboard/index.ts"
+  },
   "keywords": [
     "@easy-editor",
     "react-render",
