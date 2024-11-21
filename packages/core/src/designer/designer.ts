@@ -103,13 +103,6 @@ export class Designer {
             if (isNotNodeSchema) {
               return
             }
-            // TODO: 这个位置操作看看能否添加到插件中
-            nodeData.forEach(item => {
-              item.$position = {
-                x: loc.event.canvasX,
-                y: loc.event.canvasY,
-              }
-            })
             nodes = insertChildren(loc.target, nodeData, loc.detail.index)
           }
           if (nodes) {

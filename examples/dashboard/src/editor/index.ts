@@ -9,6 +9,7 @@ import {
   type Simulator,
   createEasyEditor,
 } from '@easy-editor/core'
+import DashboardPlugin from '@easy-editor/plugin-dashboard'
 import { formatMapFromESModule } from './utils'
 
 const plugins = (await import('./plugins')).default
@@ -25,7 +26,7 @@ export const editor = createEasyEditor({
       console.log('destroy')
     },
   },
-  plugins,
+  plugins: [DashboardPlugin, ...plugins],
   setters: formatMapFromESModule<Setter>(setterMap),
   components: formatMapFromESModule<Component>(componentMap),
   componentMetas: formatMapFromESModule<ComponentMetadata>(componentMetaMap),

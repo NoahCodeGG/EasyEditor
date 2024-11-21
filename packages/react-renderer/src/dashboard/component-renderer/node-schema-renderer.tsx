@@ -59,6 +59,7 @@ interface NodeMaskProps {
 
 const NodeMask = observer((props: NodeMaskProps) => {
   const { schema } = props
+  const dashboardInfo = schema.$.dashboard
   const { designMode, editor } = useRendererContext()
   const designer = editor?.get<Designer>('designer')
 
@@ -75,7 +76,7 @@ const NodeMask = observer((props: NodeMaskProps) => {
       id={`${schema.id}-mask`}
       style={{
         position: 'absolute',
-        transform: `translate(${schema.$position.x}px, ${schema.$position.y}px)`,
+        transform: `translate(${dashboardInfo.position.x}px, ${dashboardInfo.position.y}px)`,
         border: isSelected ? '2px solid red' : isHover ? '1px solid blue' : 'none',
       }}
     >

@@ -1,7 +1,7 @@
 import type { Node } from '../document'
 import type { Designer } from './designer'
 
-import { observable } from 'mobx'
+import { action, observable } from 'mobx'
 import { PositionNO, comparePosition } from '../document'
 import { createEventBus } from '../utils'
 
@@ -82,6 +82,7 @@ export class Selection {
     }
   }
 
+  @action
   add(id: string) {
     if (this._selected.indexOf(id) > -1) {
       return

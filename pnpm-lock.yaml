@@ -83,6 +83,9 @@ importers:
       '@easy-editor/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@easy-editor/plugin-dashboard':
+        specifier: workspace:*
+        version: link:../../packages/plugin-dasboard
       '@easy-editor/react-renderer':
         specifier: workspace:*
         version: link:../../packages/react-renderer
@@ -126,6 +129,12 @@ importers:
       nanoid:
         specifier: ^5.0.7
         version: 5.0.8
+
+  packages/plugin-dasboard:
+    dependencies:
+      '@easy-editor/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/react-renderer:
     dependencies:

@@ -278,7 +278,8 @@ export class Dragon {
       if (this._dragging) {
         this._dragging = false
         try {
-          this.emitter.emit('dragend', { dragObject })
+          // TODO: 这里需要优化，因为dropLocation是private的
+          this.emitter.emit('dragend', { ...this.designer._dropLocation?.event })
         } catch (ex) {
           exception = ex
         }
@@ -463,7 +464,8 @@ export class Dragon {
     }
   }
 
-  onDragend(func: (x: { dragObject: DragObject; copy: boolean }) => any) {
+  // onDragend(func: (x: { dragObject: DragObject; copy: boolean }) => any) {
+  onDragend(func: (x: LocateEvent) => any) {
     this.emitter.on('dragend', func)
 
     return () => {
