@@ -1,4 +1,5 @@
-import type { NodeSchema, Simulator } from '@easy-editor/core'
+import type { Designer, NodeSchema, Simulator } from '@easy-editor/core'
+import { observer } from 'mobx-react-lite'
 import { memo } from 'react'
 import { useRendererContext } from './context'
 
@@ -39,21 +40,46 @@ export const NodeSchemaRenderer = memo(
         {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
       </Comp>
     ) : (
-      <div
-        id={`${schema.id}-mask`}
-        style={{
-          position: 'absolute',
-          left: schema.$position.x,
-          top: schema.$position.y,
-        }}
-      >
+      <NodeMask schema={schema}>
         <Comp {...compProps}>
           {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
         </Comp>
-      </div>
+      </NodeMask>
     )
   },
   (prev, next) => {
     return JSON.stringify(prev.schema) === JSON.stringify(next.schema)
   },
 )
+
+interface NodeMaskProps {
+  schema: NodeSchema
+  children: React.ReactNode
+}
+
+const NodeMask = observer((props: NodeMaskProps) => {
+  const { schema } = props
+  const { designMode, editor } = useRendererContext()
+  const designer = editor?.get<Designer>('designer')
+
+  let isHover = false
+  let isSelected = false
+
+  if (designMode === 'design') {
+    isHover = designer?.detecting.current?.id === schema.id
+    isSelected = designer?.selection.has(schema.id) ?? false
+  }
+
+  return (
+    <div
+      id={`${schema.id}-mask`}
+      style={{
+        position: 'absolute',
+        transform: `translate(${schema.$position.x}px, ${schema.$position.y}px)`,
+        border: isSelected ? '2px solid red' : isHover ? '1px solid blue' : 'none',
+      }}
+    >
+      {props.children}
+    </div>
+  )
+})

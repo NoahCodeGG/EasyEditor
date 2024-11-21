@@ -120,6 +120,7 @@ export class Project {
     this.load(schema)
   }
 
+  @action
   createDocument(schema?: DocumentSchema) {
     const doc = new Document(this, schema)
     this.documents.push(doc)

@@ -177,7 +177,7 @@ export class Simulator {
   }
 
   linkSnippet(ref: HTMLElement, snippet: Snippet) {
-    return this.designer.dragon.from(ref, e => ({
+    return this.designer.dragon.from(ref, () => ({
       type: DragObjectType.NodeData,
       data: snippet,
     }))
@@ -186,7 +186,6 @@ export class Simulator {
   setupEvents() {
     this.setupDragAndClick()
     this.setupDetecting()
-
     clipboard.injectCopyPaster(this._contentDocument!)
   }
 
@@ -195,8 +194,7 @@ export class Simulator {
     const { designer } = this
     const doc = this.contentDocument!
 
-    // TODO: think of lock when edit a node
-    // 事件路由
+    // TODO: 是否修改为 dragstart 事件
     doc.addEventListener(
       'mousedown',
       (downEvent: MouseEvent) => {
@@ -219,8 +217,10 @@ export class Simulator {
           return
         }
         // stop response document focus event
+        // TODO: ?? 阻止了 linkSnippet 事件 - mousedown 事件
         downEvent.stopPropagation()
-        downEvent.preventDefault()
+        // TODO: ?? 阻止了 linkSnippet 事件 - dragstart 事件
+        // downEvent.preventDefault()
         const isLeftButton = downEvent.which === 1 || downEvent.button === 0
         const checkSelect = (e: MouseEvent) => {
           doc.removeEventListener('mouseup', checkSelect, true)
@@ -494,7 +494,7 @@ export class Simulator {
 
     const detail: LocationChildrenDetail = {
       type: LocationDetailType.Children,
-      index: 0,
+      index: -1,
       edge,
     }
 
