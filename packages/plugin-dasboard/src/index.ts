@@ -5,10 +5,25 @@ const DashboardPlugin: Plugin = ctx => {
     name: 'DashboardPlugin',
     deps: [],
     init() {
-      const { designer, logger } = ctx
+      const { designer, logger, simulator } = ctx
+      const startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
+      const startOffsetNodeData = { x: 0, y: 0 }
 
       designer.dragon.onDragstart(e => {
-        logger.log('dragstart', e)
+        const { dragObject } = e
+
+        if (dragObject && dragObject.type === DragObjectType.Node) {
+          for (const node of dragObject.nodes!) {
+            if (!node) continue
+            const rect = simulator.computeRect(node)
+            if (rect) {
+              startOffsetNodes[node.id] = { x: e.globalX - rect.x, y: e.globalY - rect.y }
+            }
+          }
+        } else if (dragObject && dragObject.type === DragObjectType.NodeData) {
+          startOffsetNodeData.x = e.globalX - e.target.offsetLeft
+          startOffsetNodeData.y = e.globalY - e.target.offsetTop
+        }
       })
 
       designer.dragon.onDrag(e => {
@@ -17,8 +32,10 @@ const DashboardPlugin: Plugin = ctx => {
 
           const nodes = e.dragObject.nodes!
           for (const node of nodes) {
+            if (!node) continue
+            const { x = 0, y = 0 } = startOffsetNodes[node.id]
             // TODO: 想一下名字，对应插件的可以放在特地的位置
-            node?.setExtraProp('$.dashboard.position', { x: e.canvasX, y: e.canvasY })
+            node?.setExtraProp('$.dashboard.position', { x: e.canvasX - x, y: e.canvasY - y })
           }
         }
       })
@@ -41,10 +58,11 @@ const DashboardPlugin: Plugin = ctx => {
             if (!schema.$.dashboard.position) {
               schema.$.dashboard.position = {}
             }
-            schema.$.dashboard.position = { x: event.canvasX, y: event.canvasY }
+            schema.$.dashboard.position = {
+              x: event.canvasX - startOffsetNodeData.x,
+              y: event.canvasY - startOffsetNodeData.y,
+            }
           }
-
-          logger.log('dragend', nodeData)
         }
       })
     },
