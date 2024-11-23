@@ -1,4 +1,4 @@
-import { DragObjectType, type Plugin } from '@easy-editor/core'
+import { DESIGNER_EVENT, DragObjectType, type DropLocation, type Plugin } from '@easy-editor/core'
 
 const DashboardPlugin: Plugin = ctx => {
   return {
@@ -23,12 +23,13 @@ const DashboardPlugin: Plugin = ctx => {
         }
       })
 
-      designer.dragon.onDragend(e => {
-        logger.log('dragend', e)
+      designer.onEvent(DESIGNER_EVENT.INSERT_NODE_BEFORE, (e: DropLocation) => {
+        const { event } = e
+        const { dragObject } = event
 
         // add dashboard position
-        if (e.dragObject && e.dragObject.type === DragObjectType.NodeData) {
-          const nodeData = Array.isArray(e.dragObject.data) ? e.dragObject.data : [e.dragObject.data]
+        if (dragObject && dragObject.type === DragObjectType.NodeData) {
+          const nodeData = Array.isArray(dragObject.data) ? dragObject.data : [dragObject.data]
           for (const schema of nodeData) {
             if (!schema) continue
             if (!schema.$) {
@@ -40,7 +41,7 @@ const DashboardPlugin: Plugin = ctx => {
             if (!schema.$.dashboard.position) {
               schema.$.dashboard.position = {}
             }
-            schema.$.dashboard.position = { x: e.canvasX, y: e.canvasY }
+            schema.$.dashboard.position = { x: event.canvasX, y: event.canvasY }
           }
 
           logger.log('dragend', nodeData)

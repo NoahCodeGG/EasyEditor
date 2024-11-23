@@ -23,9 +23,14 @@ export interface DesignerProps {
 export enum DESIGNER_EVENT {
   INIT = 'designer:init',
   DRAG_START = 'designer:dragstart',
+
   DRAG = 'designer:drag',
   DRAG_END = 'designer:dragend',
   DROP_LOCATION_CHANGE = 'designer:dropLocation.change',
+
+  // TODO: 名称有点问题，因为这个暂时只是触发从物料拖拽出来了 nodedata 生效
+  INSERT_NODE_BEFORE = 'designer:insert-node-before',
+  INSERT_NODE_AFTER = 'designer:insert-node-after',
 }
 
 export class Designer {
@@ -92,6 +97,8 @@ export class Designer {
       this.logger.log('onDragend: dragObject ', dragObject, ' copy ', copy)
       const loc = this._dropLocation
       if (loc) {
+        this.postEvent(DESIGNER_EVENT.INSERT_NODE_BEFORE, loc)
+        console.log('insert-node-before', loc)
         if (isLocationChildrenDetail(loc.detail) && loc.detail.valid !== false) {
           let nodes: Node[] | undefined
           if (isDragNodeObject(dragObject)) {
@@ -109,6 +116,7 @@ export class Designer {
             this.selection.selectAll(nodes.map(o => o.id))
           }
         }
+        this.postEvent(DESIGNER_EVENT.INSERT_NODE_AFTER, loc)
       }
       if (this.props?.onDragend) {
         this.props.onDragend(e, loc)
