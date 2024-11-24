@@ -13,9 +13,6 @@ import { Selection } from './selection'
 export interface DesignerProps {
   editor: Editor
   defaultSchema?: ProjectSchema
-  // onDragstart?: (e: IPublicModelLocateEvent) => void
-  // onDrag?: (e: IPublicModelLocateEvent) => void
-  // onDragend?: (e: { dragObject: IPublicModelDragObject; copy: boolean }, loc?: DropLocation) => void
 
   [key: string]: any
 }
@@ -78,16 +75,10 @@ export class Designer {
       } else {
         this.selection.clear()
       }
-      if (this.props?.onDragstart) {
-        this.props.onDragstart(e)
-      }
       this.postEvent(DESIGNER_EVENT.DRAG_START, e)
     })
 
     this.dragon.onDrag(e => {
-      if (this.props?.onDrag) {
-        this.props.onDrag(e)
-      }
       this.postEvent(DESIGNER_EVENT.DRAG, e)
     })
 
@@ -117,9 +108,6 @@ export class Designer {
           }
         }
         this.postEvent(DESIGNER_EVENT.INSERT_NODE_AFTER, loc)
-      }
-      if (this.props?.onDragend) {
-        this.props.onDragend(e, loc)
       }
       this.detecting.enable = true
       this.postEvent(DESIGNER_EVENT.DRAG_END, e)
