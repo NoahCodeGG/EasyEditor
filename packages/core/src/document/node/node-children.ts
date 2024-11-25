@@ -1,8 +1,9 @@
 import type { Node, NodeSchema } from './node'
 
 import { action, computed, observable } from 'mobx'
-import { createEventBus, createLogger } from '../../utils'
-import { NODE_EVENT } from './node'
+import { TRANSFORM_STAGE } from '../../types'
+import { createEventBus } from '../../utils'
+import { NODE_EVENT, isNodeSchema } from './node'
 
 export enum NODE_CHILDREN_EVENT {
   CHANGE = 'nodeChildren:change',
@@ -10,7 +11,6 @@ export enum NODE_CHILDREN_EVENT {
 }
 
 export class NodeChildren {
-  private logger = createLogger('NodeChildren')
   private emitter = createEventBus('NodeChildren')
 
   readonly owner: Node
@@ -26,19 +26,52 @@ export class NodeChildren {
     return this.children.length
   }
 
+  get isEmptyNode(): boolean {
+    return this.size < 1
+  }
+
+  isEmpty() {
+    return this.isEmptyNode
+  }
+
   constructor(owner: Node, data?: NodeSchema[]) {
     this.owner = owner
     this.children = (Array.isArray(data) ? data : []).map(child => {
       return this.owner.document.createNode(child)
     })
-    this.internalInitParent()
   }
 
-  export() {
+  export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE) {
     return this.children.map(node => {
-      const data = node.export()
+      const data = node.export(stage)
       return data
     })
+  }
+
+  import(data?: NodeSchema | NodeSchema[], checkId = false) {
+    data = (data ? (Array.isArray(data) ? data : [data]) : []).filter(d => !!d)
+
+    const originChildren = this.children.slice()
+    this.children.forEach(child => child.internalSetParent(null))
+
+    const children = new Array<Node>(data.length)
+    for (let i = 0, l = data.length; i < l; i++) {
+      const child = originChildren[i]
+      const item = data[i]
+
+      let node: Node | undefined | null
+      if (isNodeSchema(item) && !checkId && child && child.componentName === item.componentName) {
+        node = child
+        node.import(item)
+      } else {
+        node = this.owner.document?.createNode(item, checkId)
+      }
+      children[i] = node
+    }
+
+    this.children = children
+    this.internalInitParent()
+    this.emitter.emit(NODE_CHILDREN_EVENT.CHANGE)
   }
 
   remove(purge = true, useMutator = true) {
@@ -94,6 +127,7 @@ export class NodeChildren {
       node.children?.remove(purge, useMutator)
     }
 
+    const index = this.children.map(d => d.id).indexOf(node.id)
     if (purge) {
       // should set parent null
       node.internalSetParent(null, useMutator)
@@ -105,6 +139,8 @@ export class NodeChildren {
     }
 
     const { document } = node
+    const designer = document.designer
+    designer.postEvent(NODE_EVENT.REMOVE, { index, node })
     document.unlinkNode(node)
     document.designer.selection.remove(node.id)
     node.unlink()
@@ -113,11 +149,10 @@ export class NodeChildren {
       node,
     })
 
-    return true
-  }
-
-  isEmpty() {
-    return this.size < 1
+    if (index > -1 && !purge) {
+      this.children.splice(index, 1)
+    }
+    return false
   }
 
   get(index: number) {
@@ -132,33 +167,49 @@ export class NodeChildren {
     return this.children.indexOf(node) > -1
   }
 
+  insert(node: Node, at?: number | null): void {
+    this.internalInsert(node, at, true)
+  }
+
   /**
    * insert a node into the children
    * @param node
    * @param at if at is null or -1, insert the node to the end of the children
    */
   @action
-  insert(node: Node, at?: number | null): void {
+  internalInsert(node: Node, at?: number | null, useMutator = true): void {
     const { children } = this
-    const index = at === null || at === -1 ? this.children.length : at!
+    const i = at === null || at === -1 ? this.children.length : at!
 
-    const inChildrenIndex = this.children.indexOf(node)
+    const index = this.children.indexOf(node)
+
+    if (node.parent) {
+      const designer = node.document?.designer
+      designer.postEvent(NODE_EVENT.REMOVE, {
+        index: node.index,
+        node,
+      })
+    }
 
     // node is not in the children
-    if (inChildrenIndex < 0) {
-      if (index < children.length) {
-        children.splice(index, 0, node)
+    if (index < 0) {
+      if (i < children.length) {
+        children.splice(i, 0, node)
       } else {
         children.push(node)
       }
-      node.internalSetParent(this.owner)
+      node.internalSetParent(this.owner, useMutator)
     } else {
-      if (index === inChildrenIndex) {
+      if (i === index) {
         return
       }
 
-      children.splice(inChildrenIndex, 1)
-      children.splice(index, 0, node)
+      if (index === i) {
+        return
+      }
+
+      children.splice(index, 1)
+      children.splice(i, 0, node)
     }
 
     this.emitter.emit(NODE_CHILDREN_EVENT.CHANGE, {
@@ -167,7 +218,48 @@ export class NodeChildren {
     })
     this.emitter.emit(NODE_CHILDREN_EVENT.INSERT, node)
     const designer = this.owner.document.designer
-    designer.postEvent(NODE_EVENT.ADD, node)
+    designer.postEvent(NODE_EVENT.ADD, { node })
+  }
+
+  mergeChildren(
+    remover: (node: Node, idx: number) => boolean,
+    adder: (children: Node[]) => NodeSchema[] | null,
+    sorter: (firstNode: Node, secondNode: Node) => number,
+  ): any {
+    let changed = false
+    if (remover) {
+      const willRemove = this.children.filter(remover)
+      if (willRemove.length > 0) {
+        willRemove.forEach(node => {
+          const i = this.children.map(d => d.id).indexOf(node.id)
+          if (i > -1) {
+            this.children.splice(i, 1)
+            node.remove(false)
+          }
+        })
+        changed = true
+      }
+    }
+    if (adder) {
+      const items = adder(this.children)
+      if (items && items.length > 0) {
+        items.forEach(child => {
+          const node = this.owner.document?.createNode(child)
+          this.children.push(node)
+          node.internalSetParent(this.owner)
+          const designer = node.document?.designer
+          designer.postEvent(NODE_EVENT.ADD, { node })
+        })
+        changed = true
+      }
+    }
+    if (sorter) {
+      this.children = this.children.sort(sorter)
+      changed = true
+    }
+    if (changed) {
+      this.emitter.emit(NODE_CHILDREN_EVENT.CHANGE)
+    }
   }
 
   indexOf(node: Node): number {

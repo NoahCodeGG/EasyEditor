@@ -1,6 +1,6 @@
 import type { Designer } from '../designer'
 import type { Editor } from '../editor'
-import type { ComponentMetadata } from './meta'
+import type { Component, ComponentMetadata } from './meta'
 
 import { action, computed, observable } from 'mobx'
 import { ComponentMeta, isComponentMeta } from './component-meta'
@@ -83,5 +83,27 @@ export class ComponentMetaManager {
 
   isComponentMeta(obj: any) {
     return isComponentMeta(obj)
+  }
+
+  getComponentMetasMap() {
+    return this._componentMetasMap
+  }
+
+  @computed get componentsMap(): { [key: string]: Component } {
+    const maps: any = {}
+    this._componentMetasMap.forEach((config, key) => {
+      const metaData = config.getMetadata()
+      if (metaData.devMode === 'lowCode') {
+        maps[key] = metaData.schema
+      } else {
+        // const { view } = config.advanced;
+        // if (view) {
+        //   maps[key] = view;
+        // } else {
+        //   maps[key] = config.npm;
+        // }
+      }
+    })
+    return maps
   }
 }

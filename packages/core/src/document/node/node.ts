@@ -1,20 +1,40 @@
 import type { EventBus } from '../../utils'
 import type { Document } from '../document'
-import type { PropKey, PropValue } from '../prop/prop'
+import type { CompositeValue, PropValue } from '../prop/prop'
 
-import { action, computed, observable } from 'mobx'
+import { action, computed, observable, runInAction } from 'mobx'
 import { DESIGNER_EVENT } from '../..'
-import { TransformStage } from '../../types'
-import { createEventBus, createLogger, uniqueId } from '../../utils'
+import { TRANSFORM_STAGE } from '../../types'
+import { createEventBus, uniqueId } from '../../utils'
 import { isObject } from '../prop/prop'
 import { Props, type PropsSchema, getConvertedExtraKey } from '../prop/props'
 import { NodeChildren } from './node-children'
 
 export interface NodeSchema {
-  id: string
+  id?: string
+
+  /** title */
+  title?: string
+
   componentName: string
-  props?: any
+
+  /** sub nodes */
   children?: NodeSchema[]
+
+  /** props */
+  props?: PropsSchema
+
+  /** render condition */
+  condition?: CompositeValue
+
+  /** loop data */
+  loop?: CompositeValue
+
+  /** hidden */
+  isHidden?: boolean
+
+  /** locked */
+  isLocked?: boolean
 
   [key: string]: any
 }
@@ -28,7 +48,6 @@ export enum NODE_EVENT {
 }
 
 export class Node {
-  private logger = createLogger('Node')
   protected emitter: EventBus
 
   readonly isNode = true
@@ -158,23 +177,6 @@ export class Node {
     })
   }
 
-  export() {
-    const { props, extras } = this.props.export()
-
-    const schema: NodeSchema = {
-      id: this.id,
-      componentName: this.componentName,
-      props,
-      ...extras,
-    }
-
-    if (this.children && this.children.size > 0) {
-      schema.children = this.children.export()
-    }
-
-    return schema
-  }
-
   purge() {
     if (this.purged) {
       return
@@ -189,7 +191,6 @@ export class Node {
     this.props.has(getConvertedExtraKey('title')) || this.props.add(getConvertedExtraKey('title'), '')
     this.props.has(getConvertedExtraKey('loop')) || this.props.add(getConvertedExtraKey('loop'), undefined)
     this.props.has(getConvertedExtraKey('condition')) || this.props.add(getConvertedExtraKey('condition'), true)
-    this.props.has(getConvertedExtraKey('conditionGroup')) || this.props.add(getConvertedExtraKey('conditionGroup'), '')
   }
 
   private initProps(props: PropsSchema) {
@@ -299,35 +300,35 @@ export class Node {
     return this.getExtraPropValue('isLocked') as boolean
   }
 
-  getProp(path: PropKey, createIfNone = true) {
+  getProp(path: string, createIfNone = true) {
     return this.props.query(path, createIfNone) || null
   }
 
-  getExtraProp(key: PropKey, createIfNone = true) {
+  getExtraProp(key: string, createIfNone = true) {
     return this.getProp(getConvertedExtraKey(key), createIfNone)
   }
 
-  setExtraProp(key: PropKey, value: PropValue) {
+  setExtraProp(key: string, value: PropValue) {
     this.getProp(getConvertedExtraKey(key), true)?.setValue(value)
   }
 
-  getPropValue(path: PropKey) {
+  getPropValue(path: string) {
     return this.getProp(path, false)?.value
   }
 
-  setPropValue(path: PropKey, value: PropValue) {
+  setPropValue(path: string, value: PropValue) {
     this.getProp(path, true)!.setValue(value)
   }
 
-  getExtraPropValue(key: PropKey) {
+  getExtraPropValue(key: string) {
     return this.getPropValue(getConvertedExtraKey(key))
   }
 
-  setExtraPropValue(key: PropKey, value: PropValue) {
+  setExtraPropValue(key: string, value: PropValue) {
     this.setPropValue(getConvertedExtraKey(key), value)
   }
 
-  clearPropValue(path: PropKey): void {
+  clearPropValue(path: string): void {
     this.getProp(path, false)?.unset()
   }
 
@@ -370,25 +371,24 @@ export class Node {
    * insert a node at a specific position
    * @param node
    */
-  insert(node: Node, at?: number) {
-    node.unlink()
-    this.children?.insert(node, at)
+  insert(node: Node, ref?: Node, useMutator = true) {
+    this.insertAfter(node, ref, useMutator)
   }
 
   /**
    * insert a node before a reference node(in current node's children)
    */
-  insertBefore(node: Node, ref: Node) {
-    node.unlink()
-    this.children?.insert(node, ref.index)
+  insertBefore(node: Node, ref?: Node, useMutator = true) {
+    const nodeInstance = ensureNode(node, this.document)
+    this.children?.internalInsert(nodeInstance, ref ? ref.index : null, useMutator)
   }
 
   /**
    * insert a node after a reference node(in current node's children)
    */
-  insertAfter(node: Node, ref: Node) {
-    node.unlink()
-    this.children?.insert(node, ref.index + 1)
+  insertAfter(node: Node, ref?: Node, useMutator = true) {
+    const nodeInstance = ensureNode(node, this.document)
+    this.children?.internalInsert(nodeInstance, ref ? (ref.index || 0) + 1 : null, useMutator)
   }
 
   @action
@@ -467,6 +467,14 @@ export class Node {
     return false
   }
 
+  isValidComponent() {
+    const allComponents = this.document.designer.componentMetaManager.componentsMap
+    if (allComponents && allComponents[this.componentName]) {
+      return true
+    }
+    return false
+  }
+
   @computed get componentMeta() {
     return this.document.getComponentMeta(this.componentName)
   }
@@ -490,7 +498,7 @@ export class Node {
     if (this.children?.has(node)) {
       const selected = this.document.designer.selection.has(node.id)
 
-      delete data.id
+      data.id = undefined
       const newNode = this.document.createNode(data)
 
       if (!isNode(newNode)) {
@@ -506,99 +514,6 @@ export class Node {
       return newNode
     }
     return node
-  }
-
-  /**
-   * get all ancestors of the node
-   */
-  getAncestors() {
-    const ancestors: Node[] = []
-    let current: Node | null = this
-
-    while (current) {
-      if (current.parent) {
-        ancestors.push(current.parent)
-      }
-      current = current.parent
-    }
-
-    return ancestors
-  }
-
-  /**
-   * get all descendants of the node
-   */
-  getDescendants() {
-    const descendants: Node[] = []
-
-    const loop = (children: Node[]) => {
-      if (children.length > 0) {
-        for (const child of children) {
-          descendants.push(child)
-          loop(child.childrenNodes)
-        }
-      }
-    }
-
-    loop(this.childrenNodes)
-    return descendants
-  }
-
-  /**
-   * is target node an ancestor of the the node
-   */
-  isAncestorOf(target: Node) {
-    let current: Node | null = this
-    while (current) {
-      if (current === target) {
-        return true
-      }
-      current = current.parent
-    }
-    return false
-  }
-
-  /**
-   * is target node a descendant of the node
-   */
-  isDescendantOf(target: Node) {
-    let current: Node | null = this
-    while (current) {
-      if (current === target) {
-        return true
-      }
-      current = current.parent
-    }
-
-    return false
-  }
-
-  get nextSibling(): Node | null | undefined {
-    if (!this.parent) {
-      return null
-    }
-    const { index } = this
-    if (typeof index !== 'number') {
-      return null
-    }
-    if (index < 0) {
-      return null
-    }
-    return this.parent.children?.get(index + 1)
-  }
-
-  get prevSibling(): Node | null | undefined {
-    if (!this.parent) {
-      return null
-    }
-    const { index } = this
-    if (typeof index !== 'number') {
-      return null
-    }
-    if (index < 1) {
-      return null
-    }
-    return this.parent.children?.get(index - 1)
   }
 
   /**
@@ -625,6 +540,110 @@ export class Node {
    */
   comparePosition(otherNode: Node) {
     return comparePosition(this, otherNode)
+  }
+
+  /**
+   * get next sibling node
+   */
+  get nextSibling(): Node | null | undefined {
+    if (!this.parent) {
+      return null
+    }
+    const { index } = this
+    if (typeof index !== 'number') {
+      return null
+    }
+    if (index < 0) {
+      return null
+    }
+    return this.parent.children?.get(index + 1)
+  }
+
+  /**
+   * get previous sibling node
+   */
+  get prevSibling(): Node | null | undefined {
+    if (!this.parent) {
+      return null
+    }
+    const { index } = this
+    if (typeof index !== 'number') {
+      return null
+    }
+    if (index < 1) {
+      return null
+    }
+    return this.parent.children?.get(index - 1)
+  }
+
+  /**
+   * get node schema
+   */
+  get schema(): NodeSchema {
+    return this.export(TRANSFORM_STAGE.SAVE)
+  }
+
+  set schema(data: NodeSchema) {
+    runInAction(() => this.import(data))
+  }
+
+  import(data: NodeSchema, checkId = false) {
+    const { componentName, id, children, props, ...extras } = data
+
+    this.props.import(props, extras)
+    if (this.isParental()) {
+      this._children?.import(children, checkId)
+    }
+  }
+
+  toData() {
+    return this.export()
+  }
+
+  export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE) {
+    const baseSchema: NodeSchema = {
+      componentName: this.componentName,
+    }
+
+    if (stage !== TRANSFORM_STAGE.CLONE) {
+      baseSchema.id = this.id
+    }
+    if (stage === TRANSFORM_STAGE.RENDER) {
+      baseSchema.docId = this.document.id
+    }
+
+    const { props, extras } = this.props.export()
+
+    const schema: NodeSchema = {
+      ...baseSchema,
+      props,
+      ...extras,
+    }
+
+    if (this.isParental() && this.children && this.children.size > 0) {
+      schema.children = this.children.export(stage)
+    }
+
+    return schema
+  }
+
+  mergeChildren(
+    remover: (node: Node, idx: number) => any,
+    adder: (children: Node[]) => NodeSchema[] | null,
+    sorter: (firstNode: Node, secondNode: Node) => any,
+  ) {
+    this.children?.mergeChildren(remover, adder, sorter)
+  }
+
+  getRect() {
+    if (this.isRoot()) {
+      return this.document.simulator?.viewport.contentBounds || null
+    }
+    return this.document.simulator?.computeRect(this) || null
+  }
+
+  toString() {
+    return this.id
   }
 
   onVisibleChange(listener: (flag: boolean) => void) {
@@ -818,4 +837,18 @@ export const getClosestClickableNode = (currentNode: Node | undefined | null, ev
     node = node.parent
   }
   return node
+}
+
+export const ensureNode = (node: any, document: Document): Node => {
+  let nodeInstance = node
+  if (!isNode(node)) {
+    if (node.getComponentName) {
+      nodeInstance = document.createNode({
+        componentName: node.getComponentName(),
+      })
+    } else {
+      nodeInstance = document.createNode(node)
+    }
+  }
+  return nodeInstance
 }

@@ -178,4 +178,4 @@ dist
 .turbo
 
 # EasyEditor
-types
+packages/*/types

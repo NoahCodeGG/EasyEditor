@@ -1,7 +1,6 @@
 import type { Designer } from '../designer'
 import type { ComponentMetadata, Configure, FieldConfig } from './meta'
 
-import { computed } from 'mobx'
 import { createEventBus } from '../utils'
 
 export enum COMPONENT_META_EVENT {
@@ -97,17 +96,6 @@ export class ComponentMeta {
 
   refreshMetadata() {
     this.parseMetadata(this.getMetadata())
-  }
-
-  // TODO
-  @computed get availableActions() {
-    if (Array.isArray(this._metadata?.configure)) {
-      return []
-    }
-
-    // let { disableBehaviors, actions } = this._metadata?.configure?.component || {}
-    // return actions
-    return []
   }
 
   setMetadata(metadata: ComponentMetadata) {
