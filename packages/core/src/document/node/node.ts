@@ -3,9 +3,11 @@ import type { Document } from '../document'
 import type { PropKey, PropValue } from '../prop/prop'
 
 import { action, computed, observable } from 'mobx'
+import { DESIGNER_EVENT } from '../..'
+import { TransformStage } from '../../types'
 import { createEventBus, createLogger, uniqueId } from '../../utils'
 import { isObject } from '../prop/prop'
-import { Props, getConvertedExtraKey } from '../prop/props'
+import { Props, type PropsSchema, getConvertedExtraKey } from '../prop/props'
 import { NodeChildren } from './node-children'
 
 export interface NodeSchema {
@@ -72,6 +74,21 @@ export class Node {
     return 0
   }
 
+  @computed get title() {
+    const t = this.getExtraProp('title')
+    if (t) {
+      const v = t.getAsString()
+      if (v) {
+        return v
+      }
+    }
+    return this.componentMeta.title
+  }
+
+  get icon() {
+    return this.componentMeta.icon
+  }
+
   private purged = false
 
   /**
@@ -124,10 +141,21 @@ export class Node {
     this.emitter = createEventBus('Node')
     this.id = id || uniqueId('node')
     this.componentName = componentName
+    this._children = new NodeChildren(this, this.initialChildren(children))
+    this._children.internalInitParent()
     this.props = new Props(this, props, extras)
-    this._children = new NodeChildren(this, children)
-
+    this.props.merge(this.upgradeProps(this.initProps(props || {})), this.upgradeProps(extras))
     this.initBuiltinProps()
+
+    this.onVisibleChange((visible: boolean) => {
+      this.document.designer.postEvent(DESIGNER_EVENT.NODE_VISIBLE_CHANGE, this, visible)
+    })
+    this.onChildrenChange(info => {
+      this.document.designer.postEvent(DESIGNER_EVENT.NODE_CHILDREN_CHANGE, {
+        type: info?.type,
+        node: this,
+      })
+    })
   }
 
   export() {
@@ -158,6 +186,99 @@ export class Node {
   private initBuiltinProps() {
     this.props.has(getConvertedExtraKey('isHidden')) || this.props.add(getConvertedExtraKey('isHidden'), false)
     this.props.has(getConvertedExtraKey('isLocked')) || this.props.add(getConvertedExtraKey('isLocked'), false)
+    this.props.has(getConvertedExtraKey('title')) || this.props.add(getConvertedExtraKey('title'), '')
+    this.props.has(getConvertedExtraKey('loop')) || this.props.add(getConvertedExtraKey('loop'), undefined)
+    this.props.has(getConvertedExtraKey('condition')) || this.props.add(getConvertedExtraKey('condition'), true)
+    this.props.has(getConvertedExtraKey('conditionGroup')) || this.props.add(getConvertedExtraKey('conditionGroup'), '')
+  }
+
+  private initProps(props: PropsSchema) {
+    // return this.document.designer.transformProps(props, this, IPublicEnumTransformStage.Init);
+    return props
+  }
+
+  private upgradeProps(props: PropsSchema) {
+    // return this.document.designer.transformProps(props, this, IPublicEnumTransformStage.Upgrade);
+    return props
+  }
+
+  private initialChildren(children: NodeSchema | NodeSchema[] | undefined): NodeSchema[] {
+    const { initialChildren } = this.componentMeta.advanced
+
+    if (children == null) {
+      if (initialChildren) {
+        if (typeof initialChildren === 'function') {
+          return initialChildren(this) || []
+        }
+        return initialChildren
+      }
+      return []
+    }
+
+    if (Array.isArray(children)) {
+      return children
+    }
+
+    return [children]
+  }
+
+  isContainer(): boolean {
+    return this.isContainerNode
+  }
+
+  get isContainerNode() {
+    return this.componentMeta.isContainer
+  }
+
+  isRoot() {
+    return this.isRootNode
+  }
+
+  get isRootNode() {
+    return this.document.rootNode === this
+  }
+
+  /**
+   * whether child nodes are included
+   */
+  isParental() {
+    return this.isParentalNode
+  }
+
+  get isParentalNode(): boolean {
+    return !this.isLeafNode
+  }
+
+  /**
+   * whether this node is a leaf node
+   * TODO: 这种方式判断是否是叶子节点，感觉不太对
+   */
+  isLeaf() {
+    return this.isLeafNode
+  }
+
+  get isLeafNode(): boolean {
+    return this._children ? this._children.isEmpty() : true
+  }
+
+  didDropIn(dragNode: Node) {
+    const { callbacks } = this.componentMeta.advanced
+    if (callbacks?.onNodeAdd) {
+      callbacks?.onNodeAdd.call(this, dragNode, this)
+    }
+    if (this._parent) {
+      this._parent.didDropIn(dragNode)
+    }
+  }
+
+  didDropOut(dragNode: Node) {
+    const { callbacks } = this.componentMeta.advanced
+    if (callbacks?.onNodeRemove) {
+      callbacks?.onNodeRemove.call(this, dragNode, this)
+    }
+    if (this._parent) {
+      this._parent.didDropOut(dragNode)
+    }
   }
 
   hide(flag = true) {
@@ -176,10 +297,6 @@ export class Node {
 
   isLocked() {
     return this.getExtraPropValue('isLocked') as boolean
-  }
-
-  isRoot() {
-    return this.document.rootNode === this
   }
 
   getProp(path: PropKey, createIfNone = true) {
@@ -214,7 +331,7 @@ export class Node {
     this.getProp(path, false)?.unset()
   }
 
-  internalSetParent(parent: Node | null) {
+  internalSetParent(parent: Node | null, useMutator = false) {
     if (this._parent === parent) {
       return
     }
@@ -222,9 +339,16 @@ export class Node {
     if (this._parent) {
       this._parent.children?.unlinkChild(this)
     }
+    if (useMutator) {
+      this._parent?.didDropOut(this)
+    }
 
     if (parent) {
       this._parent = parent
+
+      if (useMutator) {
+        parent.didDropIn(this)
+      }
     }
   }
 
@@ -268,10 +392,13 @@ export class Node {
   }
 
   @action
-  remove() {
+  remove(purge = true, useMutator = true) {
     if (this.parent) {
-      this.parent.children!.delete(this)
-      this.document.designer.postEvent(NODE_EVENT.REMOVE, this)
+      this.document.designer.postEvent(DESIGNER_EVENT.NODE_REMOVE, {
+        node: this,
+        index: this.index,
+      })
+      this.parent.children?.internalDelete(this, purge, useMutator)
     }
   }
 
@@ -319,23 +446,66 @@ export class Node {
     }
   }
 
+  hasCondition() {
+    const v = this.getExtraProp('condition', false)?.getValue()
+    return v != null && v !== '' && v !== true
+  }
+
+  /**
+   * has loop when 1. loop is validArray with length > 1 ; OR  2. loop is variable object
+   * @return boolean, has loop config or not
+   */
+  hasLoop() {
+    const value = this.getExtraProp('loop', false)?.getValue()
+    if (value === undefined || value === null) {
+      return false
+    }
+
+    if (Array.isArray(value)) {
+      return true
+    }
+    return false
+  }
+
   @computed get componentMeta() {
     return this.document.getComponentMeta(this.componentName)
   }
 
-  /**
-   * whether child nodes are included
-   */
-  isParental() {
-    return this._children ? !this._children.isEmpty() : false
+  @computed get propsData() {
+    return this.props.export(TransformStage.Serialize).props || null
   }
 
-  /**
-   * whether this node is a leaf node
-   * TODO: 这种方式判断是否是叶子节点，感觉不太对
-   */
-  isLeaf() {
-    return this._children ? this._children.isEmpty() : true
+  wrapWith(schema: NodeSchema) {
+    const wrappedNode = this.replaceWith({ ...schema, children: [this.export()] })
+    return wrappedNode?.children!.get(0)
+  }
+
+  replaceWith(schema: NodeSchema, migrate = false) {
+    // reuse the same id? or replaceSelection
+    schema = Object.assign({}, migrate ? this.export() : {}, schema)
+    return this.parent?.replaceChild(this, schema)
+  }
+
+  replaceChild(node: Node, data: NodeSchema): Node | null {
+    if (this.children?.has(node)) {
+      const selected = this.document.designer.selection.has(node.id)
+
+      delete data.id
+      const newNode = this.document.createNode(data)
+
+      if (!isNode(newNode)) {
+        return null
+      }
+
+      this.insertBefore(newNode, node, false)
+      node.remove(false)
+
+      if (selected) {
+        this.document.designer.selection.select(newNode.id)
+      }
+      return newNode
+    }
+    return node
   }
 
   /**
@@ -473,7 +643,7 @@ export class Node {
     }
   }
 
-  onChildrenChange(listener: (children: Node[]) => void) {
+  onChildrenChange(listener: (info?: { type: string; node: Node }) => void) {
     return this.children?.onChange(listener)
   }
 

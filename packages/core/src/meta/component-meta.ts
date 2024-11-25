@@ -55,7 +55,7 @@ export class ComponentMeta {
 
   get advanced() {
     if (this.isOnlyFieldConfig) {
-      return null
+      return {}
     }
 
     return (this._metadata!.configure as Configure)?.advanced || {}

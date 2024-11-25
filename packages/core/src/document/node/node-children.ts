@@ -41,9 +41,9 @@ export class NodeChildren {
     })
   }
 
-  remove() {
+  remove(purge = true, useMutator = true) {
     this.children.forEach(child => {
-      child.remove()
+      child.remove(purge, useMutator)
     })
     this.children.length = 0
   }
@@ -60,8 +60,7 @@ export class NodeChildren {
     })
   }
 
-  @action
-  private internalInitParent() {
+  internalInitParent() {
     for (const child of this.children) {
       child.internalSetParent(this.owner)
     }
@@ -86,17 +85,28 @@ export class NodeChildren {
     })
   }
 
-  delete(node: Node): boolean {
+  delete(node: Node) {
     return this.internalDelete(node)
   }
 
-  internalDelete(node: Node): boolean {
-    if (node.isParental()) {
-      node.children?.remove()
+  internalDelete(node: Node, purge = false, useMutator = true): boolean {
+    if (node.isParentalNode) {
+      node.children?.remove(purge, useMutator)
+    }
+
+    if (purge) {
+      // should set parent null
+      node.internalSetParent(null, useMutator)
+      try {
+        node.purge()
+      } catch (err) {
+        console.error(err)
+      }
     }
 
     const { document } = node
     document.unlinkNode(node)
+    document.designer.selection.remove(node.id)
     node.unlink()
     this.emitter.emit(NODE_CHILDREN_EVENT.CHANGE, {
       type: 'delete',
@@ -208,7 +218,7 @@ export class NodeChildren {
     }, initialValue)
   }
 
-  onChange(listener: (info?: any) => void) {
+  onChange(listener: (info?: { type: string; node: Node }) => void) {
     this.emitter.on(NODE_CHILDREN_EVENT.CHANGE, listener)
     return () => {
       this.emitter.off(NODE_CHILDREN_EVENT.CHANGE, listener)

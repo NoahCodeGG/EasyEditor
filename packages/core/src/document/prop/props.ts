@@ -1,20 +1,19 @@
-import type { Node } from '../node/node'
-import type { PropKey, PropValue } from './prop'
+import type { Node, NodeSchema } from '../node/node'
+import type { CompositeObject, PropKey, PropValue } from './prop'
 
 import { action, computed, observable } from 'mobx'
+import { TransformStage } from '../../types'
 import { createLogger, uniqueId } from '../../utils'
 import { Prop, UNSET, splitPath } from './prop'
 
-export interface PropsSchema {
-  [key: PropKey]: any
-}
+export type PropsSchema = CompositeObject<NodeSchema>
 
 const EXTRA_KEY_PREFIX = '__'
 
 /**
  * prop key convert to extra key
  */
-export const getConvertedExtraKey = (key: PropKey): string => {
+export const getConvertedExtraKey = (key: string): string => {
   if (!key) {
     return ''
   }
@@ -28,12 +27,12 @@ export const getConvertedExtraKey = (key: PropKey): string => {
 /**
  * extra key convert to prop key
  */
-export const getOriginalExtraKey = (key: PropKey): string => {
+export const getOriginalExtraKey = (key: string): string => {
   return key.replace(new RegExp(`${EXTRA_KEY_PREFIX}`, 'g'), '')
 }
 
-export const isExtraKey = (key: PropKey): boolean => {
-  return key.startsWith(EXTRA_KEY_PREFIX) && key.endsWith(EXTRA_KEY_PREFIX)
+export const isExtraKey = (key: string): boolean => {
+  return key.startsWith(EXTRA_KEY_PREFIX)
 }
 
 export class Props {
@@ -62,7 +61,7 @@ export class Props {
   @observable.shallow accessor items: Prop[] = []
 
   @computed private get maps() {
-    const maps = new Map<string, Prop>()
+    const maps = new Map<PropKey, Prop>()
 
     if (this.items.length > 0) {
       this.items.forEach(prop => {
@@ -81,7 +80,18 @@ export class Props {
 
   constructor(owner: Node, props?: PropsSchema, extras?: PropsSchema) {
     this.owner = owner
-    this.import(props, extras)
+
+    if (Array.isArray(props)) {
+      this.type = 'list'
+      this.items = props.map((item, idx) => new Prop(this, item.name || idx, item.value))
+    } else if (props != null) {
+      this.items = Object.keys(props).map(key => new Prop(this, key, props[key]))
+    }
+    if (extras) {
+      Object.keys(extras).forEach(key => {
+        this.items.push(new Prop(this, (extras as any)[key], getConvertedExtraKey(key)))
+      })
+    }
   }
 
   @action
@@ -107,7 +117,7 @@ export class Props {
     originItems.forEach(item => item.purge())
   }
 
-  export() {
+  export(stage: TransformStage = TransformStage.Save) {
     if (this.items.length < 1) {
       return {}
     }
@@ -115,18 +125,42 @@ export class Props {
     const props: PropsSchema = {}
     const extras: PropsSchema = {}
 
-    for (const item of this.items) {
-      const key = item.key as string
-      const value = item.export()
+    if (this.type === 'list') {
+      for (const item of this.items) {
+        const key = item.key as string
+        const value = item.export(stage)
 
-      if (isExtraKey(key)) {
-        extras[getOriginalExtraKey(key)] = value
-      } else {
-        props[key] = value
+        if (typeof key === 'string' && isExtraKey(key)) {
+          extras[getOriginalExtraKey(key)] = value
+        } else {
+          props[key] = value
+        }
       }
+    } else {
+      this.items.forEach(item => {
+        const name = item.key as string
+        if (name == null || item.isUnset()) return
+        const value = item.export(stage)
+        if (value != null) {
+          props[name] = value
+        }
+      })
     }
 
     return { props, extras }
+  }
+
+  merge(value: PropsSchema, extras?: PropsSchema) {
+    Object.keys(value).forEach(key => {
+      this.query(key, true)!.setValue(value[key])
+      this.query(key, true)!.initItems()
+    })
+    if (extras) {
+      Object.keys(extras).forEach(key => {
+        this.query(getConvertedExtraKey(key), true)!.setValue(extras[key])
+        this.query(getConvertedExtraKey(key), true)!.initItems()
+      })
+    }
   }
 
   private purged = false
@@ -145,7 +179,7 @@ export class Props {
   /**
    * get a prop, if not found, create a prop when createIfNone is true
    */
-  get(path: PropKey, createIfNone = false) {
+  get(path: string, createIfNone = false) {
     const { entry, nest } = splitPath(path)
 
     let prop = this.maps.get(entry)
@@ -160,24 +194,22 @@ export class Props {
     return null
   }
 
-  query(path: PropKey, createIfNone = true) {
+  query(path: string, createIfNone = true) {
     return this.get(path, createIfNone)
   }
 
-  getProp(path: PropKey, createIfNone = true) {
+  getProp(path: string, createIfNone = true) {
     return this.query(path, createIfNone) || null
   }
 
-  getPropValue(path: PropKey) {
+  getPropValue(path: string) {
     return this.getProp(path, false)?.value
   }
 
-  @action
-  setPropValue(path: PropKey, value: any) {
+  setPropValue(path: string, value: any) {
     this.getProp(path, true)!.setValue(value)
   }
 
-  @action
   delete(prop: Prop) {
     const index = this.items.indexOf(prop)
     if (index > -1) {
@@ -186,22 +218,19 @@ export class Props {
     }
   }
 
-  @action
-  deleteKey(propKey: PropKey) {
-    const prop = this.maps.get(propKey)
-    if (!prop) {
-      return this.logger.warn(`prop ${propKey} not found`)
-    }
-
-    const index = this.items.indexOf(prop)
-    if (index > -1) {
-      this.items.splice(index, 1)
-      prop.purge()
-    }
+  deleteKey(key: string) {
+    this.items = this.items.filter((item, i) => {
+      if (item.key === key) {
+        item.purge()
+        this.items.splice(i, 1)
+        return false
+      }
+      return true
+    })
   }
 
   @action
-  add(key: PropKey, value?: PropValue) {
+  add(key: PropKey, value?: PropValue | UNSET) {
     const prop = new Prop(this, key, value)
     this.items.push(prop)
     return prop

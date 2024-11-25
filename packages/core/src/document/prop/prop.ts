@@ -2,11 +2,14 @@ import type { Node } from '../node/node'
 import type { Props } from './props'
 
 import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
+import { DESIGNER_EVENT } from '../../designer'
+import { TransformStage } from '../../types'
 import { uniqueId } from '../../utils'
 
 export const UNSET = Symbol.for('unset')
 export type UNSET = typeof UNSET
 
+// TODO: expression & slot
 export type ValueTypes = 'unset' | 'literal' | 'list' | 'map'
 
 /**
@@ -22,9 +25,25 @@ export interface PropParent {
   delete(prop: Prop): void
 }
 
-export type PropKey = string
+export type PropKey = string | number
 
-export type PropValue = unknown | UNSET
+export type PropValue = CompositeValue
+
+export type CompositeValue = JSONValue | CompositeArray | CompositeObject
+
+export type CompositeArray = CompositeValue[]
+
+export interface CompositeObject<T = CompositeValue> {
+  [key: PropKey]: CompositeValue | T
+}
+
+export type JSONValue = boolean | string | number | null | undefined | JSONArray | JSONObject
+
+export type JSONArray = JSONValue[]
+
+export interface JSONObject {
+  [key: PropKey]: JSONValue
+}
 
 export class Prop {
   readonly isProp = true
@@ -45,10 +64,10 @@ export class Prop {
     return this.owner
   }
 
-  @observable.ref private accessor _value: PropValue = UNSET
+  @observable.ref private accessor _value: PropValue | UNSET = UNSET
 
   @computed get value(): unknown | UNSET {
-    return this.export()
+    return this.export(TransformStage.Serialize)
   }
 
   @observable.ref private accessor _type: ValueTypes = 'unset'
@@ -68,6 +87,7 @@ export class Prop {
 
   /** use for list or map type */
   @observable.shallow private accessor _items: Prop[] | null = null
+
   /**
    * 作为一层缓存机制，主要是复用部分已存在的 Prop，保持响应式关系，比如：
    * 当前 Prop#_value 值为 { a: 1 }，当调用 setValue({ a: 2 }) 时，所有原来的子 Prop 均被销毁，
@@ -99,7 +119,7 @@ export class Prop {
    * return a path of prop
    */
   get path(): string[] {
-    return (this.parent.path || []).concat(this.key)
+    return (this.parent.path || []).concat(this.key as string)
   }
 
   /**
@@ -112,7 +132,7 @@ export class Prop {
   constructor(
     readonly parent: PropParent,
     key: PropKey,
-    value: PropValue = UNSET,
+    value: PropValue | UNSET = UNSET,
   ) {
     this.owner = parent.owner
     this.props = parent.props
@@ -130,7 +150,7 @@ export class Prop {
    * which will construct the items and maps for the prop value
    */
   @action
-  private initItems() {
+  initItems() {
     runInAction(() => {
       let items: Prop[] | null = null
 
@@ -181,7 +201,7 @@ export class Prop {
     })
   }
 
-  export(): unknown {
+  export(stage: TransformStage = TransformStage.Save): PropValue {
     const type = this._type
 
     if (type === 'unset') {
@@ -189,19 +209,19 @@ export class Prop {
     }
 
     if (type === 'literal') {
-      return this._value
+      return this._value as any
     }
 
     if (type === 'map') {
       if (!this._items) {
-        return this._value
+        return this._value as any
       }
 
-      let maps: Record<PropKey, PropValue> | undefined = undefined
+      let maps: any = undefined
       for (let i = 0; i < this.items!.length; i++) {
         const prop = this.items![i]
         if (!prop.isUnset()) {
-          const v = prop.export()
+          const v = prop.export(stage)
           if (v !== null) {
             maps = maps || {}
             maps[prop.key || i] = v
@@ -213,13 +233,20 @@ export class Prop {
 
     if (type === 'list') {
       if (!this._items) {
-        return this._value
+        return this._value as any
       }
 
       return this.items!.map(prop => {
-        return prop.export()
-      })
+        return prop.export(stage)
+      }) as CompositeArray
     }
+  }
+
+  getAsString(): string {
+    if (this.type === 'literal') {
+      return this._value ? String(this._value) : ''
+    }
+    return ''
   }
 
   /**
@@ -242,6 +269,7 @@ export class Prop {
         item.purge()
       }
     }
+
     this._items = null
     this._maps = null
   }
@@ -273,7 +301,7 @@ export class Prop {
    * set value, val should be JSON Object
    */
   @action
-  setValue(val: any) {
+  setValue(val: PropValue) {
     if (val === this._value) return
 
     const oldValue = this._value
@@ -292,16 +320,21 @@ export class Prop {
     this.dispose()
     this.initItems()
 
-    this.owner.emitPropChange({
-      key: this.key,
-      prop: this,
-      oldValue,
-      newValue: this._value,
-    })
+    if (oldValue !== this._value) {
+      const propsInfo = {
+        key: this.key,
+        prop: this,
+        oldValue,
+        newValue: this._value,
+      }
+
+      this.owner.emitPropChange(propsInfo)
+      this.owner.document.designer.postEvent(DESIGNER_EVENT.NODE_PROPS_CHANGE, propsInfo)
+    }
   }
 
   getValue() {
-    return this.export()
+    return this.value
   }
 
   get(path: string, createIfNone = true): Prop | null {
@@ -344,7 +377,7 @@ export class Prop {
   @action
   set(key: PropKey, value: PropValue | Prop, force = false) {
     const type = this._type
-    if (type !== 'list' && type !== 'unset' && !force) {
+    if (type !== 'map' && type !== 'list' && type !== 'unset' && !force) {
       return null
     }
 
@@ -397,7 +430,7 @@ export class Prop {
   }
 
   @action
-  delete(prop: Prop): void {
+  delete(prop: Prop) {
     if (this._items) {
       const i = this._items.indexOf(prop)
       if (i > -1) {
@@ -411,7 +444,7 @@ export class Prop {
   }
 
   @action
-  add(value: any, force = false): Prop | null {
+  add(key: PropKey, value?: PropValue | UNSET, force = false) {
     const type = this._type
     if (type !== 'list' && type !== 'unset' && !force) {
       return null
@@ -420,7 +453,7 @@ export class Prop {
       this.setValue([])
     }
 
-    const prop = new Prop(this, value)
+    const prop = new Prop(this, key, value)
     this._items = this._items || []
     this._items.push(prop)
     return prop
@@ -429,7 +462,7 @@ export class Prop {
   /**
    * check if the prop has the key, only for map and list type
    */
-  has(key: string): boolean {
+  has(key: string) {
     if (this._type !== 'map') {
       return false
     }
@@ -439,8 +472,7 @@ export class Prop {
     return Object.prototype.hasOwnProperty.call(this._value, key)
   }
 
-  @action
-  deleteKey(key: string): void {
+  deleteKey(key: string) {
     if (this.maps) {
       const prop = this.maps.get(key)
       if (prop) {
@@ -449,16 +481,8 @@ export class Prop {
     }
   }
 
-  @action
   clearPropValue(propName: string): void {
     this.get(propName, false)?.unset()
-  }
-
-  getAsString(): string {
-    if (this.type === 'literal') {
-      return this._value ? String(this._value) : ''
-    }
-    return ''
   }
 
   @action

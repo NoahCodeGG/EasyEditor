@@ -28,6 +28,11 @@ export enum DESIGNER_EVENT {
   // TODO: 名称有点问题，因为这个暂时只是触发从物料拖拽出来了 nodedata 生效
   INSERT_NODE_BEFORE = 'designer:insert-node-before',
   INSERT_NODE_AFTER = 'designer:insert-node-after',
+
+  NODE_VISIBLE_CHANGE = 'designer:node.visible.change',
+  NODE_CHILDREN_CHANGE = 'designer:node.children.change',
+  NODE_PROPS_CHANGE = 'designer:node.props.change',
+  NODE_REMOVE = 'designer:node.remove',
 }
 
 export class Designer {
