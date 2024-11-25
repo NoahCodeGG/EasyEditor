@@ -3,7 +3,7 @@ import type { Props } from './props'
 
 import { action, computed, isObservableArray, observable, runInAction, set, untracked } from 'mobx'
 import { DESIGNER_EVENT } from '../../designer'
-import { TransformStage } from '../../types'
+import { TRANSFORM_STAGE } from '../../types'
 import { uniqueId } from '../../utils'
 
 export const UNSET = Symbol.for('unset')
@@ -67,7 +67,7 @@ export class Prop {
   @observable.ref private accessor _value: PropValue | UNSET = UNSET
 
   @computed get value(): unknown | UNSET {
-    return this.export(TransformStage.Serialize)
+    return this.export(TRANSFORM_STAGE.SERIALIZE)
   }
 
   @observable.ref private accessor _type: ValueTypes = 'unset'
@@ -201,7 +201,7 @@ export class Prop {
     })
   }
 
-  export(stage: TransformStage = TransformStage.Save): PropValue {
+  export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE): PropValue {
     const type = this._type
 
     if (type === 'unset') {

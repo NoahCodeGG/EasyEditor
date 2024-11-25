@@ -2,7 +2,7 @@ import type { Node, NodeSchema } from '../node/node'
 import type { CompositeObject, PropKey, PropValue } from './prop'
 
 import { action, computed, observable } from 'mobx'
-import { TransformStage } from '../../types'
+import { TRANSFORM_STAGE } from '../../types'
 import { createLogger, uniqueId } from '../../utils'
 import { Prop, UNSET, splitPath } from './prop'
 
@@ -117,7 +117,7 @@ export class Props {
     originItems.forEach(item => item.purge())
   }
 
-  export(stage: TransformStage = TransformStage.Save) {
+  export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE) {
     if (this.items.length < 1) {
       return {}
     }
@@ -138,11 +138,15 @@ export class Props {
       }
     } else {
       this.items.forEach(item => {
-        const name = item.key as string
-        if (name == null || item.isUnset()) return
+        const key = item.key as string
+        if (key == null || item.isUnset()) return
         const value = item.export(stage)
         if (value != null) {
-          props[name] = value
+          if (typeof key === 'string' && isExtraKey(key)) {
+            extras[getOriginalExtraKey(key)] = value
+          } else {
+            props[key] = value
+          }
         }
       })
     }
