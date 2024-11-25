@@ -365,6 +365,7 @@ export class Node {
       this.parent.children!.unlinkChild(this)
     }
     this.internalUnlinkParent()
+    this.document.unlinkNode(this)
   }
 
   /**
@@ -480,7 +481,7 @@ export class Node {
   }
 
   @computed get propsData() {
-    return this.props.export(TransformStage.Serialize).props || null
+    return this.props.export(TRANSFORM_STAGE.SERIALIZE).props || null
   }
 
   wrapWith(schema: NodeSchema) {

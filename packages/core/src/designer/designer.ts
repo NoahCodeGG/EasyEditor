@@ -26,8 +26,8 @@ export enum DESIGNER_EVENT {
   DROP_LOCATION_CHANGE = 'designer:dropLocation.change',
 
   // TODO: 名称有点问题，因为这个暂时只是触发从物料拖拽出来了 nodedata 生效
-  INSERT_NODE_BEFORE = 'designer:insert-node-before',
-  INSERT_NODE_AFTER = 'designer:insert-node-after',
+  INSERT_NODE_BEFORE = 'designer:node.insert.before',
+  INSERT_NODE_AFTER = 'designer:node.insert.after',
 
   NODE_VISIBLE_CHANGE = 'designer:node.visible.change',
   NODE_CHILDREN_CHANGE = 'designer:node.children.change',

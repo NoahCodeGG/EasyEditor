@@ -11,13 +11,14 @@ import type { NodeSchema } from './node/node'
 
 import { action, observable } from 'mobx'
 import type { Simulator } from '../simulator'
-import { createEventBus, createLogger, uniqueId } from '../utils'
+import { TRANSFORM_STAGE } from '../types'
+import { createEventBus, uniqueId } from '../utils'
 import { History } from './history'
-import { NODE_EVENT, Node, isNode, isNodeSchema } from './node/node'
+import { NODE_EVENT, Node, insertChild, insertChildren, isNode, isNodeSchema } from './node/node'
 
 export interface DocumentSchema {
-  id: string
-  name: string
+  id?: string
+  name?: string
   rootNode: NodeSchema
 }
 
@@ -28,8 +29,32 @@ export enum DOCUMENT_EVENT {
   OPEN = 'document:open',
 }
 
+export interface LowCodeComponent {
+  /**
+   * 研发模式
+   */
+  devMode: 'lowCode'
+  /**
+   * 组件名称
+   */
+  componentName: string
+}
+
+// export type ProCodeComponent = TypeNpmInfo;
+export interface ProCodeComponent {
+  /**
+   * 研发模式
+   */
+  devMode: 'proCode'
+  /**
+   * 组件名称
+   */
+  componentName: string
+}
+export type ComponentMap = ProCodeComponent | LowCodeComponent
+export type ComponentsMap = ComponentMap[]
+
 export class Document {
-  private logger = createLogger('Document')
   private emitter: EventBus
 
   id: string
@@ -42,6 +67,10 @@ export class Document {
 
   /** document root node */
   rootNode: Node | null = null
+
+  get root() {
+    return this.rootNode
+  }
 
   getRoot() {
     return this.rootNode
@@ -72,8 +101,7 @@ export class Document {
   }
 
   isBlank() {
-    // return !!(this._blank && !this.isModified());
-    return this._blank
+    return !!(this._blank && !this.isModified())
   }
 
   readonly history: History
@@ -92,33 +120,36 @@ export class Document {
     this.project = project
     this.designer = project.designer
     this.history = new History(
-      () => this.export(),
+      () => this.export(TRANSFORM_STAGE.SERIALIZE),
       schema => {
-        this.import(schema)
-        // this.designer.rerender()
+        this.import(schema, true)
+        this.simulator?.rerender()
       },
       this,
     )
 
     if (schema) {
-      this.name = schema?.name
+      this.name = schema?.name ?? ''
       if (schema?.rootNode) {
         this.rootNode = this.createNode(schema.rootNode)
         this._blank = false
       }
-    } else {
-      this._blank = true
     }
   }
 
   @action
-  import(schema?: DocumentSchema) {
+  import(schema?: DocumentSchema, checkId = false) {
+    this.nodes.forEach(node => {
+      if (node.isRoot()) return
+      this.internalRemoveNode(node, true)
+    })
     this.remove()
 
     this.id = schema?.id ?? uniqueId('doc')
     if (schema) {
-      this.name = schema?.name
+      this.name = schema?.name ?? ''
       if (schema?.rootNode) {
+        this.rootNode?.import(schema.rootNode, checkId)
         this.rootNode = this.createNode(schema.rootNode)
         this._blank = false
       }
@@ -127,21 +158,20 @@ export class Document {
     }
   }
 
-  export(): DocumentSchema {
-    const schema: any = {
+  export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE) {
+    const schema: DocumentSchema = {
       id: this.id,
       name: this.name,
-      rootNode: this.rootNode?.export(),
+      rootNode: this.rootNode!.export(stage),
     }
 
     return schema
   }
 
   remove() {
+    this.designer.postEvent(DOCUMENT_EVENT.REMOVE, { id: this.id })
     this.purge()
     this.project.removeDocument(this)
-
-    this.designer.postEvent(DOCUMENT_EVENT.REMOVE, this.id)
   }
 
   purge() {
@@ -151,6 +181,7 @@ export class Document {
     this.rootNode = null
   }
 
+  // TODO
   checkNesting(dropTarget: Node, dragObject: DragNodeObject | NodeSchema | Node | DragNodeDataObject): boolean {
     let items: Array<Node | NodeSchema>
     if (isDragNodeDataObject(dragObject)) {
@@ -168,14 +199,30 @@ export class Document {
 
   @action
   createNode(schema: NodeSchema) {
-    if (this.hasNode(schema?.id)) {
-      this.logger.error('node already exists', schema.id)
-      return this.getNode(schema.id)!
+    if (schema?.id && this.hasNode(schema.id)) {
+      schema.id = undefined
     }
 
-    const node = new Node(this, schema)
+    let node: Node | null = null
+    if (schema.id) {
+      node = this.getNode(schema.id)
+      if (node && node.componentName === schema.componentName) {
+        if (node.parent) {
+          node.internalSetParent(null, false)
+        }
+        node.import(schema, true)
+      } else if (node) {
+        node = null
+      }
+    }
+
+    if (!node) {
+      node = new Node(this, schema)
+    }
+
     this.nodes.add(node)
     this._nodesMap.set(node.id, node)
+    this.emitter.emit(NODE_EVENT.ADD, node)
 
     return node
   }
@@ -203,23 +250,23 @@ export class Document {
     }
 
     if (!node) {
-      return this.logger.warn('node not found', idOrNode)
+      return
     }
 
     this.internalRemoveNode(node)
   }
 
   @action
-  private internalRemoveNode(node: Node) {
+  private internalRemoveNode(node: Node, useMutator = false) {
     if (!this.nodes.has(node)) {
-      return this.logger.warn('node not found', node)
+      return
     }
 
     if (node.isRoot()) {
       this.rootNode = null
     }
 
-    node.remove()
+    node.remove(true, useMutator)
   }
 
   unlinkNode(node: Node) {
@@ -233,36 +280,15 @@ export class Document {
     }
   }
 
-  insertNode(parent: Node, thing: Node | NodeSchema, at?: number) {
-    let node: Node | null | undefined
-
-    if (isNode(thing)) {
-      node = thing
-    } else {
-      node = parent.document?.createNode(thing)
-    }
-
-    if (isNode(node)) {
-      parent.children?.insert(node, at)
-      return node
-    }
+  insertNode(parent: Node, thing: Node | NodeSchema, at?: number, copy?: boolean) {
+    return insertChild(parent, thing, at, copy)
   }
 
   /**
    * insert multiple nodes
    */
-  insertNodes(parent: Node, nodes: Node[] | NodeSchema[], at?: number) {
-    let index = at
-    let node: Node | NodeSchema | null | undefined
-    const results: Node[] = []
-
-    while ((node = nodes.pop())) {
-      node = this.insertNode(parent, node, index)
-      results.push(node!)
-      index = node?.index ?? index
-    }
-
-    return results
+  insertNodes(parent: Node, nodes: Node[] | NodeSchema[], at?: number, copy?: boolean) {
+    return insertChildren(parent, nodes, at, copy)
   }
 
   open() {
@@ -321,12 +347,11 @@ export class Document {
    * @param extraComps - extra components that will be added to the components map, use for custom components
    */
   getComponentsMap(extraComps?: string[]) {
-    const componentsMap: Record<Node['componentName'], any> = []
+    const componentsMap: ComponentsMap = []
     // use map to avoid duplicate
-    const existedMap: Record<Node['componentName'], boolean> = {}
+    const existedMap: Record<string, boolean> = {}
 
     for (const node of this._nodesMap.values()) {
-      // TODO: 组件具体内容添加
       const { componentName } = node || {}
       if (!existedMap[componentName]) {
         existedMap[componentName] = true
@@ -358,6 +383,26 @@ export class Document {
 
   getComponentMeta(componentName: string) {
     return this.designer.componentMetaManager.getComponentMeta(componentName)
+  }
+
+  toData(extraComps?: string[]) {
+    const node = this.export(TRANSFORM_STAGE.SAVE)
+    const data = {
+      componentsMap: this.getComponentsMap(extraComps),
+      utils: this.getUtilsMap(),
+      componentsTree: [node],
+    }
+    return data
+  }
+
+  getUtilsMap() {
+    // return this.designer.editor.get('assets')?.utils?.map((item: any) => ({
+    //   name: item.name,
+    //   type: item.type || 'npm',
+    //   // TODO 当前只有 npm 类型，content 直接设置为 item.npm，有 function 类型之后需要处理
+    //   content: item.npm,
+    // }));
+    return {}
   }
 
   onReady(listener: () => void) {
