@@ -198,7 +198,7 @@ export class Document {
   }
 
   @action
-  createNode(schema: NodeSchema) {
+  createNode(schema: NodeSchema, checkId = true) {
     if (schema?.id && this.hasNode(schema.id)) {
       schema.id = undefined
     }
@@ -210,7 +210,7 @@ export class Document {
         if (node.parent) {
           node.internalSetParent(null, false)
         }
-        node.import(schema, true)
+        node.import(schema, checkId)
       } else if (node) {
         node = null
       }

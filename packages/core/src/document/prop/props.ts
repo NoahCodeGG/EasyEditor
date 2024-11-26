@@ -6,7 +6,14 @@ import { TRANSFORM_STAGE } from '../../types'
 import { createLogger, uniqueId } from '../../utils'
 import { Prop, UNSET, splitPath } from './prop'
 
-export type PropsSchema = CompositeObject<NodeSchema>
+export type PropsSchema = PropsMap | PropsList
+
+export type PropsMap = CompositeObject<NodeSchema | NodeSchema[]>
+
+export type PropsList = Array<{
+  name?: string
+  value: PropValue
+}>
 
 const EXTRA_KEY_PREFIX = '__'
 
@@ -95,7 +102,7 @@ export class Props {
   }
 
   @action
-  import(props?: PropsSchema, extras?: PropsSchema) {
+  import(props?: PropsSchema | null, extras?: PropsMap) {
     // TODO: 是否需要继承之前相同的 key，来保持响应式
 
     const originItems = this.items
@@ -154,7 +161,7 @@ export class Props {
     return { props, extras }
   }
 
-  merge(value: PropsSchema, extras?: PropsSchema) {
+  merge(value: PropsMap, extras?: PropsMap) {
     Object.keys(value).forEach(key => {
       this.query(key, true)!.setValue(value[key])
       this.query(key, true)!.initItems()
