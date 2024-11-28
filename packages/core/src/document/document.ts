@@ -1,7 +1,9 @@
 import {
+  DESIGNER_EVENT,
   type Designer,
   type DragNodeDataObject,
   type DragNodeObject,
+  type DropLocation,
   isDragNodeDataObject,
   isDragNodeObject,
 } from '../designer'
@@ -113,6 +115,21 @@ export class Document {
   readonly project: Project
 
   readonly designer: Designer
+
+  @observable.ref private accessor _dropLocation: DropLocation | null = null
+
+  set dropLocation(loc: DropLocation | null) {
+    this._dropLocation = loc
+    this.designer.postEvent(DESIGNER_EVENT.DOCUMENT_DROP_LOCATION_CHANGE, { document: this, location: loc })
+  }
+
+  get dropLocation() {
+    return this._dropLocation
+  }
+
+  get schema(): DocumentSchema {
+    return this.export(TRANSFORM_STAGE.SERIALIZE)
+  }
 
   constructor(project: Project, schema?: DocumentSchema) {
     this.emitter = createEventBus('Document')
