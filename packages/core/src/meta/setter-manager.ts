@@ -49,9 +49,9 @@ export class SetterManager {
     this._settersMap.set(type, { type, ...newSetter })
   }
 
-  registerSettersMap = (maps: Record<string, Setter>) => {
-    Object.keys(maps).forEach(type => {
-      this.registerSetter(type, maps[type])
+  buildSettersMap = (setters: Record<string, Setter>) => {
+    Object.keys(setters).forEach(type => {
+      this.registerSetter(type, setters[type])
     })
   }
 

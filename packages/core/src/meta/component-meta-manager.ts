@@ -43,10 +43,10 @@ export class ComponentMetaManager {
     return meta
   }
 
-  createComponentMetaMap = (maps: Record<string, ComponentMetadata>) => {
-    Object.keys(maps).forEach(type => {
-      this.createComponentMeta(maps[type])
-    })
+  buildComponentMetasMap = (metas: ComponentMetadata[]) => {
+    for (const meta of metas) {
+      this.createComponentMeta(meta)
+    }
   }
 
   getComponentMeta(componentName: string, generateMetadata?: () => ComponentMetadata | null): ComponentMeta {
