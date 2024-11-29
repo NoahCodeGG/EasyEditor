@@ -1,4 +1,5 @@
-import type { Node, NodeSchema, Prop } from '../document'
+import type { NodeSchema, Prop } from '../document'
+import { isObject } from '../document'
 
 export interface ComponentMetadata {
   componentName: string
@@ -328,3 +329,14 @@ export interface ProCodeComponent {
 export type ComponentMap = ProCodeComponent | LowCodeComponent
 
 export type ComponentsMap = ComponentMap[]
+
+export function isProCodeComponentType(desc: ComponentMap): desc is ProCodeComponent {
+  if (!isObject(desc)) {
+    return false
+  }
+  return 'package' in desc
+}
+
+export function isLowCodeComponentType(desc: ComponentMap): desc is LowCodeComponent {
+  return !isProCodeComponentType(desc)
+}

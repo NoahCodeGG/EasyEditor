@@ -1,18 +1,19 @@
 import type { Designer } from '../designer'
 import type { DocumentSchema } from '../document'
+import type { ComponentsMap } from '../meta'
+import type { Simulator } from '../simulator'
 
 import { action, computed, observable } from 'mobx'
-import { DOCUMENT_EVENT, Document } from '../document'
-import type { Simulator } from '../simulator'
+import { DOCUMENT_EVENT, Document, isDocument } from '../document'
+import { isLowCodeComponentType, isProCodeComponentType } from '../meta'
+import { TRANSFORM_STAGE } from '../types'
 import { createEventBus, logger } from '../utils'
 
 export interface ProjectSchema {
   version: string
   documents: DocumentSchema[]
   config?: Record<string, any>
-  // TODO: 组件库
-  // components: any[]
-  // TODO: 插件附加
+
   [key: string]: any
 }
 
@@ -62,11 +63,50 @@ export class Project {
     this.load(schema)
   }
 
+  import(schema: ProjectSchema) {
+    this.load(schema)
+  }
+
+  export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE): ProjectSchema {
+    return {
+      ...this.data,
+      componentsMap: this.getComponentsMap(),
+      documents: this.documents.filter(doc => !doc.isBlank()).map(doc => doc.export(stage) || {}),
+    }
+  }
+
+  private getComponentsMap() {
+    return this.documents.reduce<ComponentsMap>((componentsMap: ComponentsMap, curDoc: Document): ComponentsMap => {
+      const curComponentsMap = curDoc.getComponentsMap()
+      if (Array.isArray(curComponentsMap)) {
+        curComponentsMap.forEach(item => {
+          const found = componentsMap.find(eItem => {
+            if (
+              isProCodeComponentType(eItem) &&
+              isProCodeComponentType(item) &&
+              // eItem.package === item.package &&
+              eItem.componentName === item.componentName
+            ) {
+              return true
+            } else if (isLowCodeComponentType(eItem) && eItem.componentName === item.componentName) {
+              return true
+            }
+            return false
+          })
+          if (found) return
+          componentsMap.push(item)
+        })
+      }
+      return componentsMap
+    }, [] as ComponentsMap)
+  }
+
   /**
    * load project schema
    * @param schema project schema
    * @param autoOpen auto open document, if type is string, will open document by id, if type is boolean, will open first document
    */
+  @action
   load(schema?: ProjectSchema, autoOpen?: boolean | string) {
     this.unload()
 
@@ -74,10 +114,7 @@ export class Project {
       ...defaultSchema,
       ...schema,
     }
-
-    if (schema?.config) {
-      this._config = schema.config
-    }
+    this._config = schema?.config ?? this.config
 
     if (schema?.documents) {
       for (const document of schema.documents) {
@@ -108,17 +145,6 @@ export class Project {
     }
   }
 
-  getSchema(): ProjectSchema {
-    return {
-      ...this.data,
-      documents: this.documents.map(document => document.export()),
-    }
-  }
-
-  setSchema(schema: ProjectSchema) {
-    this.load(schema)
-  }
-
   @action
   createDocument(schema?: DocumentSchema) {
     const doc = new Document(this, schema)
@@ -129,6 +155,7 @@ export class Project {
     return doc
   }
 
+  @action
   removeDocument(idOrDoc: string | Document) {
     let document: Document | undefined
     if (typeof idOrDoc === 'string') {
@@ -151,6 +178,10 @@ export class Project {
     this.documentsMap.delete(document.id)
   }
 
+  getDocument(id: string) {
+    return this.documents.find(doc => doc.id === id)
+  }
+
   /**
    * open or create a document
    */
@@ -164,9 +195,7 @@ export class Project {
       const got = this.documents.find(doc => doc.id === idOrDoc)
       return got?.open()
     }
-    // if (isDocument(idOrDoc)) {
-    // TODO
-    if (idOrDoc instanceof Document) {
+    if (isDocument(idOrDoc)) {
       return idOrDoc.open()
     }
 
@@ -188,8 +217,12 @@ export class Project {
     this.emitter.emit(DOCUMENT_EVENT.OPEN_CHANGE, curDoc)
   }
 
-  getDocument(id: string) {
-    return this.documents.find(doc => doc.id === id)
+  closeOthers(opened: Document) {
+    this.documents.forEach(doc => {
+      if (doc !== opened) {
+        doc.close()
+      }
+    })
   }
 
   /**
@@ -229,6 +262,17 @@ export class Project {
   mountSimulator(simulator: Simulator) {
     this._simulator = simulator
     this.emitter.emit(PROJECT_EVENT.SIMULATOR_READY, simulator)
+  }
+
+  onSimulatorReady(listener: (simulator: Simulator) => void): () => void {
+    if (this._simulator) {
+      listener(this._simulator)
+    }
+
+    this.emitter.on(PROJECT_EVENT.SIMULATOR_READY, listener)
+    return () => {
+      this.emitter.off(PROJECT_EVENT.SIMULATOR_READY, listener)
+    }
   }
 
   /**
