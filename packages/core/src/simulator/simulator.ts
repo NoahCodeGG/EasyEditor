@@ -621,7 +621,8 @@ export class Simulator {
     const document = this.project.currentDocument!
     const { rootNode } = document
     if (container.isRoot() || container.contains(rootNode!)) {
-      return document.checkNesting(rootNode!, dragObject as any)
+      // return document.checkNesting(rootNode!, dragObject as any)
+      return true
     }
 
     const meta = (container as Node).componentMeta
@@ -630,7 +631,8 @@ export class Simulator {
       return false
     }
 
-    return document.checkNesting(container, dragObject as any)
+    // return document.checkNesting(container, dragObject as any)
+    return true
   }
 }
 

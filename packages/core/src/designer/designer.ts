@@ -52,6 +52,7 @@ export enum DESIGNER_EVENT {
   DOCUMENT_DROP_LOCATION_CHANGE = 'designer:document.dropLocation.change',
 
   NODE_VISIBLE_CHANGE = 'designer:node.visible.change',
+  NODE_LOCK_CHANGE = 'designer:node.lock.change',
   NODE_CHILDREN_CHANGE = 'designer:node.children.change',
   NODE_PROPS_CHANGE = 'designer:node.props.change',
   NODE_REMOVE = 'designer:node.remove',
