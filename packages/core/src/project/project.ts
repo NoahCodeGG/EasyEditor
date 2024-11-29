@@ -37,7 +37,7 @@ export class Project {
   private documentsMap = new Map<string, Document>()
 
   @computed get currentDocument() {
-    return this.documents.find(document => document.open)
+    return this.documents.find(document => document.opened)
   }
 
   @observable private accessor _config: Record<string, any> | undefined

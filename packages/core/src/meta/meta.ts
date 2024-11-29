@@ -60,7 +60,7 @@ export interface Snippet {
   /**
    * schema to be inserted
    */
-  schema?: Omit<NodeSchema, 'id'>
+  schema?: NodeSchema
 }
 
 export interface Configure {

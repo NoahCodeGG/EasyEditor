@@ -182,7 +182,7 @@ export class Simulator {
   linkSnippet(ref: HTMLElement, snippet: Snippet) {
     return this.designer.dragon.from(ref, () => ({
       type: DragObjectType.NodeData,
-      data: snippet,
+      data: snippet.schema,
     }))
   }
 
