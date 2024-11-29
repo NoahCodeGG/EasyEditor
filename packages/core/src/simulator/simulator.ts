@@ -324,7 +324,7 @@ export class Simulator {
   }
 
   @action
-  setComponents(components: Record<string, Component>) {
+  buildComponentMap(components: Record<string, Component>) {
     this._components = components
   }
 
