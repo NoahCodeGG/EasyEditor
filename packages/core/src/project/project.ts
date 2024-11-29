@@ -18,6 +18,7 @@ export interface ProjectSchema {
 }
 
 const defaultSchema: ProjectSchema = {
+  // TODO: version
   version: '0.0.1',
   documents: [],
 }
@@ -36,13 +37,15 @@ export class Project {
 
   private documentsMap = new Map<string, Document>()
 
-  @computed get currentDocument() {
+  @computed
+  get currentDocument() {
     return this.documents.find(document => document.opened)
   }
 
   @observable private accessor _config: Record<string, any> | undefined
 
-  @computed get config(): Record<string, any> | undefined {
+  @computed
+  get config(): Record<string, any> | undefined {
     return this._config
   }
 

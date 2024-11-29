@@ -1,4 +1,4 @@
-import type { NodeSchema, Prop } from '../document'
+import type { Node, NodeSchema, Prop } from '../document'
 import { isObject } from '../document'
 
 export interface ComponentMetadata {
@@ -21,7 +21,7 @@ export interface ComponentMetadata {
   /**
    * component configure, for right panel to use setter to config component
    */
-  configure?: FieldConfig[] | Configure
+  configure?: Configure
 
   /**
    * available snippets, one snippet is a schema(a component)
@@ -219,9 +219,8 @@ export interface Callbacks {
   onMouseDownHook?: (e: MouseEvent, currentNode: Node | null) => any
   onDblClickHook?: (e: MouseEvent, currentNode: Node | null) => any
   onClickHook?: (e: MouseEvent, currentNode: Node | null) => any
-  // onLocateHook?: (e: any, currentNode: any) => any;
-  // onAcceptHook?: (currentNode: any, locationData: any) => any;
   onMoveHook?: (currentNode: Node) => boolean
+
   // thinkof 限制性拖拽
   onHoverHook?: (currentNode: Node) => boolean
 
