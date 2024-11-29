@@ -4,7 +4,7 @@ import { type Node, type PropsSchema, insertChildren, isNodeSchema } from '../do
 import type { Editor } from '../editor'
 import type { ComponentMetaManager } from '../meta'
 import type { TRANSFORM_STAGE } from '../types'
-import { createEventBus, createLogger } from '../utils'
+import { createEventBus, logger } from '../utils'
 import { Detecting } from './detecting'
 import { type DragObject, Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
 import type { LocateEvent, LocationData } from './location'
@@ -55,10 +55,11 @@ export enum DESIGNER_EVENT {
   NODE_CHILDREN_CHANGE = 'designer:node.children.change',
   NODE_PROPS_CHANGE = 'designer:node.props.change',
   NODE_REMOVE = 'designer:node.remove',
+
+  SIMULATOR_SELECT = 'designer:simulator.select',
 }
 
 export class Designer {
-  private logger = createLogger('Designer')
   private emitter = createEventBus('Designer')
 
   readonly editor: Editor
@@ -122,7 +123,7 @@ export class Designer {
     // insert node
     this.dragon.onDragend(e => {
       const { dragObject, copy } = e
-      this.logger.log('onDragend: dragObject ', dragObject, ' copy ', copy)
+      logger.log('onDragend: dragObject ', dragObject, ' copy ', copy)
       const loc = this._dropLocation
       if (loc) {
         this.postEvent(DESIGNER_EVENT.INSERT_NODE_BEFORE, loc)
@@ -250,7 +251,7 @@ export class Designer {
       try {
         return reducer(transformedProps, node, { stage }) as PropsSchema
       } catch (e) {
-        this.logger.error('Error transforming props:', e)
+        logger.error('Error transforming props:', e)
         return transformedProps
       }
     }, props)
@@ -258,7 +259,7 @@ export class Designer {
 
   addPropsReducer(reducer: PropsTransducer, stage: TRANSFORM_STAGE) {
     if (!reducer) {
-      this.logger.error('reducer is not available')
+      logger.error('reducer is not available')
       return
     }
     const reducers = this.propsReducers.get(stage)

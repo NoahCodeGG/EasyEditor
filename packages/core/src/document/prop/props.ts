@@ -3,7 +3,7 @@ import type { CompositeObject, PropKey, PropValue } from './prop'
 
 import { action, computed, observable } from 'mobx'
 import { TRANSFORM_STAGE } from '../../types'
-import { createLogger, uniqueId } from '../../utils'
+import { uniqueId } from '../../utils'
 import { Prop, UNSET, splitPath } from './prop'
 
 export type PropsSchema = PropsMap | PropsList
@@ -43,8 +43,6 @@ export const isExtraKey = (key: string): boolean => {
 }
 
 export class Props {
-  private logger = createLogger('Props')
-
   readonly id = uniqueId('props')
 
   readonly path = []

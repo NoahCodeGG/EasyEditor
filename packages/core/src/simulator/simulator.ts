@@ -6,7 +6,15 @@ import type { Project } from '../project'
 import type { SimulatorRenderer } from './simulator-render'
 
 import { action, autorun, computed, observable, reaction } from 'mobx'
-import { DragObjectType, LocationDetailType, clipboard, isDragAnyObject, isLocationData, isShaken } from '../designer'
+import {
+  DESIGNER_EVENT,
+  DragObjectType,
+  LocationDetailType,
+  clipboard,
+  isDragAnyObject,
+  isLocationData,
+  isShaken,
+} from '../designer'
 import { getClosestClickableNode, getClosestNode } from '../document'
 import { createEventBus } from '../utils'
 import Viewport from './viewport'
@@ -217,7 +225,7 @@ export class Simulator {
         }
         // stop response document focus event
         // TODO: ?? 阻止了 linkSnippet 事件 - mousedown 事件
-        downEvent.stopPropagation()
+        // downEvent.stopPropagation()
         // TODO: ?? 阻止了 linkSnippet 事件 - dragstart 事件
         // downEvent.preventDefault()
         const isLeftButton = downEvent.which === 1 || downEvent.button === 0
@@ -234,9 +242,8 @@ export class Simulator {
               }
 
               // dirty code should refector
-              const editor = this.designer?.editor
               const selected = node?.componentMeta?.componentName || ''
-              editor?.eventBus.emit('designer.builtinSimulator.select', {
+              this.designer.postEvent(DESIGNER_EVENT.SIMULATOR_SELECT, {
                 selected,
               })
             }
