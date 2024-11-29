@@ -30,6 +30,8 @@ export enum DOCUMENT_EVENT {
 }
 
 export class Document {
+  readonly isDocument = true
+
   private emitter = createEventBus('Document')
 
   id: string
@@ -400,5 +402,5 @@ export class Document {
 }
 
 export function isDocument(obj: any): obj is Document {
-  return obj && obj.rootNode
+  return obj && obj.isDocument
 }

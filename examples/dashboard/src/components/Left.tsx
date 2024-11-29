@@ -7,7 +7,7 @@ const Snippet = ({ snippet }: { snippet: ISnippet }) => {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const unlink = simulator.linkSnippet(ref.current!, snippet.schema)
+    const unlink = simulator.linkSnippet(ref.current!, snippet)
     return () => {
       unlink()
     }

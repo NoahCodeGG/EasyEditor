@@ -119,21 +119,21 @@ export class Project {
     }
     this._config = schema?.config ?? this.config
 
-    if (schema?.documents) {
-      for (const document of schema.documents) {
-        this.createDocument(document)
-      }
-    }
+    // perf: 在 open 的时候才创建 document
+    // if (schema?.documents) {
+    //   for (const document of schema.documents) {
+    //     this.createDocument(document)
+    //   }
+    // }
 
     if (autoOpen) {
-      if (this.documents.length < 1) {
-        return logger.warn('no document found, skip auto open')
-      }
-
-      if (typeof autoOpen === 'string') {
+      if (autoOpen === true) {
+        // auto open first document or open a blank page
+        const documentInstances = this.data.documents.map(data => this.createDocument(data))
+        documentInstances[0].open()
+      } else {
+        // auto open should be string of fileName
         this.open(autoOpen)
-      } else if (typeof autoOpen === 'boolean') {
-        this.open(this.documents[0].id)
       }
     }
   }
@@ -190,13 +190,25 @@ export class Project {
    */
   open(idOrDoc?: string | Document | DocumentSchema) {
     if (!idOrDoc) {
-      logger.warn('no doc param found, will create a new document')
+      const got = this.documents.find(item => item.isBlank())
+      if (got) {
+        return got.open()
+      }
       return this.createDocument().open()
     }
 
     if (typeof idOrDoc === 'string') {
       const got = this.documents.find(doc => doc.id === idOrDoc)
-      return got?.open()
+      if (got) {
+        return got.open()
+      }
+
+      const data = this.data.documents.find(data => data.fileName === idOrDoc)
+      if (data) {
+        return this.createDocument(data).open()
+      }
+
+      return null
     }
     if (isDocument(idOrDoc)) {
       return idOrDoc.open()

@@ -25,7 +25,7 @@ export interface PluginMeta {
   eventPrefix?: string
 }
 
-export type PluginCreator<O = any> = (ctx: PluginContext, options: O) => Plugin
+export type PluginCreator<O = any> = (options?: O) => Plugin
 
 export interface PluginRegisterOptions {
   /**
