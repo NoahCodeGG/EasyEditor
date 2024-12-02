@@ -7,7 +7,7 @@ import {
   type PluginCreator,
   getConvertedExtraKey,
 } from '@easy-editor/core'
-import GroupComponentMeta from './materials/group/meta'
+import { GroupComponent, GroupComponentMeta } from './materials/group'
 
 export * from './type'
 
@@ -31,6 +31,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
       // add componentMeta
       componentMetaManager.createComponentMeta(GroupComponentMeta)
+      simulator.addComponent('Group', GroupComponent)
 
       const startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
       const startOffsetNodeData = { x: 0, y: 0 }
@@ -147,6 +148,8 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         },
       })
 
+      const originalInitProps = Node.prototype.initBuiltinProps
+
       Object.defineProperties(Node.prototype, {
         isGroup: {
           get(this: Node) {
@@ -191,7 +194,6 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
           value(this: Node) {
             // 实现类似 super.initBuiltinProps 的效果
             // 调用父类的 initBuiltinProps 方法
-            const originalInitProps = Node.prototype.initBuiltinProps
             originalInitProps.call(this)
 
             this.props.has(getConvertedExtraKey('isGroup')) || this.props.add(getConvertedExtraKey('isGroup'), false)

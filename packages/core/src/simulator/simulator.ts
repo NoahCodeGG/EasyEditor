@@ -320,6 +320,15 @@ export class Simulator {
   }
 
   @action
+  addComponent(name: string, component: Component, override = false) {
+    if (this._components[name] && !override) {
+      return
+    }
+
+    this._components[name] = component
+  }
+
+  @action
   setInstance(docId: string, id: string, instance: ComponentInstance | null) {
     if (!Object.prototype.hasOwnProperty.call(this.instancesMap, docId)) {
       this.instancesMap[docId] = new Map()

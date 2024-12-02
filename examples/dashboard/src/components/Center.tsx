@@ -14,9 +14,6 @@ const Center = observer(() => {
 
       simulator.mountViewport(viewportRef.current)
       simulator.setupEvents()
-
-      project.customExtend('test')
-      project.customExtend2('test2')
     }
   }, [])
 
