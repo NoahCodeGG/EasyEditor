@@ -1,7 +1,7 @@
 {
-  "extends": "./tsconfig.build.json",
-  "include": ["./src", "./test"],
+  "extends": "../../tsconfig.json",
+  "include": ["./src"],
   "compilerOptions": {
-    "jsx": "preserve",
+    "outDir": "./types"
   }
 }

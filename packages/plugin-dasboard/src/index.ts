@@ -11,7 +11,18 @@ import GroupComponentMeta from './materials/group/meta'
 
 export * from './type'
 
-const DashboardPlugin: PluginCreator = () => {
+interface DashboardPluginOptions {
+  // TODO: 配置分组内容(schema、meta)
+  xxx?: string
+}
+
+const groupSchema = {
+  componentName: 'Group',
+  title: '分组',
+  isGroup: true,
+}
+
+const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
   return {
     name: 'DashboardPlugin',
     deps: [],
@@ -94,11 +105,7 @@ const DashboardPlugin: PluginCreator = () => {
               nodeList = (nodeIdList as string[]).map(id => this.getNode(id)!)
             }
 
-            const groupNode = this.createNode({
-              componentName: 'Group',
-              title: '分组',
-              isGroup: true,
-            })
+            const groupNode = this.createNode(groupSchema)
 
             // 计算所有节点的 index，确定分组的插入位置
             let maxZIndex = Number.POSITIVE_INFINITY
