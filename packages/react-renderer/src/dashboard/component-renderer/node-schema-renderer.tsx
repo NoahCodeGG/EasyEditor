@@ -59,16 +59,16 @@ interface NodeMaskProps {
 
 const NodeMask = observer((props: NodeMaskProps) => {
   const { schema } = props
-  const dashboardInfo = schema.$.dashboard
   const { designMode, editor } = useRendererContext()
   const designer = editor?.get<Designer>('designer')
 
+  const rect = computeRect(schema)
   let isHover = false
   let isSelected = false
 
   if (designMode === 'design') {
     isHover = designer?.detecting.current?.id === schema.id
-    isSelected = designer?.selection.has(schema.id) ?? false
+    isSelected = designer?.selection.has(schema.id!) ?? false
   }
 
   return (
@@ -76,11 +76,54 @@ const NodeMask = observer((props: NodeMaskProps) => {
       id={`${schema.id}-mask`}
       style={{
         position: 'absolute',
-        transform: `translate(${dashboardInfo.position.x}px, ${dashboardInfo.position.y}px)`,
+        transform: `translate(${rect.x}px, ${rect.y}px)`,
         border: isSelected ? '2px solid red' : isHover ? '1px solid blue' : 'none',
+        width: rect?.width ?? '100%',
+        height: rect?.height ?? '100%',
       }}
     >
       {props.children}
     </div>
   )
 })
+
+/**
+ * 计算节点在 dashboard 中的位置信息
+ */
+const computeRect = (node: NodeSchema) => {
+  if (!node.isGroup || !node.children || node.children.length === 0) {
+    return node.$dashboard.rect
+  }
+
+  let [minX, minY, maxX, maxY] = [
+    Number.POSITIVE_INFINITY,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  ]
+
+  for (const child of node.children) {
+    let childRect: any
+    if (child.isGroup) {
+      childRect = computeRect(child)
+    } else {
+      childRect = child.$dashboard.rect
+    }
+    const x = childRect.x
+    const y = childRect.y
+    const width = childRect.width || 0
+    const height = childRect.height || 0
+
+    minX = Math.min(minX, x)
+    minY = Math.min(minY, y)
+    maxX = Math.max(maxX, x + width)
+    maxY = Math.max(maxY, y + height)
+  }
+
+  return {
+    x: node.$dashboard.rect.x,
+    y: node.$dashboard.rect.y,
+    width: maxX - minX,
+    height: maxY - minY,
+  }
+}

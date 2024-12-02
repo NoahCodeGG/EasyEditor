@@ -7,7 +7,7 @@ interface ButtonProps {
 
 const Button = (props: ButtonProps, ref: Ref<HTMLButtonElement>) => {
   return (
-    <button ref={ref} type='button'>
+    <button ref={ref} type='button' className='w-full h-full'>
       {props?.text}
     </button>
   )

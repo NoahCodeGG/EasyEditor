@@ -5,12 +5,10 @@ export const defaultDocumentSchema = {
     props: {
       backgroundColor: '#ffffff',
     },
-    $: {
-      dashboard: {
-        position: {
-          x: 0,
-          y: 0,
-        },
+    $dashboard: {
+      rect: {
+        x: 0,
+        y: 0,
       },
     },
     children: [
@@ -20,17 +18,18 @@ export const defaultDocumentSchema = {
           type: 'primary',
           text: '按钮',
         },
-        $: {
-          dashboard: {
-            position: {
-              x: 100,
-              y: 100,
-            },
+        $dashboard: {
+          rect: {
+            x: 100,
+            y: 100,
+            width: 50,
+            height: 30,
           },
         },
       },
       {
         componentName: 'Group',
+        isGroup: true,
         children: [
           {
             componentName: 'Button',
@@ -38,12 +37,12 @@ export const defaultDocumentSchema = {
               type: 'primary',
               text: '按钮 in Group',
             },
-            $: {
-              dashboard: {
-                position: {
-                  x: 0,
-                  y: 0,
-                },
+            $dashboard: {
+              rect: {
+                x: 0,
+                y: 0,
+                width: 70,
+                height: 70,
               },
             },
           },
@@ -53,22 +52,20 @@ export const defaultDocumentSchema = {
               type: 'primary',
               text: '按钮222 in Group',
             },
-            $: {
-              dashboard: {
-                position: {
-                  x: 100,
-                  y: 50,
-                },
+            $dashboard: {
+              rect: {
+                x: 100,
+                y: 50,
+                width: 60,
+                height: 50,
               },
             },
           },
         ],
-        $: {
-          dashboard: {
-            position: {
-              x: 200,
-              y: 200,
-            },
+        $dashboard: {
+          rect: {
+            x: 200,
+            y: 200,
           },
         },
       },

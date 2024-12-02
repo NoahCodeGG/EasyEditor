@@ -62,7 +62,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             if (!node) continue
             const { x = 0, y = 0 } = startOffsetNodes[node.id]
             // TODO: 想一下名字，对应插件的可以放在特地的位置
-            node?.setExtraProp('$.dashboard.position', { x: e.canvasX - x, y: e.canvasY - y })
+            node?.setExtraProp('$dashboard.position', { x: e.canvasX - x, y: e.canvasY - y })
           }
         }
       })

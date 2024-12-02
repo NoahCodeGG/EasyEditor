@@ -36,4 +36,26 @@ declare module '@easy-editor/core' {
      */
     getAllNodesInGroup(): Node[]
   }
+
+  interface NodeSchema {
+    /**
+     * 是否是分组
+     */
+    isGroup: boolean
+
+    /**
+     * dashboard 额外信息
+     */
+    $dashboard: {
+      /**
+       * 位置信息
+       */
+      rect: {
+        x: number
+        y: number
+        width?: number
+        height?: number
+      }
+    }
+  }
 }
