@@ -252,6 +252,18 @@ export class Document {
     this._nodesMap.delete(node.id)
   }
 
+  migrateNode(node: Node, newParent: Node) {
+    if (node.parent === newParent) {
+      return
+    }
+
+    if (node.parent) {
+      node.parent?.children?.internalUnlinkChild(node)
+      node.internalUnlinkParent()
+    }
+    newParent.insertAfter(node)
+  }
+
   batchRemoveNode(idOrNodeList: (string | Node)[]) {
     for (const item of idOrNodeList) {
       this.removeNode(item)

@@ -208,7 +208,7 @@ export class Node {
     runInAction(() => this.import(data))
   }
 
-  private initBuiltinProps() {
+  initBuiltinProps() {
     this.props.has(getConvertedExtraKey('isHidden')) || this.props.add(getConvertedExtraKey('isHidden'), false)
     this.props.has(getConvertedExtraKey('isLocked')) || this.props.add(getConvertedExtraKey('isLocked'), false)
     this.props.has(getConvertedExtraKey('title')) || this.props.add(getConvertedExtraKey('title'), '')
@@ -485,6 +485,13 @@ export class Node {
   }
 
   /**
+   * migrate this node to a new parent
+   */
+  migrate(newParent: Node) {
+    this.document.migrateNode(this, newParent)
+  }
+
+  /**
    * if the node is linked in the document tree
    */
   @computed
@@ -502,10 +509,15 @@ export class Node {
   }
 
   /**
-   * insert a node at a specific position
+   * insert a node at a specific position or a reference node
    */
-  insert(node: Node, ref?: Node, useMutator = true) {
-    this.insertAfter(node, ref, useMutator)
+  insert(node: Node, ref?: Node | number, useMutator = true) {
+    if (ref && typeof ref === 'number') {
+      const nodeInstance = ensureNode(node, this.document)
+      this.children?.internalInsert(nodeInstance, ref, useMutator)
+    } else {
+      this.insertAfter(node, ref as Node, useMutator)
+    }
   }
 
   /**
