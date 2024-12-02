@@ -1,4 +1,3 @@
-import './App.css'
 import Center from './components/Center'
 import Header from './components/Header'
 import Left from './components/Left'
