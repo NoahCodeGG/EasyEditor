@@ -1,13 +1,16 @@
-import { Project, type ProjectSchema } from '../project'
-
-import { type Node, type PropsSchema, insertChildren, isNodeSchema } from '../document'
+import type { Node, PropsSchema } from '../document'
 import type { Editor } from '../editor'
 import type { ComponentMetaManager } from '../meta'
+import type { ProjectSchema } from '../project'
 import type { TRANSFORM_STAGE } from '../types'
+import type { DragObject } from './dragon'
+import type { LocateEvent, LocationData } from './location'
+
+import { insertChildren, isNodeSchema } from '../document'
+import { Project } from '../project'
 import { createEventBus, logger } from '../utils'
 import { Detecting } from './detecting'
-import { type DragObject, Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
-import type { LocateEvent, LocationData } from './location'
+import { Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
 import { DropLocation, isLocationChildrenDetail } from './location'
 import { Selection } from './selection'
 
