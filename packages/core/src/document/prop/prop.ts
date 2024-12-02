@@ -342,7 +342,7 @@ export class Prop {
 
   get(path: string, createIfNone = true): Prop | null {
     const type = this._type
-    if (type !== 'list' && type !== 'unset' && !createIfNone) {
+    if (type !== 'map' && type !== 'list' && type !== 'unset' && !createIfNone) {
       return null
     }
 

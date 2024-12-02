@@ -121,7 +121,7 @@ export class Designer {
 
     // insert node
     this.dragon.onDragend(e => {
-      const { dragObject, copy } = e
+      const { dragObject, copy = false } = e
       logger.log('onDragend: dragObject ', dragObject, ' copy ', copy)
       const loc = this._dropLocation
       if (loc) {
@@ -129,7 +129,8 @@ export class Designer {
         if (isLocationChildrenDetail(loc.detail) && loc.detail.valid !== false) {
           let nodes: Node[] | undefined
           if (isDragNodeObject(dragObject)) {
-            nodes = insertChildren(loc.target, [...dragObject.nodes], loc.detail.index, copy)
+            // TODO: 插入逻辑在 dashboard 不需要
+            // nodes = insertChildren(loc.target, [...dragObject.nodes], loc.detail.index, copy)
           } else if (isDragNodeDataObject(dragObject)) {
             // process nodeData
             const nodeData = Array.isArray(dragObject.data) ? dragObject.data : [dragObject.data]

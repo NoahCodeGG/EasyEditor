@@ -32,6 +32,11 @@ declare module '@easy-editor/core' {
     getTopGroup(): Node | null
 
     /**
+     * 获取当前 Node 的所有 Group
+     */
+    getAllGroups(): Node[]
+
+    /**
      * 获取当前 Group 下的所有 Node
      */
     getAllNodesInGroup(): Node[]
@@ -46,11 +51,11 @@ declare module '@easy-editor/core' {
     /**
      * dashboard 额外信息
      */
-    $dashboard: {
+    $dashboard?: {
       /**
        * 位置信息
        */
-      rect: {
+      rect?: {
         x: number
         y: number
         width?: number

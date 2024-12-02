@@ -33,8 +33,46 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       componentMetaManager.createComponentMeta(GroupComponentMeta)
       simulator.addComponent('Group', GroupComponent)
 
-      const startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
+      /* ---------------------------- NodeData to Node ---------------------------- */
       const startOffsetNodeData = { x: 0, y: 0 }
+
+      designer.dragon.onDragstart(e => {
+        const { dragObject } = e
+
+        if (dragObject && dragObject.type === DragObjectType.NodeData) {
+          startOffsetNodeData.x = e.globalX - e.target.offsetLeft
+          startOffsetNodeData.y = e.globalY - e.target.offsetTop
+        }
+      })
+
+      designer.onEvent(DESIGNER_EVENT.INSERT_NODE_BEFORE, (e: DropLocation) => {
+        const { event } = e
+        const { dragObject } = event
+
+        // add dashboard rect
+        if (dragObject && dragObject.type === DragObjectType.NodeData) {
+          const nodeData = Array.isArray(dragObject.data) ? dragObject.data : [dragObject.data]
+          for (const schema of nodeData) {
+            if (!schema) continue
+            if (!schema.$) {
+              schema.$ = {}
+            }
+            if (!schema.$dashboard) {
+              schema.$dashboard = {}
+            }
+            if (!schema.$dashboard.rect) {
+              schema.$dashboard.rect = {}
+            }
+            schema.$dashboard.rect = {
+              x: event.canvasX - startOffsetNodeData.x,
+              y: event.canvasY - startOffsetNodeData.y,
+            }
+          }
+        }
+      })
+
+      /* ----------------------------------- DND ---------------------------------- */
+      const startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
 
       designer.dragon.onDragstart(e => {
         const { dragObject } = e
@@ -47,51 +85,48 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               startOffsetNodes[node.id] = { x: e.globalX - rect.x, y: e.globalY - rect.y }
             }
           }
-        } else if (dragObject && dragObject.type === DragObjectType.NodeData) {
-          startOffsetNodeData.x = e.globalX - e.target.offsetLeft
-          startOffsetNodeData.y = e.globalY - e.target.offsetTop
         }
       })
+
+      const getNodeOffset = (node: Node) => {
+        const groupNodes = node.getAllGroups()
+        if (groupNodes.length === 0) return { x: 0, y: 0 }
+
+        let x = 0
+        let y = 0
+        for (const groupNode of groupNodes) {
+          x += groupNode.getExtraPropValue('$dashboard.rect.x') as number
+          y += groupNode.getExtraPropValue('$dashboard.rect.y') as number
+        }
+        return { x, y }
+      }
 
       designer.dragon.onDrag(e => {
-        if (e.dragObject && e.dragObject.type === DragObjectType.Node) {
-          logger.log('drag', e)
-
-          const nodes = e.dragObject.nodes!
-          for (const node of nodes) {
+        const { dragObject } = e
+        if (dragObject && dragObject.type === DragObjectType.Node) {
+          for (const node of dragObject.nodes!) {
             if (!node) continue
             const { x = 0, y = 0 } = startOffsetNodes[node.id]
+            const offset = getNodeOffset(node)
             // TODO: 想一下名字，对应插件的可以放在特地的位置
-            node?.setExtraProp('$dashboard.position', { x: e.canvasX - x, y: e.canvasY - y })
+            node?.setExtraPropValue('$dashboard.rect.x', e.canvasX - x - offset.x)
+            node?.setExtraPropValue('$dashboard.rect.y', e.canvasY - y - offset.y)
           }
         }
       })
 
-      designer.onEvent(DESIGNER_EVENT.INSERT_NODE_BEFORE, (e: DropLocation) => {
-        const { event } = e
-        const { dragObject } = event
+      // designer.dragon.onDragend(e => {
+      //   const { dragObject } = e
 
-        // add dashboard position
-        if (dragObject && dragObject.type === DragObjectType.NodeData) {
-          const nodeData = Array.isArray(dragObject.data) ? dragObject.data : [dragObject.data]
-          for (const schema of nodeData) {
-            if (!schema) continue
-            if (!schema.$) {
-              schema.$ = {}
-            }
-            if (!schema.$.dashboard) {
-              schema.$.dashboard = {}
-            }
-            if (!schema.$.dashboard.position) {
-              schema.$.dashboard.position = {}
-            }
-            schema.$.dashboard.position = {
-              x: event.canvasX - startOffsetNodeData.x,
-              y: event.canvasY - startOffsetNodeData.y,
-            }
-          }
-        }
-      })
+      //   if (dragObject && dragObject.type === DragObjectType.Node) {
+      //     for (const node of dragObject.nodes!) {
+      //       if (!node) continue
+      //       const { x = 0, y = 0 } = startOffsetNodes[node.id]
+      //       node?.setExtraPropValue('$dashboard.rect.x', e.canvasX - x)
+      //       node?.setExtraPropValue('$dashboard.rect.y', e.canvasY - y)
+      //     }
+      //   }
+      // })
     },
     extend(ctx) {
       const { Document, Node } = ctx
@@ -149,7 +184,6 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
 
       const originalInitProps = Node.prototype.initBuiltinProps
-
       Object.defineProperties(Node.prototype, {
         isGroup: {
           get(this: Node) {
@@ -176,6 +210,19 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               parent = parent.parent
             }
             return topGroup
+          },
+        },
+        getAllGroups: {
+          value(this: Node) {
+            const groups: Node[] = []
+            let parent = this.parent
+            while (parent) {
+              if (parent.isGroup) {
+                groups.push(parent)
+              }
+              parent = parent.parent
+            }
+            return groups
           },
         },
         getAllNodesInGroup: {
