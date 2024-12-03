@@ -60,7 +60,14 @@ declare module '@easy-editor/core' {
       /**
        * 位置信息
        */
-      rect?: Rect
+      rect?: DashboardRect
     }
   }
+}
+
+export interface DashboardRect {
+  x?: number
+  y?: number
+  width?: number
+  height?: number
 }

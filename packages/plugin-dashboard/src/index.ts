@@ -5,10 +5,10 @@ import {
   type DropLocation,
   type Node,
   type PluginCreator,
-  type Rect,
   getConvertedExtraKey,
 } from '@easy-editor/core'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
+import { updateNodeRect } from './utils'
 
 interface DashboardPluginOptions {
   // TODO: 配置分组内容(schema、meta)
@@ -39,8 +39,8 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         const { dragObject } = e
 
         if (dragObject && dragObject.type === DragObjectType.NodeData) {
-          startOffsetNodeData.x = e.globalX - e.target.offsetLeft
-          startOffsetNodeData.y = e.globalY - e.target.offsetTop
+          startOffsetNodeData.x = e.globalX! - e.target!.offsetLeft
+          startOffsetNodeData.y = e.globalY! - e.target!.offsetTop
         }
       })
 
@@ -63,8 +63,8 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               schema.$dashboard.rect = {}
             }
             schema.$dashboard.rect = {
-              x: event.canvasX - startOffsetNodeData.x,
-              y: event.canvasY - startOffsetNodeData.y,
+              x: event.canvasX! - startOffsetNodeData.x,
+              y: event.canvasY! - startOffsetNodeData.y,
             }
           }
         }
@@ -94,23 +94,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             if (!node) continue
 
             const { x = 0, y = 0 } = startOffsetNodes[node.id]
-            if (node.isGroup) {
-              const groupRect = node.getDashboardRect()
-              const childNodes = node.getAllNodesInGroup()
-              for (const childNode of childNodes) {
-                const childRect = childNode.getExtraPropValue('$dashboard.rect') as Rect
-                // 计算 node to group 直接的偏移量
-                const offset = {
-                  x: childRect.x - groupRect.x,
-                  y: childRect.y - groupRect.y,
-                }
-                childNode.setExtraPropValue('$dashboard.rect.x', e.canvasX! - x + offset.x)
-                childNode.setExtraPropValue('$dashboard.rect.y', e.canvasY! - y + offset.y)
-              }
-            } else {
-              node?.setExtraPropValue('$dashboard.rect.x', e.canvasX! - x)
-              node?.setExtraPropValue('$dashboard.rect.y', e.canvasY! - y)
-            }
+            updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
           }
         }
       })
