@@ -576,6 +576,10 @@ export class Node {
     return this.document.simulator?.computeRect(this) || null
   }
 
+  getDOMNode() {
+    return this.document.simulator?.getComponentInstances(this)
+  }
+
   /**
    * use schema to update this node
    */

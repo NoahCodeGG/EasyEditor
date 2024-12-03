@@ -8,7 +8,7 @@ import {
   getConvertedExtraKey,
 } from '@easy-editor/core'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
-import { updateNodeRect } from './utils'
+import { updateNodeRect, updateNodeRectByDOM } from './utils'
 
 interface DashboardPluginOptions {
   // TODO: 配置分组内容(schema、meta)
@@ -88,6 +88,18 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
 
       designer.dragon.onDrag(e => {
+        const { dragObject } = e
+        if (dragObject && dragObject.type === DragObjectType.Node) {
+          for (const node of dragObject.nodes!) {
+            if (!node) continue
+
+            const { x = 0, y = 0 } = startOffsetNodes[node.id]
+            updateNodeRectByDOM(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+          }
+        }
+      })
+
+      designer.dragon.onDragend(e => {
         const { dragObject } = e
         if (dragObject && dragObject.type === DragObjectType.Node) {
           for (const node of dragObject.nodes!) {
