@@ -51,13 +51,13 @@ declare module '@easy-editor/core' {
     /**
      * dashboard 额外信息
      */
-    $dashboard?: {
+    $dashboard: {
       /**
        * 位置信息
        */
-      rect?: {
-        x: number
-        y: number
+      rect: {
+        x?: number
+        y?: number
         width?: number
         height?: number
       }

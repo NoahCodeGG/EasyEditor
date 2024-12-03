@@ -9,8 +9,6 @@ import {
 } from '@easy-editor/core'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
 
-export * from './type'
-
 interface DashboardPluginOptions {
   // TODO: 配置分组内容(schema、meta)
   xxx?: string

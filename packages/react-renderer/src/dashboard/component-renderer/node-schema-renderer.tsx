@@ -1,6 +1,5 @@
 import type { Designer, NodeSchema, Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react-lite'
-import { memo } from 'react'
 import { useRendererContext } from './context'
 
 export interface NodeSchemaRendererProps {
@@ -8,49 +7,45 @@ export interface NodeSchemaRendererProps {
   isRootNode?: boolean
 }
 
-export const NodeSchemaRenderer = memo(
-  (props: NodeSchemaRendererProps) => {
-    const { schema, isRootNode = false } = props
-    const { components, designMode, editor, docId } = useRendererContext()
-    const simulator = editor?.get<Simulator>('simulator')
+// TODO: 无法使用 memo 优化，因为需要根据位置信息来计算样式，group 组件需要子组件的样式信息
+export const NodeSchemaRenderer = (props: NodeSchemaRendererProps) => {
+  const { schema, isRootNode = false } = props
+  const { components, designMode, editor, docId } = useRendererContext()
+  const simulator = editor?.get<Simulator>('simulator')
 
-    if (!components[schema.componentName]) {
-      throw new Error(`component ${schema.componentName} not found`)
-    }
-    const Comp = components[schema.componentName]
+  if (!components[schema.componentName]) {
+    throw new Error(`component ${schema.componentName} not found`)
+  }
+  const Comp = components[schema.componentName]
 
-    const defaultProps = {
-      __id: schema.id,
-      __designMode: designMode,
-      __componentName: schema.componentName,
-      __schema: schema,
-      ref: (ref: HTMLElement) => {
-        if (ref) {
-          ref.id = schema.id
-        }
-        simulator?.setInstance(docId, schema.id, ref)
-      },
-    }
-    const compProps = {}
-    Object.assign(compProps, defaultProps)
-    Object.assign(compProps, schema?.props ?? {})
+  const defaultProps = {
+    __id: schema.id,
+    __designMode: designMode,
+    __componentName: schema.componentName,
+    __schema: schema,
+    ref: (ref: HTMLElement) => {
+      if (ref) {
+        ref.id = schema.id
+      }
+      simulator?.setInstance(docId, schema.id, ref)
+    },
+  }
+  const compProps = {}
+  Object.assign(compProps, defaultProps)
+  Object.assign(compProps, schema?.props ?? {})
 
-    return isRootNode ? (
+  return isRootNode ? (
+    <Comp {...compProps}>
+      {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
+    </Comp>
+  ) : (
+    <NodeMask schema={schema}>
       <Comp {...compProps}>
         {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
       </Comp>
-    ) : (
-      <NodeMask schema={schema}>
-        <Comp {...compProps}>
-          {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
-        </Comp>
-      </NodeMask>
-    )
-  },
-  (prev, next) => {
-    return JSON.stringify(prev.schema) === JSON.stringify(next.schema)
-  },
-)
+    </NodeMask>
+  )
+}
 
 interface NodeMaskProps {
   schema: NodeSchema
@@ -121,8 +116,8 @@ const computeRect = (node: NodeSchema) => {
   }
 
   return {
-    x: node.$dashboard.rect.x,
-    y: node.$dashboard.rect.y,
+    x: minX,
+    y: minY,
     width: maxX - minX,
     height: maxY - minY,
   }

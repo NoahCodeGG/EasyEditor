@@ -62,12 +62,6 @@ export const defaultDocumentSchema = {
             },
           },
         ],
-        $dashboard: {
-          rect: {
-            x: 200,
-            y: 200,
-          },
-        },
       },
     ],
   },
