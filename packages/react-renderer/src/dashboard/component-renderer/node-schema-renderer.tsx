@@ -72,6 +72,7 @@ const NodeMask = observer((props: NodeMaskProps) => {
 
   // TODO: 是否需要使用 transform 来移动，而不是使用绝对定位
   return (
+    // mask 层
     <div
       id={`${schema.id}-mask`}
       style={{
@@ -87,6 +88,7 @@ const NodeMask = observer((props: NodeMaskProps) => {
         // boxSizing: 'border-box',
       }}
     >
+      {/* 重置坐标系 */}
       <div
         style={{
           position: 'absolute',
@@ -94,6 +96,7 @@ const NodeMask = observer((props: NodeMaskProps) => {
           top: -rect.y!,
         }}
       >
+        {/* 组件坐标定位 */}
         <div
           id={schema.id}
           style={{
@@ -104,8 +107,10 @@ const NodeMask = observer((props: NodeMaskProps) => {
             height: rect.height,
           }}
         >
+          {/* 组件渲染 */}
           <Comp {...compProps}>
             {children && (
+              // 再次重置坐标系，用于内部组件定位
               <div
                 style={{
                   position: 'absolute',

@@ -5,6 +5,7 @@ import {
   type DropLocation,
   type Node,
   type PluginCreator,
+  type Rect,
   getConvertedExtraKey,
 } from '@easy-editor/core'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
@@ -25,7 +26,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
     name: 'DashboardPlugin',
     deps: [],
     init(ctx) {
-      const { designer, logger, simulator, componentMetaManager } = ctx
+      const { designer, simulator, componentMetaManager } = ctx
 
       // add componentMeta
       componentMetaManager.createComponentMeta(GroupComponentMeta)
@@ -86,43 +87,33 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         }
       })
 
-      const getNodeOffset = (node: Node) => {
-        const groupNodes = node.getAllGroups()
-        if (groupNodes.length === 0) return { x: 0, y: 0 }
-
-        let x = 0
-        let y = 0
-        for (const groupNode of groupNodes) {
-          x += groupNode.getExtraPropValue('$dashboard.rect.x') as number
-          y += groupNode.getExtraPropValue('$dashboard.rect.y') as number
-        }
-        return { x, y }
-      }
-
       designer.dragon.onDrag(e => {
         const { dragObject } = e
         if (dragObject && dragObject.type === DragObjectType.Node) {
           for (const node of dragObject.nodes!) {
             if (!node) continue
+
             const { x = 0, y = 0 } = startOffsetNodes[node.id]
-            node?.setExtraPropValue('$dashboard.rect.x', e.canvasX - x)
-            node?.setExtraPropValue('$dashboard.rect.y', e.canvasY - y)
+            if (node.isGroup) {
+              const groupRect = node.getDashboardRect()
+              const childNodes = node.getAllNodesInGroup()
+              for (const childNode of childNodes) {
+                const childRect = childNode.getExtraPropValue('$dashboard.rect') as Rect
+                // 计算 node to group 直接的偏移量
+                const offset = {
+                  x: childRect.x - groupRect.x,
+                  y: childRect.y - groupRect.y,
+                }
+                childNode.setExtraPropValue('$dashboard.rect.x', e.canvasX! - x + offset.x)
+                childNode.setExtraPropValue('$dashboard.rect.y', e.canvasY! - y + offset.y)
+              }
+            } else {
+              node?.setExtraPropValue('$dashboard.rect.x', e.canvasX! - x)
+              node?.setExtraPropValue('$dashboard.rect.y', e.canvasY! - y)
+            }
           }
         }
       })
-
-      // designer.dragon.onDragend(e => {
-      //   const { dragObject } = e
-
-      //   if (dragObject && dragObject.type === DragObjectType.Node) {
-      //     for (const node of dragObject.nodes!) {
-      //       if (!node) continue
-      //       const { x = 0, y = 0 } = startOffsetNodes[node.id]
-      //       node?.setExtraPropValue('$dashboard.rect.x', e.canvasX - x)
-      //       node?.setExtraPropValue('$dashboard.rect.y', e.canvasY - y)
-      //     }
-      //   }
-      // })
     },
     extend(ctx) {
       const { Document, Node } = ctx
@@ -181,9 +172,44 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
       const originalInitProps = Node.prototype.initBuiltinProps
       Object.defineProperties(Node.prototype, {
+        getDashboardRect: {
+          value(this: Node) {
+            if (!this.isGroup) return this.getExtraPropValue('$dashboard.rect')
+
+            const childNodes = this.getAllNodesInGroup()
+
+            let [minX, minY, maxX, maxY] = [
+              Number.POSITIVE_INFINITY,
+              Number.POSITIVE_INFINITY,
+              Number.NEGATIVE_INFINITY,
+              Number.NEGATIVE_INFINITY,
+            ]
+
+            for (const child of childNodes) {
+              let childRect: any
+              if (child.isGroup) {
+                childRect = child.getRect()
+              } else {
+                childRect = child.getExtraPropValue('$dashboard.rect')
+              }
+
+              minX = Math.min(minX, childRect.x)
+              minY = Math.min(minY, childRect.y)
+              maxX = Math.max(maxX, childRect.x + childRect.width)
+              maxY = Math.max(maxY, childRect.y + childRect.height)
+            }
+
+            return {
+              x: minX,
+              y: minY,
+              width: maxX - minX,
+              height: maxY - minY,
+            }
+          },
+        },
         isGroup: {
           get(this: Node) {
-            return this.getExtraProp('isGroup')
+            return this.getExtraPropValue('isGroup')
           },
         },
         getCurrentGroup: {
@@ -223,11 +249,11 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         },
         getAllNodesInGroup: {
           value(this: Node) {
-            if (!this.isGroup) return [this]
+            if (!this.isGroup) return []
 
             const nodes: Node[] = []
             for (const node of this.childrenNodes) {
-              nodes.push(...node.getAllNodesInGroup())
+              nodes.push(node, ...node.getAllNodesInGroup())
             }
             return nodes
           },

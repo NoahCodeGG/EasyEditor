@@ -1,4 +1,4 @@
-import type { Document, Node } from '@easy-editor/core'
+import type { Rect } from '@easy-editor/core'
 
 declare module '@easy-editor/core' {
   interface Document {
@@ -16,6 +16,11 @@ declare module '@easy-editor/core' {
   }
 
   interface Node {
+    /**
+     * 获取 dashboard 位置信息
+     */
+    getDashboardRect(): Rect
+
     /**
      * 是否是 Group
      */
@@ -55,12 +60,7 @@ declare module '@easy-editor/core' {
       /**
        * 位置信息
        */
-      rect: {
-        x?: number
-        y?: number
-        width?: number
-        height?: number
-      }
+      rect?: Rect
     }
   }
 }

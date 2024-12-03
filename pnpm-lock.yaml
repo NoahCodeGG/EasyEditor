@@ -94,7 +94,7 @@ importers:
         version: link:../../packages/core
       '@easy-editor/plugin-dashboard':
         specifier: workspace:*
-        version: link:../../packages/plugin-dasboard
+        version: link:../../packages/plugin-dashboard
       '@easy-editor/react-renderer':
         specifier: workspace:*
         version: link:../../packages/react-renderer
@@ -154,7 +154,7 @@ importers:
         specifier: ^5.0.7
         version: 5.0.8
 
-  packages/plugin-dasboard:
+  packages/plugin-dashboard:
     dependencies:
       '@easy-editor/core':
         specifier: workspace:*
