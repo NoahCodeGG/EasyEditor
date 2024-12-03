@@ -39,8 +39,8 @@ export const defaultDocumentSchema = {
             },
             $dashboard: {
               rect: {
-                x: 0,
-                y: 0,
+                x: 200,
+                y: 200,
                 width: 70,
                 height: 70,
               },
@@ -54,8 +54,8 @@ export const defaultDocumentSchema = {
             },
             $dashboard: {
               rect: {
-                x: 100,
-                y: 50,
+                x: 300,
+                y: 20,
                 width: 60,
                 height: 50,
               },

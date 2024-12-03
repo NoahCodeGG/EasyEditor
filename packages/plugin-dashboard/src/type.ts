@@ -51,7 +51,7 @@ declare module '@easy-editor/core' {
     /**
      * dashboard 额外信息
      */
-    $dashboard: {
+    $dashboard?: {
       /**
        * 位置信息
        */

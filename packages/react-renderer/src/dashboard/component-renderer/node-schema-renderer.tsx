@@ -34,26 +34,30 @@ export const NodeSchemaRenderer = (props: NodeSchemaRendererProps) => {
   Object.assign(compProps, defaultProps)
   Object.assign(compProps, schema?.props ?? {})
 
-  return isRootNode ? (
-    <Comp {...compProps}>
-      {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
-    </Comp>
-  ) : (
-    <NodeMask schema={schema}>
+  if (isRootNode) {
+    return (
       <Comp {...compProps}>
         {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
       </Comp>
+    )
+  }
+
+  return (
+    <NodeMask schema={schema} Comp={Comp} compProps={compProps}>
+      {schema.children && schema.children.map(e => <NodeSchemaRenderer key={e.id} schema={e} />)}
     </NodeMask>
   )
 }
 
 interface NodeMaskProps {
   schema: NodeSchema
+  Comp: React.FC<any>
+  compProps: Record<string, any>
   children: React.ReactNode
 }
 
 const NodeMask = observer((props: NodeMaskProps) => {
-  const { schema } = props
+  const { schema, Comp, compProps, children } = props
   const { designMode, editor } = useRendererContext()
   const designer = editor?.get<Designer>('designer')
 
@@ -66,18 +70,55 @@ const NodeMask = observer((props: NodeMaskProps) => {
     isSelected = designer?.selection.has(schema.id!) ?? false
   }
 
+  // TODO: 是否需要使用 transform 来移动，而不是使用绝对定位
   return (
     <div
       id={`${schema.id}-mask`}
       style={{
         position: 'absolute',
-        transform: `translate(${rect.x}px, ${rect.y}px)`,
+        left: rect.x,
+        top: rect.y,
+        width: rect.width,
+        height: rect.height,
         border: isSelected ? '2px solid red' : isHover ? '1px solid blue' : 'none',
-        width: rect?.width ?? '100%',
-        height: rect?.height ?? '100%',
+        userSelect: 'none',
+        touchAction: 'none',
+        pointerEvents: 'auto',
+        // boxSizing: 'border-box',
       }}
     >
-      {props.children}
+      <div
+        style={{
+          position: 'absolute',
+          left: -rect.x!,
+          top: -rect.y!,
+        }}
+      >
+        <div
+          id={schema.id}
+          style={{
+            position: 'absolute',
+            left: rect.x!,
+            top: rect.y!,
+            width: rect.width,
+            height: rect.height,
+          }}
+        >
+          <Comp {...compProps}>
+            {children && (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: -rect.x!,
+                  top: -rect.y!,
+                }}
+              >
+                {children}
+              </div>
+            )}
+          </Comp>
+        </div>
+      </div>
     </div>
   )
 })

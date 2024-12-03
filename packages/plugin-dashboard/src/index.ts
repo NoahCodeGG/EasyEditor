@@ -105,10 +105,8 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
           for (const node of dragObject.nodes!) {
             if (!node) continue
             const { x = 0, y = 0 } = startOffsetNodes[node.id]
-            const offset = getNodeOffset(node)
-            // TODO: 想一下名字，对应插件的可以放在特地的位置
-            node?.setExtraPropValue('$dashboard.rect.x', e.canvasX - x - offset.x)
-            node?.setExtraPropValue('$dashboard.rect.y', e.canvasY - y - offset.y)
+            node?.setExtraPropValue('$dashboard.rect.x', e.canvasX - x)
+            node?.setExtraPropValue('$dashboard.rect.y', e.canvasY - y)
           }
         }
       })
