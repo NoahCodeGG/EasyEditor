@@ -185,7 +185,8 @@ export class Simulator {
 
   setupDragAndClick() {
     const { designer } = this
-    const doc = this.contentDocument!
+    // const doc = this.contentDocument!
+    const doc = this._iframe!
 
     doc.addEventListener(
       'mousedown',
@@ -278,7 +279,8 @@ export class Simulator {
   }
 
   setupDetecting() {
-    const doc = this.contentDocument!
+    // const doc = this.contentDocument!
+    const doc = this._iframe!
     const { detecting, dragon } = this.designer
     const hover = (e: MouseEvent) => {
       if (!detecting.enable || this.designMode !== 'design') {

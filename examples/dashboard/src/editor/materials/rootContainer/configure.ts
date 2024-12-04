@@ -3,8 +3,9 @@ import type { Configure } from '@easy-editor/core'
 const configure: Configure = {
   props: [
     {
-      title: '功能',
       type: 'group',
+      title: '功能',
+      setter: 'GroupSetter',
       items: [
         {
           name: 'backgroundColor',

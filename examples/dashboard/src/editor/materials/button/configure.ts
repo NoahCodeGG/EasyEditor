@@ -3,11 +3,12 @@ import type { Configure } from '@easy-editor/core'
 const configure: Configure = {
   props: [
     {
-      title: '功能',
-      display: 'block',
       type: 'group',
+      title: '功能',
+      setter: 'GroupSetter',
       items: [
         {
+          type: 'field',
           name: 'text',
           title: '内容',
           setter: 'StringSetter',

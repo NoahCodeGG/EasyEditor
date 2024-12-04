@@ -258,7 +258,8 @@ export interface Callbacks {
   ) => void
 }
 
-export type SetterType = SetterConfig | SetterConfig[] | string
+// export type SetterType = SetterConfig | SetterConfig[] | string
+export type SetterType = SetterConfig | string
 
 export interface SetterConfig {
   /**
