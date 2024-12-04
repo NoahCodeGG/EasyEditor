@@ -53,19 +53,14 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
           const nodeData = Array.isArray(dragObject.data) ? dragObject.data : [dragObject.data]
           for (const schema of nodeData) {
             if (!schema) continue
-            if (!schema.$) {
-              schema.$ = {}
-            }
             if (!schema.$dashboard) {
               schema.$dashboard = {}
             }
             if (!schema.$dashboard.rect) {
               schema.$dashboard.rect = {}
             }
-            schema.$dashboard.rect = {
-              x: event.canvasX! - startOffsetNodeData.x,
-              y: event.canvasY! - startOffsetNodeData.y,
-            }
+            schema.$dashboard.rect.x = event.canvasX! - startOffsetNodeData.x
+            schema.$dashboard.rect.y = event.canvasY! - startOffsetNodeData.y
           }
         }
       })

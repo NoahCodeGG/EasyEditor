@@ -119,6 +119,7 @@ export class Designer {
       this.postEvent(DESIGNER_EVENT.DRAG, e)
     })
 
+    // TODO: 这一块逻辑是否需要抽出来
     // insert node
     this.dragon.onDragend(e => {
       const { dragObject, copy = false } = e
