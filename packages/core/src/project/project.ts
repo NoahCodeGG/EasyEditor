@@ -1,11 +1,10 @@
-import type { Designer } from '../designer'
+import type { ComponentsMap, Designer } from '../designer'
 import type { DocumentSchema } from '../document'
-import type { ComponentsMap } from '../meta'
 import type { Simulator } from '../simulator'
 
 import { action, computed, observable } from 'mobx'
+import { isLowCodeComponentType, isProCodeComponentType } from '../designer'
 import { DOCUMENT_EVENT, Document, isDocument } from '../document'
-import { isLowCodeComponentType, isProCodeComponentType } from '../meta'
 import { TRANSFORM_STAGE } from '../types'
 import { createEventBus, logger } from '../utils'
 

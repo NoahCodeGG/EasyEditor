@@ -1,5 +1,5 @@
-import type { Node, NodeSchema, Prop } from '../document'
-import { isObject } from '../document'
+import type { Node, NodeSchema, Prop } from '../../document'
+import { isObject } from '../../document'
 
 export interface ComponentMetadata {
   componentName: string

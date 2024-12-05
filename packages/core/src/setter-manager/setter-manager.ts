@@ -1,6 +1,5 @@
-import type { Component } from './meta'
-
 import { action } from 'mobx'
+import type { Component } from '../designer'
 import { logger } from '../utils'
 
 /** for setter component props */

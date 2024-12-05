@@ -1,7 +1,7 @@
 import type { Designer } from '../designer'
 import type { ComponentMetadata } from './meta'
 
-import { createEventBus } from '../utils'
+import { createEventBus } from '../../utils'
 
 export enum COMPONENT_META_EVENT {
   CHANGE = 'componentMeta:metadata.change',
