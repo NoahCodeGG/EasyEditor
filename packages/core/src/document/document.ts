@@ -1,26 +1,14 @@
-import type { Designer, DropLocation } from '../designer'
-import type { ComponentsMap } from '../meta'
+import type { ComponentsMap, Designer, DropLocation } from '../designer'
 import type { Project } from '../project'
 import type { Simulator } from '../simulator'
-import type { NodeSchema } from './node/node'
+import type { NodeSchema } from '../types'
 
 import { action, observable } from 'mobx'
 import { DESIGNER_EVENT } from '../designer'
-import { TRANSFORM_STAGE } from '../types'
+import { type RootSchema, TRANSFORM_STAGE } from '../types'
 import { createEventBus, uniqueId } from '../utils'
 import { History } from './history'
 import { NODE_EVENT, Node, insertChild, insertChildren } from './node/node'
-
-export interface DocumentSchema {
-  id?: string
-
-  name?: string
-
-  rootNode: NodeSchema
-
-  // TODO: 是否需要将一些 rootNode 上的东西迁移到这边
-  [key: string]: any
-}
 
 export enum DOCUMENT_EVENT {
   ADD = 'document:add',
@@ -102,14 +90,14 @@ export class Document {
     return this._dropLocation
   }
 
-  get schema(): DocumentSchema {
+  get schema(): RootSchema {
     return this.export(TRANSFORM_STAGE.SERIALIZE)
   }
 
-  constructor(project: Project, schema?: DocumentSchema) {
-    this.id = schema?.id ?? uniqueId('doc')
+  constructor(project: Project, schema?: RootSchema) {
     this.project = project
     this.designer = project.designer
+    this.id = schema?.docId ?? uniqueId('doc')
     this.history = new History(
       () => this.export(TRANSFORM_STAGE.SERIALIZE),
       schema => {
@@ -129,7 +117,7 @@ export class Document {
   }
 
   @action
-  import(schema?: DocumentSchema, checkId = false) {
+  import(schema?: RootSchema, checkId = false) {
     this.nodes.forEach(node => {
       if (node.isRoot()) return
       this.internalRemoveNode(node, true)
@@ -150,13 +138,7 @@ export class Document {
   }
 
   export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE) {
-    const schema: DocumentSchema = {
-      id: this.id,
-      name: this.name,
-      rootNode: this.rootNode!.export(stage),
-    }
-
-    return schema
+    return this.rootNode!.export<RootSchema>(stage)
   }
 
   @action

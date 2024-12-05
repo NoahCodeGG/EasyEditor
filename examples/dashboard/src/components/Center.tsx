@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react'
 const Center = observer(() => {
   const viewportRef = useRef<HTMLDivElement>(null)
   const docSchema = project.currentDocument?.export()
+  console.log('🚀 ~ Center ~ docSchema:', project.export())
 
   useEffect(() => {
     if (viewportRef.current) {

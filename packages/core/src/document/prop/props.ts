@@ -1,12 +1,11 @@
+import type { PropsSchema } from '../../types'
 import type { Node } from '../node/node'
-import type { PropKey, PropValue, PropsMap } from './prop'
+import type { PropKey, PropValue } from './prop'
 
 import { action, computed, observable } from 'mobx'
 import { TRANSFORM_STAGE } from '../../types'
 import { uniqueId } from '../../utils'
 import { Prop, UNSET, splitPath } from './prop'
-
-export type PropsSchema = PropsMap
 
 const EXTRA_KEY_PREFIX = '__'
 

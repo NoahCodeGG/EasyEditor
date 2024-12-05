@@ -1,43 +1,14 @@
+import type { NodeSchema, PropsSchema } from '../../types'
 import type { Document } from '../document'
-import type { CompositeValue, PropValue } from '../prop/prop'
+import type { PropValue } from '../prop/prop'
 
 import { action, computed, observable, runInAction } from 'mobx'
 import { DESIGNER_EVENT } from '../..'
 import { TRANSFORM_STAGE } from '../../types'
 import { createEventBus, uniqueId } from '../../utils'
 import { isObject } from '../prop/prop'
-import { Props, type PropsSchema, getConvertedExtraKey } from '../prop/props'
+import { Props, getConvertedExtraKey } from '../prop/props'
 import { NodeChildren } from './node-children'
-
-export interface NodeSchema {
-  id?: string
-
-  /** title */
-  title?: string
-
-  /** required */
-  componentName: string
-
-  /** props */
-  props?: PropsSchema
-
-  /** sub nodes */
-  children?: NodeSchema[]
-
-  /** hidden */
-  isHidden?: boolean
-
-  /** locked */
-  isLocked?: boolean
-
-  /** render condition */
-  condition?: CompositeValue
-
-  /** loop data */
-  loop?: CompositeValue
-
-  [key: string]: any
-}
 
 export enum NODE_EVENT {
   ADD = 'node:add',
@@ -47,7 +18,7 @@ export enum NODE_EVENT {
   PROP_CHANGE = 'node:prop.change',
 }
 
-export class Node {
+export class Node<Schema extends NodeSchema = NodeSchema> {
   protected emitter = createEventBus('Node')
 
   readonly isNode = true
@@ -124,9 +95,9 @@ export class Node {
 
   constructor(
     readonly document: Document,
-    nodeSchema: NodeSchema,
+    Schema: Schema,
   ) {
-    const { id, componentName, children, props, ...extras } = nodeSchema
+    const { id, componentName, children, props, ...extras } = Schema
 
     this.id = id || uniqueId('node')
     this.componentName = componentName
@@ -149,7 +120,7 @@ export class Node {
     })
   }
 
-  import(data: NodeSchema, checkId = false) {
+  import(data: Schema, checkId = false) {
     const { componentName, id, children, props, ...extras } = data
 
     this.props.import(props, extras)
@@ -158,8 +129,8 @@ export class Node {
     }
   }
 
-  export(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE) {
-    const baseSchema: NodeSchema = {
+  export<T = NodeSchema>(stage: TRANSFORM_STAGE = TRANSFORM_STAGE.SAVE): T {
+    const baseSchema: any = {
       componentName: this.componentName,
     }
 
@@ -172,7 +143,7 @@ export class Node {
 
     const { props, extras } = this.props.export()
 
-    const schema: NodeSchema = {
+    const schema: any = {
       ...baseSchema,
       props: props ? this.document.designer.transformProps(props, this, stage) : undefined,
       ...(extras ? this.document.designer.transformProps(extras, this, stage) : {}),
@@ -200,11 +171,11 @@ export class Node {
   /**
    * get node schema
    */
-  get schema(): NodeSchema {
+  get schema(): Schema {
     return this.export(TRANSFORM_STAGE.SAVE)
   }
 
-  set schema(data: NodeSchema) {
+  set schema(data: Schema) {
     runInAction(() => this.import(data))
   }
 
@@ -583,7 +554,7 @@ export class Node {
   /**
    * use schema to update this node
    */
-  wrapWith(schema: NodeSchema) {
+  wrapWith(schema: Schema) {
     const wrappedNode = this.replaceWith({ ...schema, children: [this.export()] })
     return wrappedNode?.children!.get(0)
   }
@@ -591,7 +562,7 @@ export class Node {
   /**
    * replace this node with a new node
    */
-  replaceWith(schema: NodeSchema, migrate = false) {
+  replaceWith(schema: Schema, migrate = false) {
     // reuse the same id? or replaceSelection
     schema = Object.assign({}, migrate ? this.export() : {}, schema)
     return this.parent?.replaceChild(this, schema)
@@ -600,7 +571,7 @@ export class Node {
   /**
    * replace a child node with a new node
    */
-  replaceChild(node: Node, data: NodeSchema): Node | null {
+  replaceChild(node: Node, data: Schema): Node | null {
     if (this.children?.has(node)) {
       const selected = this.document.designer.selection.has(node.id)
 
@@ -684,7 +655,7 @@ export class Node {
 
   mergeChildren(
     remover: (node: Node, idx: number) => any,
-    adder: (children: Node[]) => NodeSchema[] | null,
+    adder: (children: Node[]) => Schema[] | null,
     sorter: (firstNode: Node, secondNode: Node) => any,
   ) {
     this.children?.mergeChildren(remover, adder, sorter)
@@ -819,10 +790,10 @@ export const insertChild = (
   copy?: boolean,
 ): Node | null => {
   let node: Node | null | undefined
-  let nodeSchema: NodeSchema
+  let Schema: NodeSchema
   if (isNode(thing) && copy) {
-    nodeSchema = thing.export()
-    node = container.document?.createNode(nodeSchema)
+    Schema = thing.export()
+    node = container.document?.createNode(Schema)
   } else if (isNode(thing)) {
     node = thing
   } else if (isNodeSchema(thing)) {

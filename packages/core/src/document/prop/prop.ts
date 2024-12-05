@@ -1,4 +1,5 @@
-import type { Node, NodeSchema } from '../node/node'
+import type { NodeSchema } from '../../types'
+import type { Node } from '../node/node'
 import type { Props } from './props'
 
 import { action, computed, isObservableArray, observable, set, untracked } from 'mobx'

@@ -1,4 +1,5 @@
-import type { Node, NodeSchema } from './node'
+import type { NodeSchema } from '../../types'
+import type { Node } from './node'
 
 import { action, computed, observable } from 'mobx'
 import { TRANSFORM_STAGE } from '../../types'
