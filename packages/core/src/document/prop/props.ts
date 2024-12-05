@@ -86,7 +86,7 @@ export class Props {
     }
     if (extras) {
       Object.keys(extras).forEach(key => {
-        this.items.push(new Prop(this, (extras as any)[key], getConvertedExtraKey(key)))
+        this.items.push(new Prop(this, getConvertedExtraKey(key), extras[key]))
       })
     }
   }

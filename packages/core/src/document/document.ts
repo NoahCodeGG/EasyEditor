@@ -108,11 +108,8 @@ export class Document {
     )
 
     if (schema) {
-      this.name = schema?.name ?? ''
-      if (schema?.rootNode) {
-        this.rootNode = this.createNode(schema.rootNode)
-        this._blank = false
-      }
+      this.rootNode = this.createNode(schema)
+      this._blank = false
     }
   }
 
@@ -124,14 +121,10 @@ export class Document {
     })
     this.remove()
 
-    this.id = schema?.id ?? uniqueId('doc')
+    this.id = schema?.docId ?? uniqueId('doc')
     if (schema) {
-      this.name = schema?.name ?? ''
-      if (schema?.rootNode) {
-        this.rootNode?.import(schema.rootNode, checkId)
-        this.rootNode = this.createNode(schema.rootNode)
-        this._blank = false
-      }
+      this.rootNode?.import(schema, checkId)
+      this._blank = false
     } else {
       this._blank = true
     }
@@ -163,7 +156,7 @@ export class Document {
     }
 
     let node: Node | null = null
-    if (schema.id) {
+    if (schema?.id) {
       node = this.getNode(schema.id)
       if (node && node.componentName === schema.componentName) {
         if (node.parent) {
