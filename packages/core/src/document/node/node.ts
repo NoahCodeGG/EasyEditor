@@ -1,6 +1,6 @@
-import type { NodeSchema, PropsSchema } from '../../types'
+import type { NodeSchema } from '../../types'
 import type { Document } from '../document'
-import type { PropValue } from '../prop/prop'
+import type { PropValue, PropsMap } from '../prop/prop'
 
 import { action, computed, observable, runInAction } from 'mobx'
 import { DESIGNER_EVENT } from '../..'
@@ -187,11 +187,11 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
     this.props.has(getConvertedExtraKey('condition')) || this.props.add(getConvertedExtraKey('condition'), true)
   }
 
-  private initProps(props: PropsSchema) {
+  private initProps(props: PropsMap) {
     return this.document.designer.transformProps(props, this, TRANSFORM_STAGE.INIT)
   }
 
-  private upgradeProps(props: PropsSchema) {
+  private upgradeProps(props: PropsMap) {
     return this.document.designer.transformProps(props, this, TRANSFORM_STAGE.UPGRADE)
   }
 
@@ -417,6 +417,18 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
 
   clearPropValue(path: string): void {
     this.getProp(path, false)?.unset()
+  }
+
+  mergeProps(props: PropsMap) {
+    this.props.merge(props)
+  }
+
+  setProps(props?: PropsMap | Props | null) {
+    if (props instanceof Props) {
+      this.props = props
+      return
+    }
+    this.props.import(props)
   }
 
   internalSetParent(parent: Node | null, useMutator = false) {

@@ -1,6 +1,5 @@
-import type { PropsSchema } from '../../types'
 import type { Node } from '../node/node'
-import type { PropKey, PropValue } from './prop'
+import type { PropKey, PropValue, PropsMap } from './prop'
 
 import { action, computed, observable } from 'mobx'
 import { TRANSFORM_STAGE } from '../../types'
@@ -78,7 +77,7 @@ export class Props {
     return this.items.length
   }
 
-  constructor(owner: Node, props?: PropsSchema, extras?: PropsSchema) {
+  constructor(owner: Node, props?: PropsMap, extras?: PropsMap) {
     this.owner = owner
 
     if (props != null) {
@@ -92,7 +91,7 @@ export class Props {
   }
 
   @action
-  import(props?: PropsSchema | null, extras?: PropsSchema) {
+  import(props?: PropsMap | null, extras?: PropsMap) {
     // TODO: 是否需要继承之前相同的 key，来保持响应式
 
     const originItems = this.items
@@ -116,8 +115,8 @@ export class Props {
       return {}
     }
 
-    const props: PropsSchema = {}
-    const extras: PropsSchema = {}
+    const props: PropsMap = {}
+    const extras: PropsMap = {}
 
     this.items.forEach(item => {
       const key = item.key as string
@@ -135,7 +134,7 @@ export class Props {
     return { props, extras }
   }
 
-  merge(value: PropsSchema, extras?: PropsSchema) {
+  merge(value: PropsMap, extras?: PropsMap) {
     Object.keys(value).forEach(key => {
       this.query(key, true)!.setValue(value[key])
       this.query(key, true)!.initItems()

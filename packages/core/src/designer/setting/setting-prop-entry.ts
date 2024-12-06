@@ -1,18 +1,20 @@
 import { computed, observable, runInAction } from 'mobx'
 import {
   type ComponentMeta,
+  DESIGNER_EVENT,
   type Designer,
   type FieldExtraProps,
   type Node,
-  type SettingField,
   createEventBus,
   uniqueId,
 } from '../..'
 import type { Editor } from '../../editor'
 import type { SetterManager } from '../../setter-manager'
+import type { SettingEntry } from './setting-entry'
+import type { SetValueOptions, SettingField } from './setting-field'
 import type { SettingTopEntry } from './setting-top-entry'
 
-export class SettingPropEntry {
+export class SettingPropEntry implements SettingEntry {
   // === static properties ===
   readonly editor: Editor
 
@@ -48,7 +50,7 @@ export class SettingPropEntry {
   }
 
   @computed
-  get path() {
+  get path(): (string | number)[] {
     const path = this.parent.path.slice()
     if (this.type === 'field' && this.name?.toString()) {
       path.push(this.name)
@@ -60,7 +62,7 @@ export class SettingPropEntry {
 
   constructor(
     readonly parent: SettingTopEntry | SettingField,
-    name: string | number | undefined,
+    name: string | undefined,
     type?: 'field' | 'group',
   ) {
     if (type == null) {
@@ -93,7 +95,7 @@ export class SettingPropEntry {
     return this.id
   }
 
-  setKey(key: string | number) {
+  setKey(key: string) {
     if (this.type !== 'field') {
       return
     }
@@ -134,7 +136,7 @@ export class SettingPropEntry {
     return runInAction(() => {
       if (this.type !== 'field') {
         const { getValue } = this.extraProps
-        return getValue ? (getValue(this.internalToShellField()!, undefined) === undefined ? 0 : 1) : 0
+        return getValue ? (getValue(this.parent, undefined) === undefined ? 0 : 1) : 0
       }
       if (this.nodes.length === 1) {
         return 2
@@ -170,7 +172,7 @@ export class SettingPropEntry {
     }
     const { getValue } = this.extraProps
     try {
-      return getValue ? getValue(this.internalToShellField()!, val) : val
+      return getValue ? getValue(this.parent, val) : val
     } catch (e) {
       console.warn(e)
       return val
@@ -180,7 +182,7 @@ export class SettingPropEntry {
   /**
    * 设置当前属性值
    */
-  setValue(val: any, isHotValue?: boolean, force?: boolean, extraOptions?: IPublicTypeSetValueOptions) {
+  setValue(val: any, isHotValue?: boolean, force?: boolean, extraOptions?: SetValueOptions) {
     const oldValue = this.getValue()
     if (this.type === 'field') {
       this.name?.toString() && this.parent.setPropValue(this.name, val)
@@ -189,7 +191,7 @@ export class SettingPropEntry {
     const { setValue } = this.extraProps
     if (setValue && !extraOptions?.disableMutator) {
       try {
-        setValue(this.internalToShellField()!, val)
+        setValue(this.parent, val)
       } catch (e) {
         /* istanbul ignore next */
         console.warn(e)
@@ -198,7 +200,7 @@ export class SettingPropEntry {
     this.notifyValueChange(oldValue, val)
     // 如果 fromSetHotValue，那么在 setHotValue 中已经调用过 valueChange 了
     if (!extraOptions?.fromSetHotValue) {
-      this.valueChange(extraOptions)
+      this.onValueChange(extraOptions)
     }
   }
 
@@ -212,7 +214,7 @@ export class SettingPropEntry {
     const { setValue } = this.extraProps
     if (setValue) {
       try {
-        setValue(this.internalToShellField()!, undefined)
+        setValue(this.parent, undefined)
       } catch (e) {
         /* istanbul ignore next */
         console.warn(e)
@@ -223,7 +225,7 @@ export class SettingPropEntry {
   /**
    * 获取子项
    */
-  get(propName: string | number) {
+  get(propName: string) {
     const path = this.path.concat(propName).join('.')
     return this.top.get(path)
   }
@@ -231,7 +233,7 @@ export class SettingPropEntry {
   /**
    * 设置子级属性值
    */
-  setPropValue(propName: string | number, value: any) {
+  setPropValue(propName: string, value: any) {
     const path = this.path.concat(propName).join('.')
     this.top.setPropValue(path, value)
   }
@@ -239,7 +241,7 @@ export class SettingPropEntry {
   /**
    * 清除已设置值
    */
-  clearPropValue(propName: string | number) {
+  clearPropValue(propName: string) {
     const path = this.path.concat(propName).join('.')
     this.top.clearPropValue(path)
   }
@@ -247,7 +249,7 @@ export class SettingPropEntry {
   /**
    * 获取子级属性值
    */
-  getPropValue(propName: string | number): any {
+  getPropValue(propName: string): any {
     return this.top.getPropValue(this.path.concat(propName).join('.'))
   }
 
@@ -287,23 +289,12 @@ export class SettingPropEntry {
     this.emitter.on('valuechange', func)
 
     return () => {
-      this.emitter.removeListener('valuechange', func)
-    }
-  }
-
-  /**
-   * @deprecated
-   */
-  valueChange(options: IPublicTypeSetValueOptions = {}) {
-    this.emitter.emit('valuechange', options)
-
-    if (this.parent && isSettingField(this.parent)) {
-      this.parent.valueChange(options)
+      this.emitter.off('valuechange', func)
     }
   }
 
   notifyValueChange(oldValue: any, newValue: any) {
-    this.editor.eventBus.emit(GlobalEvent.Node.Prop.Change, {
+    this.designer?.postEvent(DESIGNER_EVENT.NODE_PROPS_CHANGE, {
       node: this.getNode(),
       prop: this,
       oldValue,
@@ -317,58 +308,5 @@ export class SettingPropEntry {
 
   isIgnore() {
     return false
-  }
-
-  getVariableValue() {
-    const v = this.getValue()
-    if (isJSExpression(v)) {
-      return v.value
-    }
-    return ''
-  }
-
-  setVariableValue(value: string) {
-    const v = this.getValue()
-    this.setValue({
-      type: 'JSExpression',
-      value,
-      mock: isJSExpression(v) ? v.mock : v,
-    })
-  }
-
-  setUseVariable(flag: boolean) {
-    if (this.isUseVariable() === flag) {
-      return
-    }
-    const v = this.getValue()
-    if (this.isUseVariable()) {
-      this.setValue(v.mock)
-    } else {
-      this.setValue({
-        type: 'JSExpression',
-        value: '',
-        mock: v,
-      })
-    }
-  }
-
-  isUseVariable() {
-    return isJSExpression(this.getValue())
-  }
-
-  get useVariable() {
-    return this.isUseVariable()
-  }
-
-  getMockOrValue() {
-    const v = this.getValue()
-    if (isJSExpression(v)) {
-      return v.mock
-    }
-    return v
-  }
-
-  internalToShellField(): IPublicModelSettingField {
-    return this.designer!.shellModelFactory.createSettingField(this)
   }
 }

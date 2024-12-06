@@ -1,8 +1,7 @@
-import type { Node, PropsSchema } from '../document'
+import type { Node, PropsMap } from '../document'
 import type { Editor } from '../editor'
-import type { ComponentMetaManager } from '../meta'
-import type { ProjectSchema } from '../project'
-import type { TRANSFORM_STAGE } from '../types'
+import type { ProjectSchema, TRANSFORM_STAGE } from '../types'
+import type { ComponentMetaManager } from './component-meta'
 import type { DragObject } from './dragon'
 import type { LocateEvent, LocationData } from './location'
 
@@ -15,12 +14,12 @@ import { DropLocation, isLocationChildrenDetail } from './location'
 import { Selection } from './selection'
 
 export type PropsTransducer = (
-  props: PropsSchema,
+  props: PropsMap,
   node: Node,
   ctx?: {
     stage: TRANSFORM_STAGE
   },
-) => PropsSchema
+) => PropsMap
 
 export interface DesignerProps {
   editor: Editor
@@ -56,6 +55,8 @@ export enum DESIGNER_EVENT {
   NODE_REMOVE = 'designer:node.remove',
 
   SIMULATOR_SELECT = 'designer:simulator.select',
+
+  SETTING_TOP_ENTRY_VALUE_CHANGE = 'designer:setting.top-entry.value.change',
 }
 
 export class Designer {
@@ -237,7 +238,7 @@ export class Designer {
     this.project.import(schema)
   }
 
-  transformProps(props: PropsSchema, node: Node, stage: TRANSFORM_STAGE) {
+  transformProps(props: PropsMap, node: Node, stage: TRANSFORM_STAGE) {
     if (Array.isArray(props)) {
       // current not support, make this future
       return props
@@ -248,9 +249,9 @@ export class Designer {
       return props
     }
 
-    return reducers.reduce<PropsSchema>((transformedProps, reducer) => {
+    return reducers.reduce<PropsMap>((transformedProps, reducer) => {
       try {
-        return reducer(transformedProps, node, { stage }) as PropsSchema
+        return reducer(transformedProps, node, { stage }) as PropsMap
       } catch (e) {
         logger.error('Error transforming props:', e)
         return transformedProps

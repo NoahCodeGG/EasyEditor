@@ -1,6 +1,7 @@
-import type { Node, NodeSchema, Prop } from '../../document'
+import type { Node } from '../../document'
 import { isObject } from '../../document'
-import type { SettingPropEntry } from '../setting'
+import type { NodeSchema } from '../../types'
+import type { SettingField, SettingPropEntry } from '../setting'
 
 export interface ComponentMetadata {
   componentName: string
@@ -86,8 +87,6 @@ export interface Configure {
   advanced?: Advanced
 }
 
-export type SettingField = Prop
-
 export interface FieldConfig {
   /**
    * default is field, if is group, the items will be used
@@ -102,7 +101,7 @@ export interface FieldConfig {
   /**
    * the name of this setting field, the name can refer to the props of the component, such as `title` or `obj.a` ...
    */
-  name?: string | number
+  name?: string
 
   /**
    * the field title, for configure tooltip
@@ -130,6 +129,11 @@ export interface FieldExtraProps {
    * default value of target prop for setter use
    */
   defaultValue?: any
+
+  /**
+   * default collapsed
+   */
+  defaultCollapsed?: boolean
 
   /**
    * get value for field

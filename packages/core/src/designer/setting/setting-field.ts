@@ -3,7 +3,6 @@ import type { Component } from 'react'
 import type { DynamicSetter, FieldConfig, FieldExtraProps, SetterType } from '../component-meta'
 import { SettingPropEntry } from './setting-prop-entry'
 import type { SettingTopEntry } from './setting-top-entry'
-import { Transducer } from './utils'
 
 export interface SetValueOptions {
   disableMutator?: boolean
@@ -39,11 +38,7 @@ export class SettingField extends SettingPropEntry {
 
   readonly isRequired: boolean
 
-  readonly transducer: Transducer
-
   private _config: FieldConfig
-
-  private hotValue: any
 
   parent: SettingTopEntry | SettingField
 
@@ -60,12 +55,12 @@ export class SettingField extends SettingPropEntry {
 
   @observable.ref private accessor _expanded = true
 
-  private _items: Array<SettingField | Component> = []
+  private _items: SettingField[] = []
 
   constructor(
     parent: SettingTopEntry | SettingField,
     config: FieldConfig,
-    private settingFieldCollector?: (name: string | number, field: SettingField) => void,
+    private settingFieldCollector?: (name: string, field: SettingField) => void,
   ) {
     super(parent, config.name, config.type)
     const { title, items, setter, extraProps, ...rest } = config
@@ -77,7 +72,7 @@ export class SettingField extends SettingPropEntry {
       ...rest,
       ...extraProps,
     }
-    this.isRequired = config.isRequired || (setter as any)?.isRequired
+    this.isRequired = !extraProps?.isRequired || (setter as any)?.isRequired
     this._expanded = !extraProps?.defaultCollapsed
 
     // initial items
@@ -87,9 +82,6 @@ export class SettingField extends SettingPropEntry {
     if (this.type !== 'group' && settingFieldCollector && config.name) {
       settingFieldCollector(getSettingFieldCollectorKey(parent, config), this)
     }
-
-    // compatiable old config
-    this.transducer = new Transducer(this, { setter })
   }
 
   @computed
@@ -99,8 +91,7 @@ export class SettingField extends SettingPropEntry {
     }
     if (isDynamicSetter(this._setter)) {
       return untracked(() => {
-        const shellThis = this.internalToShellField()
-        return (this._setter as DynamicSetter)?.call(shellThis, shellThis!)
+        return (this._setter as DynamicSetter)?.call(this, this)
       })
     }
     return this._setter
@@ -122,13 +113,7 @@ export class SettingField extends SettingPropEntry {
     return this._config
   }
 
-  private initItems(
-    items: Array<FieldConfig | Component>,
-    settingFieldCollector?: {
-      (name: string | number, field: SettingField): void
-      (name: string, field: SettingField): void
-    },
-  ) {
+  private initItems(items: FieldConfig[], settingFieldCollector?: (name: string, field: SettingField) => void) {
     this._items = items.map(item => new SettingField(this, item, settingFieldCollector))
   }
 
@@ -156,7 +141,7 @@ export class SettingField extends SettingPropEntry {
     return this._config
   }
 
-  getItems(filter?: (item: SettingField | Component) => boolean): Array<SettingField | Component> {
+  getItems(filter?: (item: SettingField) => boolean): SettingField[] {
     return this._items.filter(item => {
       if (filter) {
         return filter(item)
@@ -167,99 +152,10 @@ export class SettingField extends SettingPropEntry {
 
   @action
   setValue(val: any, isHotValue?: boolean, force?: boolean, extraOptions?: SetValueOptions) {
-    if (isHotValue) {
-      this.setHotValue(val, extraOptions)
-      return
-    }
     super.setValue(val, false, false, extraOptions)
   }
-
-  getHotValue(): any {
-    if (this.hotValue) {
-      return this.hotValue
-    }
-    // avoid View modify
-    let v = cloneDeep(this.getMockOrValue())
-    if (v == null) {
-      v = this.extraProps.defaultValue
-    }
-    return this.transducer.toHot(v)
-  }
-
-  /* istanbul ignore next */
-  @action
-  setMiniAppDataSourceValue(data: any, options?: any) {
-    this.hotValue = data
-    const v = this.transducer.toNative(data)
-    this.setValue(v, false, false, options)
-    // dirty fix list setter
-    if (Array.isArray(data) && data[0] && data[0].__sid__) {
-      return
-    }
-
-    this.valueChange()
-  }
-
-  @action
-  setHotValue(data: any, options?: IPublicTypeSetValueOptions) {
-    this.hotValue = data
-    const value = this.transducer.toNative(data)
-    if (options) {
-      options.fromSetHotValue = true
-    } else {
-      options = { fromSetHotValue: true }
-    }
-    if (this.isUseVariable()) {
-      const oldValue = this.getValue()
-      if (isJSExpression(value)) {
-        this.setValue(
-          {
-            type: 'JSExpression',
-            value: value.value,
-            mock: oldValue.mock,
-          },
-          false,
-          false,
-          options,
-        )
-      } else {
-        this.setValue(
-          {
-            type: 'JSExpression',
-            value: oldValue.value,
-            mock: value,
-          },
-          false,
-          false,
-          options,
-        )
-      }
-    } else {
-      this.setValue(value, false, false, options)
-    }
-
-    // dirty fix list setter
-    if (Array.isArray(data) && data[0] && data[0].__sid__) {
-      return
-    }
-
-    this.valueChange(options)
-  }
-
-  onEffect(action: () => void): IPublicTypeDisposable {
-    return this.designer!.autorun(action, true)
-  }
-
-  internalToShellField() {
-    return this.designer!.shellModelFactory.createSettingField(this)
-  }
 }
 
-/**
- * @deprecated use same function from '@alilc/lowcode-utils' instead
- */
-export function isSettingField(obj: any): obj is ISettingField {
-  return obj && obj.isSettingField
-}
+export const isSettingField = (obj: any): obj is SettingField => obj && obj.isSettingField
 
 export const isDynamicSetter = (obj: any): obj is DynamicSetter => typeof obj === 'function'

@@ -69,7 +69,7 @@ export interface NodeSchema {
   componentName: string
 
   /** props */
-  props?: PropsSchema
+  props?: PropsMap
 
   /** sub nodes */
   children?: NodeSchema[]
@@ -88,5 +88,3 @@ export interface NodeSchema {
 
   [key: string]: any
 }
-
-export type PropsSchema = PropsMap

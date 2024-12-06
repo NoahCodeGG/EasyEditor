@@ -1,48 +1,32 @@
-import { IPublicTypeCustomView, IPublicModelEditor, IPublicModelSettingTopEntry } from '@alilc/lowcode-types'
-import { isCustomView } from '@alilc/lowcode-utils'
-import { computed, IEventBus, createModuleEventBus } from '@alilc/lowcode-editor-core'
-import { ISettingEntry } from './setting-entry-type'
-import { ISettingField, SettingField } from './setting-field'
-import { INode } from '../../document'
-import type { IComponentMeta } from '../../component-meta'
-import { IDesigner } from '../designer'
-import { Setters } from '@alilc/lowcode-shell'
+import {
+  type ComponentMeta,
+  DESIGNER_EVENT,
+  type Designer,
+  type Editor,
+  type Node,
+  type SetterManager,
+  createEventBus,
+} from '../..'
+import type { SettingEntry } from './setting-entry'
+import { SettingField } from './setting-field'
 
-function generateSessionId(nodes: INode[]) {
+const generateSessionId = (nodes: Node[]) => {
   return nodes
     .map(node => node.id)
     .sort()
     .join(',')
 }
 
-export interface ISettingTopEntry extends ISettingEntry, IPublicModelSettingTopEntry<INode, ISettingField> {
-  purge(): void
+export class SettingTopEntry implements SettingEntry {
+  private emitter = createEventBus('SettingTopEntry')
 
-  items: Array<ISettingField | IPublicTypeCustomView>
+  private _items: SettingField[] = []
 
-  readonly top: ISettingTopEntry
-
-  readonly parent: ISettingTopEntry
-
-  readonly path: never[]
-
-  componentMeta: IComponentMeta | null
-
-  getExtraPropValue(propName: string): void
-
-  setExtraPropValue(propName: string, value: any): void
-}
-
-export class SettingTopEntry implements ISettingTopEntry {
-  private emitter: IEventBus = createModuleEventBus('SettingTopEntry')
-
-  private _items: Array<SettingField | IPublicTypeCustomView> = []
-
-  private _componentMeta: IComponentMeta | null = null
+  private _componentMeta: ComponentMeta | null = null
 
   private _isSame = true
 
-  private _settingFieldMap: { [prop: string]: ISettingField } = {}
+  private _settingFieldMap: Record<string, SettingField> = {}
 
   readonly path = []
 
@@ -73,7 +57,7 @@ export class SettingTopEntry implements ISettingTopEntry {
   }
 
   get isLocked(): boolean {
-    return this.first.isLocked
+    return this.first.isLocked()
   }
 
   /**
@@ -85,17 +69,17 @@ export class SettingTopEntry implements ISettingTopEntry {
 
   readonly id: string
 
-  readonly first: INode
+  readonly first: Node
 
-  readonly designer: IDesigner | undefined
+  readonly designer: Designer | undefined
 
-  readonly setters: Setters
+  readonly setters: SetterManager
 
   disposeFunctions: any[] = []
 
   constructor(
-    readonly editor: IPublicModelEditor,
-    readonly nodes: INode[],
+    readonly editor: Editor,
+    readonly nodes: Node[],
   ) {
     if (!Array.isArray(nodes) || nodes.length < 1) {
       throw new ReferenceError('nodes should not be empty')
@@ -103,7 +87,7 @@ export class SettingTopEntry implements ISettingTopEntry {
     this.id = generateSessionId(nodes)
     this.first = nodes[0]
     this.designer = this.first.document?.designer
-    this.setters = editor.get('setters') as Setters
+    this.setters = editor.get<SetterManager>('setters')!
 
     // setups
     this.setupComponentMeta()
@@ -138,14 +122,11 @@ export class SettingTopEntry implements ISettingTopEntry {
 
   private setupItems() {
     if (this.componentMeta) {
-      const settingFieldMap: { [prop: string]: ISettingField } = {}
-      const settingFieldCollector = (name: string | number, field: ISettingField) => {
+      const settingFieldMap: Record<string, SettingField> = {}
+      const settingFieldCollector = (name: string | number, field: SettingField) => {
         settingFieldMap[name] = field
       }
       this._items = this.componentMeta.configure.map(item => {
-        if (isCustomView(item)) {
-          return item
-        }
         return new SettingField(this, item as any, settingFieldCollector)
       })
       this._settingFieldMap = settingFieldMap
@@ -161,7 +142,7 @@ export class SettingTopEntry implements ISettingTopEntry {
   /**
    * 获取当前属性值
    */
-  @computed getValue(): any {
+  getValue(): any {
     return this.first?.propsData
   }
 
@@ -170,13 +151,14 @@ export class SettingTopEntry implements ISettingTopEntry {
    */
   setValue(val: any) {
     this.setProps(val)
-    // TODO: emit value change
+
+    this.emitter.emit(DESIGNER_EVENT.SETTING_TOP_ENTRY_VALUE_CHANGE, val)
   }
 
   /**
    * 获取子项
    */
-  get(propName: string | number): ISettingField | null {
+  get(propName: string | number): SettingField | null {
     if (!propName) return null
     return this._settingFieldMap[propName] || new SettingField(this, { name: propName })
   }
@@ -244,39 +226,13 @@ export class SettingTopEntry implements ISettingTopEntry {
   purge() {
     this.disposeItems()
     this._settingFieldMap = {}
-    this.emitter.removeAllListeners()
+    // this.emitter.removeAllListeners()
     this.disposeFunctions.forEach(f => f())
     this.disposeFunctions = []
   }
 
   getProp(propName: string | number) {
     return this.get(propName)
-  }
-
-  // ==== copy some Node api =====
-  getStatus() {}
-
-  setStatus() {}
-
-  getChildren() {
-    // this.nodes.map()
-  }
-
-  getDOMNode() {}
-
-  getId() {
-    return this.id
-  }
-
-  getPage() {
-    return this.first.document
-  }
-
-  /**
-   * @deprecated
-   */
-  get node() {
-    return this.getNode()
   }
 
   getNode() {
@@ -287,6 +243,7 @@ export class SettingTopEntry implements ISettingTopEntry {
 interface Purgeable {
   purge(): void
 }
-function isPurgeable(obj: any): obj is Purgeable {
+
+export const isPurgeable = (obj: any): obj is Purgeable => {
   return obj && obj.purge
 }

@@ -295,6 +295,28 @@ export class Prop {
   }
 
   /**
+   * @returns  0: the same 1: maybe & like 2: not the same
+   */
+  compare(other: Prop | null): number {
+    if (!other || other.isUnset()) {
+      return this.isUnset() ? 0 : 2
+    }
+    if (other.type !== this.type) {
+      return 2
+    }
+    // list
+    if (this.type === 'list') {
+      return this.size === other.size ? 1 : 2
+    }
+    if (this.type === 'map') {
+      return 1
+    }
+
+    // 'literal' | 'map' | 'expression' | 'slot'
+    return this.value === other.value ? 0 : 2
+  }
+
+  /**
    * set value, val should be JSON Object
    */
   @action
@@ -485,6 +507,26 @@ export class Prop {
     }
   }
 
+  /**
+   * @see SettingTarget
+   */
+  @action
+  getPropValue(propName: string): any {
+    return this.get(propName)!.getValue()
+  }
+
+  /**
+   * @see SettingTarget
+   */
+  @action
+  setPropValue(propName: string, value: any): void {
+    this.set(propName, value)
+  }
+
+  /**
+   * @see SettingTarget
+   */
+  @action
   clearPropValue(propName: string): void {
     this.get(propName, false)?.unset()
   }
