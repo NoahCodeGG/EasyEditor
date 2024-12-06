@@ -1,5 +1,6 @@
 import type { Node, NodeSchema, Prop } from '../../document'
 import { isObject } from '../../document'
+import type { SettingPropEntry } from '../setting'
 
 export interface ComponentMetadata {
   componentName: string
@@ -111,7 +112,7 @@ export interface FieldConfig {
   /**
    * the field body contains when .type = 'field'
    */
-  setter?: SetterType
+  setter?: SetterType | DynamicSetter
 
   /**
    * extra props for field
@@ -292,6 +293,8 @@ export interface SetterConfig {
    */
   // condition?: (target: SettingField) => boolean
 }
+
+export type DynamicSetter = (target: SettingPropEntry) => string | SetterConfig | Component
 
 export type ComponentInstance = Element
 
