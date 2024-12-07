@@ -1,11 +1,11 @@
-import type { DocumentSchema, Simulator } from '@easy-editor/core'
+import type { RootSchema, Simulator } from '@easy-editor/core'
 import { useMemo } from 'react'
 import { useForceUpdate } from '../../hooks/useForceUpdate'
 import { type RendererContext, RendererContextProvider } from './context'
 import { NodeSchemaRenderer } from './node-schema-renderer'
 
 export interface DocumentSchemaRenderProps extends RendererContext {
-  schema: DocumentSchema
+  schema: RootSchema
   renderByProject?: boolean
 }
 
@@ -20,7 +20,7 @@ export const DocumentSchemaRender = (props: DocumentSchemaRenderProps) => {
   const ctx = useMemo(() => {
     const ctx = {} as RendererContext
 
-    ctx.docId = schema.id
+    ctx.docId = schema.docId
     ctx.components = components
     ctx.designMode = designMode
     ctx.forceUpdate = forceUpdate
@@ -33,7 +33,7 @@ export const DocumentSchemaRender = (props: DocumentSchemaRenderProps) => {
 
   return (
     <RendererContextProvider value={ctx}>
-      <NodeSchemaRenderer schema={schema.rootNode} isRootNode />
+      <NodeSchemaRenderer schema={schema} isRootNode />
     </RendererContextProvider>
   )
 }

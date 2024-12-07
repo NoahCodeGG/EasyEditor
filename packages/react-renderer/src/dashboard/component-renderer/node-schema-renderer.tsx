@@ -28,6 +28,10 @@ export const NodeSchemaRenderer = (props: NodeSchemaRendererProps) => {
         ref.id = schema.id
       }
       simulator?.setInstance(docId, schema.id, ref)
+
+      return () => {
+        simulator?.setInstance(docId, schema.id, undefined)
+      }
     },
   }
   const compProps = {}

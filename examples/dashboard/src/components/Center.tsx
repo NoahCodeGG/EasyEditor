@@ -1,12 +1,14 @@
 import { editor, project, simulator } from '@/editor'
 import { defaultRootSchema } from '@/editor/const'
+import { TRANSFORM_STAGE } from '@easy-editor/core'
 import { DocumentSchemaRender } from '@easy-editor/react-renderer/dashboard'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
 
 const Center = observer(() => {
   const viewportRef = useRef<HTMLDivElement>(null)
-  const docSchema = project.currentDocument?.export()
+  const docSchema = project.currentDocument?.export(TRANSFORM_STAGE.RENDER)
+  console.log('🚀 ~ Center ~ docSchema:', docSchema)
 
   useEffect(() => {
     if (viewportRef.current) {

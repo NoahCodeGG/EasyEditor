@@ -1,14 +1,16 @@
-import { type PropsWithChildren, type Ref, forwardRef } from 'react'
+import type { PropsWithChildren, Ref } from 'react'
 
-interface GroupProps extends PropsWithChildren {}
+interface GroupProps extends PropsWithChildren {
+  ref: Ref<HTMLDivElement>
+}
 
-const Group = (props: GroupProps, ref: Ref<HTMLDivElement>) => {
+const Group = (props: GroupProps) => {
   return (
     // TODO: className 需要调整，需要通用的方式
-    <div ref={ref} className='relative w-full h-full'>
+    <div ref={props.ref} className='relative w-full h-full'>
       {props?.children}
     </div>
   )
 }
 
-export default forwardRef(Group)
+export default Group
