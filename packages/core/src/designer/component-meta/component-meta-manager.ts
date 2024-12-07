@@ -1,5 +1,5 @@
+import type { Editor } from '../../editor'
 import type { Designer } from '../designer'
-import type { Editor } from '../editor'
 import type { Component, ComponentMetadata } from './meta'
 
 import { action, computed, observable } from 'mobx'

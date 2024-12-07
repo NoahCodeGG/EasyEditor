@@ -5,6 +5,7 @@ import {
   type Designer,
   type FieldExtraProps,
   type Node,
+  type PropKey,
   createEventBus,
   uniqueId,
 } from '../..'
@@ -15,7 +16,6 @@ import type { SetValueOptions, SettingField } from './setting-field'
 import type { SettingTopEntry } from './setting-top-entry'
 
 export class SettingPropEntry implements SettingEntry {
-  // === static properties ===
   readonly editor: Editor
 
   readonly isSameComponent: boolean
@@ -42,15 +42,14 @@ export class SettingPropEntry implements SettingEntry {
 
   readonly emitter = createEventBus('SettingPropEntry')
 
-  // ==== dynamic properties ====
-  @observable.ref private accessor _name: string | number | undefined
+  @observable.ref private accessor _name: PropKey | undefined
 
   get name() {
     return this._name
   }
 
   @computed
-  get path(): (string | number)[] {
+  get path(): PropKey[] {
     const path = this.parent.path.slice()
     if (this.type === 'field' && this.name?.toString()) {
       path.push(this.name)
@@ -62,7 +61,7 @@ export class SettingPropEntry implements SettingEntry {
 
   constructor(
     readonly parent: SettingTopEntry | SettingField,
-    name: string | undefined,
+    name: PropKey | undefined,
     type?: 'field' | 'group',
   ) {
     if (type == null) {
@@ -95,7 +94,7 @@ export class SettingPropEntry implements SettingEntry {
     return this.id
   }
 
-  setKey(key: string) {
+  setKey(key: PropKey) {
     if (this.type !== 'field') {
       return
     }
@@ -136,7 +135,7 @@ export class SettingPropEntry implements SettingEntry {
     return runInAction(() => {
       if (this.type !== 'field') {
         const { getValue } = this.extraProps
-        return getValue ? (getValue(this.parent, undefined) === undefined ? 0 : 1) : 0
+        return getValue ? (getValue(this as unknown as SettingField, undefined) === undefined ? 0 : 1) : 0
       }
       if (this.nodes.length === 1) {
         return 2
@@ -172,7 +171,7 @@ export class SettingPropEntry implements SettingEntry {
     }
     const { getValue } = this.extraProps
     try {
-      return getValue ? getValue(this.parent, val) : val
+      return getValue ? getValue(this as unknown as SettingField, val) : val
     } catch (e) {
       console.warn(e)
       return val
@@ -182,7 +181,7 @@ export class SettingPropEntry implements SettingEntry {
   /**
    * 设置当前属性值
    */
-  setValue(val: any, isHotValue?: boolean, force?: boolean, extraOptions?: SetValueOptions) {
+  setValue(val: any, extraOptions?: SetValueOptions) {
     const oldValue = this.getValue()
     if (this.type === 'field') {
       this.name?.toString() && this.parent.setPropValue(this.name, val)
@@ -191,17 +190,13 @@ export class SettingPropEntry implements SettingEntry {
     const { setValue } = this.extraProps
     if (setValue && !extraOptions?.disableMutator) {
       try {
-        setValue(this.parent, val)
+        setValue(this as unknown as SettingField, val)
       } catch (e) {
         /* istanbul ignore next */
         console.warn(e)
       }
     }
     this.notifyValueChange(oldValue, val)
-    // 如果 fromSetHotValue，那么在 setHotValue 中已经调用过 valueChange 了
-    if (!extraOptions?.fromSetHotValue) {
-      this.onValueChange(extraOptions)
-    }
   }
 
   /**
@@ -214,7 +209,7 @@ export class SettingPropEntry implements SettingEntry {
     const { setValue } = this.extraProps
     if (setValue) {
       try {
-        setValue(this.parent, undefined)
+        setValue(this as unknown as SettingField, undefined)
       } catch (e) {
         /* istanbul ignore next */
         console.warn(e)
@@ -225,7 +220,7 @@ export class SettingPropEntry implements SettingEntry {
   /**
    * 获取子项
    */
-  get(propName: string) {
+  get(propName: PropKey) {
     const path = this.path.concat(propName).join('.')
     return this.top.get(path)
   }
@@ -233,7 +228,7 @@ export class SettingPropEntry implements SettingEntry {
   /**
    * 设置子级属性值
    */
-  setPropValue(propName: string, value: any) {
+  setPropValue(propName: PropKey, value: any) {
     const path = this.path.concat(propName).join('.')
     this.top.setPropValue(path, value)
   }
@@ -241,7 +236,7 @@ export class SettingPropEntry implements SettingEntry {
   /**
    * 清除已设置值
    */
-  clearPropValue(propName: string) {
+  clearPropValue(propName: PropKey) {
     const path = this.path.concat(propName).join('.')
     this.top.clearPropValue(path)
   }
@@ -249,7 +244,7 @@ export class SettingPropEntry implements SettingEntry {
   /**
    * 获取子级属性值
    */
-  getPropValue(propName: string): any {
+  getPropValue(propName: PropKey): any {
     return this.top.getPropValue(this.path.concat(propName).join('.'))
   }
 

@@ -12,6 +12,7 @@ import { Detecting } from './detecting'
 import { Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
 import { DropLocation, isLocationChildrenDetail } from './location'
 import { Selection } from './selection'
+import { SettingTopEntry } from './setting/setting-top-entry'
 
 export type PropsTransducer = (
   props: PropsMap,
@@ -123,8 +124,7 @@ export class Designer {
     // TODO: 这一块逻辑是否需要抽出来
     // insert node
     this.dragon.onDragend(e => {
-      const { dragObject, copy = false } = e
-      logger.log('onDragend: dragObject ', dragObject, ' copy ', copy)
+      const { dragObject } = e
       const loc = this._dropLocation
       if (loc) {
         this.postEvent(DESIGNER_EVENT.INSERT_NODE_BEFORE, loc)
@@ -270,5 +270,9 @@ export class Designer {
     } else {
       this.propsReducers.set(stage, [reducer])
     }
+  }
+
+  createSettingEntry(nodes: Node[]) {
+    return new SettingTopEntry(this.editor, nodes)
   }
 }

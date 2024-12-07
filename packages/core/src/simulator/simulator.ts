@@ -1,7 +1,15 @@
 import type { IReactionDisposer, IReactionOptions, IReactionPublic } from 'mobx'
-import type { Designer, LocateEvent, LocationChildrenDetail, LocationData, NodeInstance } from '../designer'
+import type {
+  Component,
+  ComponentInstance,
+  Designer,
+  LocateEvent,
+  LocationChildrenDetail,
+  LocationData,
+  NodeInstance,
+  Snippet,
+} from '../designer'
 import type { Node } from '../document'
-import type { Component, ComponentInstance, Snippet } from '../meta'
 import type { Project } from '../project'
 import type { SimulatorRenderer } from './simulator-render'
 

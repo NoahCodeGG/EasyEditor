@@ -7,7 +7,6 @@ import type { SettingTopEntry } from './setting-top-entry'
 export interface SetValueOptions {
   disableMutator?: boolean
   type?: PropValueChangedType
-  fromSetHotValue?: boolean
 }
 
 export enum PropValueChangedType {
@@ -44,7 +43,6 @@ export class SettingField extends SettingPropEntry {
 
   extraProps: FieldExtraProps
 
-  // ==== dynamic properties ====
   private _title?: string
 
   get title() {
@@ -122,8 +120,7 @@ export class SettingField extends SettingPropEntry {
     this._items = []
   }
 
-  // 创建子配置项，通常用于 object/array 类型数据
-  createField(config: FieldConfig): SettingField {
+  createField(config: FieldConfig) {
     this.settingFieldCollector?.(getSettingFieldCollectorKey(this.parent, config), this)
     return new SettingField(this, config, this.settingFieldCollector)
   }
@@ -151,8 +148,8 @@ export class SettingField extends SettingPropEntry {
   }
 
   @action
-  setValue(val: any, isHotValue?: boolean, force?: boolean, extraOptions?: SetValueOptions) {
-    super.setValue(val, false, false, extraOptions)
+  setValue(val: any, extraOptions?: SetValueOptions) {
+    super.setValue(val, extraOptions)
   }
 }
 

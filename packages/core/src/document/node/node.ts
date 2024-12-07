@@ -3,7 +3,7 @@ import type { Document } from '../document'
 import type { PropValue, PropsMap } from '../prop/prop'
 
 import { action, computed, observable, runInAction } from 'mobx'
-import { DESIGNER_EVENT } from '../..'
+import { DESIGNER_EVENT, type SettingTopEntry } from '../..'
 import { TRANSFORM_STAGE } from '../../types'
 import { createEventBus, uniqueId } from '../../utils'
 import { isObject } from '../prop/prop'
@@ -92,6 +92,14 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
   }
 
   props: Props
+
+  _settingEntry: SettingTopEntry
+
+  get settingEntry() {
+    if (this._settingEntry) return this._settingEntry
+    this._settingEntry = this.document.designer.createSettingEntry([this])
+    return this._settingEntry
+  }
 
   constructor(
     readonly document: Document,

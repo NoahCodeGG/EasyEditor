@@ -1,4 +1,4 @@
-import type { Node } from '../../document'
+import type { Node, PropKey } from '../../document'
 import { isObject } from '../../document'
 import type { NodeSchema } from '../../types'
 import type { SettingField, SettingPropEntry } from '../setting'
@@ -101,7 +101,7 @@ export interface FieldConfig {
   /**
    * the name of this setting field, the name can refer to the props of the component, such as `title` or `obj.a` ...
    */
-  name?: string
+  name?: PropKey
 
   /**
    * the field title, for configure tooltip

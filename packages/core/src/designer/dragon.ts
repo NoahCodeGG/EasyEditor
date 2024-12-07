@@ -1,7 +1,8 @@
 import type { Designer } from '.'
-import type { Node, NodeSchema } from '../document'
-import type { ComponentInstance } from '../meta'
+import type { Node } from '../document'
 import type { Simulator } from '../simulator'
+import type { NodeSchema } from '../types'
+import type { ComponentInstance } from './component-meta'
 import type { LocateEvent } from './location'
 import type { Sensor } from './sensor'
 

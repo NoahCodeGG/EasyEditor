@@ -52,7 +52,6 @@ export class Props {
     return this.props
   }
 
-  // TODO: no need list type
   @observable accessor type = 'map'
 
   @observable.shallow accessor items: Prop[] = []
@@ -163,7 +162,7 @@ export class Props {
   /**
    * get a prop, if not found, create a prop when createIfNone is true
    */
-  get(path: string, createIfNone = false) {
+  get(path: PropKey, createIfNone = false) {
     const { entry, nest } = splitPath(path)
 
     let prop = this.maps.get(entry)
@@ -178,19 +177,19 @@ export class Props {
     return null
   }
 
-  query(path: string, createIfNone = true) {
+  query(path: PropKey, createIfNone = true) {
     return this.get(path, createIfNone)
   }
 
-  getProp(path: string, createIfNone = true) {
+  getProp(path: PropKey, createIfNone = true) {
     return this.query(path, createIfNone) || null
   }
 
-  getPropValue(path: string) {
+  getPropValue(path: PropKey) {
     return this.getProp(path, false)?.value
   }
 
-  setPropValue(path: string, value: any) {
+  setPropValue(path: PropKey, value: any) {
     this.getProp(path, true)!.setValue(value)
   }
 
@@ -202,7 +201,7 @@ export class Props {
     }
   }
 
-  deleteKey(key: string) {
+  deleteKey(key: PropKey) {
     this.items = this.items.filter((item, i) => {
       if (item.key === key) {
         item.purge()

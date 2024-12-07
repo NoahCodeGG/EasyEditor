@@ -356,14 +356,14 @@ export class Prop {
     return this.value
   }
 
-  getAsString(): string {
+  getAsString() {
     if (this.type === 'literal') {
       return this._value ? String(this._value) : ''
     }
     return ''
   }
 
-  get(path: string, createIfNone = true): Prop | null {
+  get(path: PropKey, createIfNone = true): Prop | null {
     const type = this._type
     if (type !== 'map' && type !== 'list' && type !== 'unset' && !createIfNone) {
       return null
@@ -488,7 +488,7 @@ export class Prop {
   /**
    * check if the prop has the key, only for map and list type
    */
-  has(key: string) {
+  has(key: PropKey) {
     if (this._type !== 'map') {
       return false
     }
@@ -498,7 +498,7 @@ export class Prop {
     return Object.prototype.hasOwnProperty.call(this._value, key)
   }
 
-  deleteKey(key: string) {
+  deleteKey(key: PropKey) {
     if (this.maps) {
       const prop = this.maps.get(key)
       if (prop) {
@@ -511,24 +511,24 @@ export class Prop {
    * @see SettingTarget
    */
   @action
-  getPropValue(propName: string): any {
-    return this.get(propName)!.getValue()
+  getPropValue(key: PropKey): any {
+    return this.get(key)!.getValue()
   }
 
   /**
    * @see SettingTarget
    */
   @action
-  setPropValue(propName: string, value: any): void {
-    this.set(propName, value)
+  setPropValue(key: PropKey, value: any): void {
+    this.set(key, value)
   }
 
   /**
    * @see SettingTarget
    */
   @action
-  clearPropValue(propName: string): void {
-    this.get(propName, false)?.unset()
+  clearPropValue(key: PropKey): void {
+    this.get(key, false)?.unset()
   }
 
   @action
@@ -587,24 +587,26 @@ export const isProp = (obj: any): obj is Prop => {
  * - entry: a or 0
  * - nest: .b or [1].b
  */
-export const splitPath = (path: string) => {
+export const splitPath = (path: PropKey) => {
   let entry = path
   let nest = ''
 
-  const objIndex = path.indexOf('.', 1) // path = ".c.a.b"
-  const arrIndex = path.indexOf('[', 1) // path = "[0].a.b"
+  if (typeof path === 'string') {
+    const objIndex = path.indexOf('.', 1) // path = ".c.a.b"
+    const arrIndex = path.indexOf('[', 1) // path = "[0].a.b"
 
-  if (objIndex > 0 && ((arrIndex > 0 && objIndex < arrIndex) || arrIndex < 0)) {
-    entry = path.slice(0, objIndex)
-    nest = path.slice(objIndex + 1)
-  }
+    if (objIndex > 0 && ((arrIndex > 0 && objIndex < arrIndex) || arrIndex < 0)) {
+      entry = path.slice(0, objIndex)
+      nest = path.slice(objIndex + 1)
+    }
 
-  if (arrIndex > 0 && ((objIndex > 0 && arrIndex < objIndex) || objIndex < 0)) {
-    entry = path.slice(0, arrIndex)
-    nest = path.slice(arrIndex)
-  }
-  if (entry.startsWith('[')) {
-    entry = entry.slice(1, entry.length - 1)
+    if (arrIndex > 0 && ((objIndex > 0 && arrIndex < objIndex) || objIndex < 0)) {
+      entry = path.slice(0, arrIndex)
+      nest = path.slice(arrIndex)
+    }
+    if ((entry as string).startsWith('[')) {
+      entry = (entry as string).slice(1, (entry as string).length - 1)
+    }
   }
 
   return { entry, nest }

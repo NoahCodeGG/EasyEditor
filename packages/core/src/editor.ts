@@ -1,7 +1,7 @@
 import type { Component, ComponentMetadata } from './designer'
 import type { Plugin, PluginContextApiAssembler } from './plugin'
-import type { ProjectSchema } from './project'
 import type { Setter } from './setter-manager'
+import type { ProjectSchema } from './types'
 
 import { action, observable } from 'mobx'
 import { ComponentMetaManager, Designer, type DesignerProps } from './designer'

@@ -4,6 +4,7 @@ import {
   type Designer,
   type Editor,
   type Node,
+  type PropKey,
   type SetterManager,
   createEventBus,
 } from '../..'
@@ -87,7 +88,7 @@ export class SettingTopEntry implements SettingEntry {
     this.id = generateSessionId(nodes)
     this.first = nodes[0]
     this.designer = this.first.document?.designer
-    this.setters = editor.get<SetterManager>('setters')!
+    this.setters = editor.get<SetterManager>('setterManager')!
 
     // setups
     this.setupComponentMeta()
@@ -142,7 +143,7 @@ export class SettingTopEntry implements SettingEntry {
   /**
    * 获取当前属性值
    */
-  getValue(): any {
+  getValue() {
     return this.first?.propsData
   }
 
@@ -158,7 +159,7 @@ export class SettingTopEntry implements SettingEntry {
   /**
    * 获取子项
    */
-  get(propName: string | number): SettingField | null {
+  get(propName: PropKey): SettingField | null {
     if (!propName) return null
     return this._settingFieldMap[propName] || new SettingField(this, { name: propName })
   }
@@ -166,7 +167,7 @@ export class SettingTopEntry implements SettingEntry {
   /**
    * 设置子级属性值
    */
-  setPropValue(propName: string | number, value: any) {
+  setPropValue(propName: PropKey, value: any) {
     this.nodes.forEach(node => {
       node.setPropValue(propName.toString(), value)
     })
@@ -175,7 +176,7 @@ export class SettingTopEntry implements SettingEntry {
   /**
    * 清除已设置值
    */
-  clearPropValue(propName: string | number) {
+  clearPropValue(propName: PropKey) {
     this.nodes.forEach(node => {
       node.clearPropValue(propName.toString())
     })
@@ -184,7 +185,7 @@ export class SettingTopEntry implements SettingEntry {
   /**
    * 获取子级属性值
    */
-  getPropValue(propName: string | number): any {
+  getPropValue(propName: PropKey): any {
     return this.first.getProp(propName.toString(), true)?.getValue()
   }
 
@@ -231,7 +232,7 @@ export class SettingTopEntry implements SettingEntry {
     this.disposeFunctions = []
   }
 
-  getProp(propName: string | number) {
+  getProp(propName: PropKey) {
     return this.get(propName)
   }
 
