@@ -1,20 +1,14 @@
-import { ConfigureRender } from '@easy-editor/react-renderer/dashboard'
+import { SettingRender } from '@easy-editor/react-renderer'
 import { observer } from 'mobx-react-lite'
-import { designer, editor } from '../editor'
+import { editor } from '../editor'
 
 const Right = observer(() => {
-  const selection = designer.selection
-
   return (
     <div className='w-72 bg-white border-l border-gray-200 flex flex-col'>
       <div className='p-4 border-b border-gray-200'>
-        <h2 className='text-lg font-medium text-gray-700'>属性设置</h2>
+        <h2 className='text-lg font-medium text-gray-700'>Property Setting</h2>
       </div>
-      {selection.selected.length === 1 ? (
-        <ConfigureRender node={selection.getNodes()[0]} editor={editor} />
-      ) : (
-        <div>Empty</div>
-      )}
+      <SettingRender editor={editor} />
       {/* <div className='flex-1 overflow-y-auto p-4'>
         <div className='space-y-4'>
           <div className='space-y-2'>

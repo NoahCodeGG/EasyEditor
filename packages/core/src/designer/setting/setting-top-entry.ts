@@ -11,7 +11,7 @@ import {
 import type { SettingEntry } from './setting-entry'
 import { SettingField } from './setting-field'
 
-const generateSessionId = (nodes: Node[]) => {
+export const generateSessionId = (nodes: Node[]) => {
   return nodes
     .map(node => node.id)
     .sort()

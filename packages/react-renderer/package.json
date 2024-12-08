@@ -4,9 +4,6 @@
   "description": "React Render package for EasyEditor.",
   "type": "module",
   "main": "./src/index.ts",
-  "exports": {
-    "./dashboard": "./src/dashboard/index.ts"
-  },
   "keywords": [
     "@easy-editor",
     "react-render",

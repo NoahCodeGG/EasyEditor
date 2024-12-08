@@ -1,5 +1,4 @@
 import { action, computed, observable, untracked } from 'mobx'
-import type { Component } from 'react'
 import type { DynamicSetter, FieldConfig, FieldExtraProps, SetterType } from '../component-meta'
 import { SettingPropEntry } from './setting-prop-entry'
 import type { SettingTopEntry } from './setting-top-entry'
@@ -103,7 +102,7 @@ export class SettingField extends SettingPropEntry {
     this._expanded = value
   }
 
-  get items(): Array<SettingField | Component> {
+  get items(): SettingField[] {
     return this._items
   }
 

@@ -1,7 +1,7 @@
 import { editor, project, simulator } from '@/editor'
 import { defaultRootSchema } from '@/editor/const'
 import { TRANSFORM_STAGE } from '@easy-editor/core'
-import { DocumentSchemaRender } from '@easy-editor/react-renderer/dashboard'
+import { DocumentSchemaRender } from '@easy-editor/react-renderer'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
 

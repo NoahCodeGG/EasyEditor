@@ -160,7 +160,7 @@ export interface FieldExtraProps {
    */
   supportVariable?: boolean
 
-  onChange?: (value: any, field: any) => void
+  onChange?: (target: SettingField, value: any) => void
 }
 
 export interface ComponentConfigure {
@@ -266,6 +266,8 @@ export interface Callbacks {
 // export type SetterType = SetterConfig | SetterConfig[] | string
 export type SetterType = SetterConfig | string
 
+export type DynamicSetterProps = (target: SettingField) => Record<string, unknown>
+
 export interface SetterConfig {
   /**
    * the name of the setter
@@ -275,7 +277,7 @@ export interface SetterConfig {
   /**
    * the props pass to Setter Component
    */
-  props?: Record<string, unknown> | ((target: SettingField) => Record<string, unknown>)
+  props?: Record<string, unknown> | DynamicSetterProps
 
   /**
    * is required
@@ -296,6 +298,13 @@ export interface SetterConfig {
    *  judge which one to be selected
    */
   // condition?: (target: SettingField) => boolean
+}
+
+export const isSetterConfig = (obj: any): obj is SetterConfig => {
+  if (!isObject(obj)) {
+    return false
+  }
+  return 'componentName' in obj
 }
 
 export type DynamicSetter = (target: SettingPropEntry) => string | SetterConfig | Component

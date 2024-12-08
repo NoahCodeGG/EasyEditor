@@ -12,6 +12,7 @@ import { Detecting } from './detecting'
 import { Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
 import { DropLocation, isLocationChildrenDetail } from './location'
 import { Selection } from './selection'
+import { SettingsManager } from './setting'
 import { SettingTopEntry } from './setting/setting-top-entry'
 
 export type PropsTransducer = (
@@ -58,6 +59,8 @@ export enum DESIGNER_EVENT {
   SIMULATOR_SELECT = 'designer:simulator.select',
 
   SETTING_TOP_ENTRY_VALUE_CHANGE = 'designer:setting.top-entry.value.change',
+
+  SELECTION_CHANGE = 'designer:selection.change',
 }
 
 export class Designer {
@@ -72,6 +75,8 @@ export class Designer {
   readonly project: Project
 
   readonly selection: Selection
+
+  readonly settingsManager: SettingsManager
 
   private _dropLocation?: DropLocation
 
@@ -98,6 +103,7 @@ export class Designer {
     this.dragon = new Dragon(this)
     this.detecting = new Detecting(this)
     this.selection = new Selection(this)
+    this.settingsManager = new SettingsManager(this.editor)
 
     this.dragon.onDragstart(e => {
       this.detecting.enable = false
@@ -168,6 +174,10 @@ export class Designer {
         })
       }
     }
+
+    this.selection.onSelectionChange(ids => {
+      this.postEvent(DESIGNER_EVENT.SELECTION_CHANGE, ids)
+    })
 
     // select root node
     this.project.onCurrentDocumentChange(() => {

@@ -1,4 +1,5 @@
 export * from './setting-entry'
 export * from './setting-field'
+export * from './setting-manager'
 export * from './setting-prop-entry'
 export * from './setting-top-entry'

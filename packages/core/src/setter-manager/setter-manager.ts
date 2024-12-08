@@ -53,4 +53,25 @@ export class SetterManager {
     }
     this._settersMap.set(type, { type, ...newSetter })
   }
+
+  createSetterContent = (setter: any, props: Record<string, any>): Component => {
+    if (typeof setter === 'string') {
+      setter = this.getSetter(setter)
+      if (!setter) {
+        return null
+      }
+      if (setter.defaultProps) {
+        props = {
+          ...setter.defaultProps,
+          ...props,
+        }
+      }
+      setter = setter.component
+    }
+
+    return {
+      component: setter,
+      props,
+    }
+  }
 }
