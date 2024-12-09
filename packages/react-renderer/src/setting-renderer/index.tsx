@@ -1,105 +1,20 @@
-import {
-  type Designer,
-  type DynamicSetterProps,
-  type SetterManager,
-  type SettingField,
-  isSetterConfig,
-} from '@easy-editor/core'
+import type { Designer, SetterManager, SettingField } from '@easy-editor/core'
 import { observer } from 'mobx-react-lite'
-import { type PropsWithChildren, type ReactNode, useMemo } from 'react'
+import { useMemo } from 'react'
+import { SettingSetter } from './SettingSetter'
 import { SettingRendererContext, useSettingRendererContext } from './context'
-
-const getSetterInfo = (field: SettingField) => {
-  const { extraProps, setter } = field
-  const { defaultValue } = extraProps
-
-  let setterProps:
-    | ({
-        setters?: (ReactNode | string)[]
-      } & Record<string, unknown>)
-    | DynamicSetterProps = {}
-  let setterType: any
-  let initialValue: any = null
-
-  if (isSetterConfig(setter)) {
-    setterType = setter.componentName
-    if (setter.props) {
-      setterProps = setter.props
-      if (typeof setterProps === 'function') {
-        setterProps = setterProps(field)
-      }
-    }
-    if (setter.defaultValue != null) {
-      initialValue = setter.defaultValue
-    }
-  } else if (setter) {
-    setterType = setter
-  }
-
-  if (defaultValue != null && !('defaultValue' in setterProps)) {
-    setterProps.defaultValue = defaultValue
-    if (initialValue == null) {
-      initialValue = defaultValue
-    }
-  }
-
-  if (field.valueState === -1) {
-    setterProps.multiValue = true
-  }
-
-  return {
-    setterProps,
-    setterType,
-    defaultValue: initialValue,
-  }
-}
-
-interface SettingSetterProps extends PropsWithChildren {
-  field: SettingField
-}
-
-const SettingSetter = observer(({ field, children }: SettingSetterProps) => {
-  const { setterManager } = useSettingRendererContext()
-  const { extraProps } = field
-  const visible =
-    extraProps?.condition && typeof extraProps.condition === 'function' ? extraProps.condition(field) !== false : true
-
-  if (!visible) {
-    return null
-  }
-
-  const { setterProps = {}, setterType, defaultValue = null } = getSetterInfo(field)
-  const onChange = extraProps?.onChange
-  const value = field.valueState === -1 ? null : field.getValue()
-  const { component: SetterComponent, props: mixedSetterProps } = setterManager.createSetterContent(
-    setterType,
-    setterProps,
-  )
-
-  return (
-    <SetterComponent
-      key={field.id}
-      field={field}
-      selected={field.top?.getNode()}
-      defaultValue={defaultValue}
-      value={extraProps?.getValue ? extraProps.getValue(field, value) : value}
-      onChange={(newVal: any) => {
-        field.setValue(newVal)
-        extraProps?.setValue && extraProps.setValue(field, newVal)
-        onChange?.(field, newVal)
-      }}
-      {...mixedSetterProps}
-    >
-      {children}
-    </SetterComponent>
-  )
-})
 
 interface SettingFieldItemProps {
   field: SettingField
 }
 
 const SettingFieldItem = observer(({ field }: SettingFieldItemProps) => {
+  const { customFieldItem } = useSettingRendererContext()
+
+  if (customFieldItem) {
+    return customFieldItem(field, <SettingSetter field={field} />)
+  }
+
   return (
     <div className='space-y-2'>
       <label htmlFor={field.id} className='block text-sm font-medium text-gray-700'>
@@ -115,6 +30,19 @@ interface SettingFieldGroupProps {
 }
 
 const SettingFieldGroup = ({ field }: SettingFieldGroupProps) => {
+  const { customFieldGroup } = useSettingRendererContext()
+
+  if (customFieldGroup) {
+    return customFieldGroup(
+      field,
+      <SettingSetter field={field}>
+        {field.items?.map(item => (
+          <SettingFieldView key={item.id} field={item} />
+        ))}
+      </SettingSetter>,
+    )
+  }
+
   return (
     <SettingSetter field={field}>
       {field.items?.map(item => (
@@ -138,7 +66,8 @@ export const SettingFieldView = ({ field }: SettingFieldViewProps) => {
 
 interface SettingRenderProps extends SettingRendererContext {}
 
-export const SettingRender = observer<SettingRenderProps>(({ editor }) => {
+export const SettingRender = observer<SettingRenderProps>(props => {
+  const { editor } = props
   const designer = editor.get<Designer>('designer')!
   const setterManager = editor.get<SetterManager>('setterManager')!
   const { settingsManager } = designer
@@ -149,9 +78,11 @@ export const SettingRender = observer<SettingRenderProps>(({ editor }) => {
     const ctx = {} as SettingRendererContext
     ctx.setterManager = setterManager
     ctx.settingsManager = settingsManager
+    ctx.customFieldItem = props.customFieldItem
+    ctx.customFieldGroup = props.customFieldGroup
 
     return ctx
-  }, [setterManager, settingsManager])
+  }, [setterManager, settingsManager, props])
 
   if (!settings) {
     // 未选中节点，提示选中 或者 显示根节点设置

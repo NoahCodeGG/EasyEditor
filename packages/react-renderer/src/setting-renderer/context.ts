@@ -1,12 +1,14 @@
-import type { Editor } from '@easy-editor/core'
-import { createContext, use } from 'react'
+import type { Editor, SettingField } from '@easy-editor/core'
+import { type ReactNode, createContext, use } from 'react'
 
 export interface SettingRendererContext {
   editor: Editor
 
-  // setterManager: SetterManager
+  /** 自定义渲染 Field Item */
+  customFieldItem?: (field: SettingField, setter: ReactNode) => ReactNode
 
-  // settingsManager: SettingsManager
+  /** 自定义渲染 Field Item */
+  customFieldGroup?: (field: SettingField, setters: ReactNode) => ReactNode
 
   [extra: string]: any
 }
