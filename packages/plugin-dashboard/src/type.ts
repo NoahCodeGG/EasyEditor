@@ -51,7 +51,7 @@ declare module '@easy-editor/core' {
     /**
      * 是否是分组
      */
-    isGroup: boolean
+    isGroup?: boolean
 
     /**
      * dashboard 额外信息

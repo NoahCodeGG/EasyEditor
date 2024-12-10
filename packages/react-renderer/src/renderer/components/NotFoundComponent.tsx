@@ -2,7 +2,7 @@ import type { NodeSchema } from '@easy-editor/core'
 import type { FC } from 'react'
 import { logger } from '../utils'
 
-interface NotFoundComponentProps extends NodeSchema {
+export interface NotFoundComponentProps extends NodeSchema {
   enableStrictNotFoundMode?: boolean
 }
 

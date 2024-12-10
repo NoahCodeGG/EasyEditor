@@ -2,7 +2,7 @@ import type { NodeSchema } from '@easy-editor/core'
 import type { FC } from 'react'
 import { logger } from '../utils'
 
-interface FaultComponentProps extends NodeSchema {
+export interface FaultComponentProps extends NodeSchema {
   error?: Error | string
 }
 

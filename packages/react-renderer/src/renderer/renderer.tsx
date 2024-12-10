@@ -1,7 +1,8 @@
-import type { DesignMode, NodeSchema, RootSchema } from '@easy-editor/core'
-import { memo, useCallback, useRef } from 'react'
-import FaultComponent from './components/FaultComponent'
-import NotFoundComponent from './components/NotFoundComponent'
+import { type DesignMode, type NodeSchema, type RootSchema, logger } from '@easy-editor/core'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import FaultComponent, { type FaultComponentProps } from './components/FaultComponent'
+import NotFoundComponent, { type NotFoundComponentProps } from './components/NotFoundComponent'
 import { RendererContext } from './context'
 
 export interface RendererProps {
@@ -9,7 +10,7 @@ export interface RendererProps {
   schema: RootSchema | NodeSchema
 
   /** 组件依赖的实例 */
-  components: Record<string, React.ReactNode>
+  components: Record<string, React.ElementType>
 
   /** CSS 类名 */
   className?: string
@@ -56,10 +57,10 @@ export interface RendererProps {
   rendererName?: 'LowCodeRenderer' | 'PageRenderer' | string
 
   /** 当找不到组件时，显示的组件 */
-  notFoundComponent?: React.ReactNode
+  notFoundComponent?: React.ElementType<NotFoundComponentProps>
 
   /** 当组件渲染异常时，显示的组件 */
-  faultComponent?: React.ReactNode
+  faultComponent?: React.ElementType<FaultComponentProps>
 
   /**
    * @default false
@@ -79,77 +80,118 @@ export interface RendererAppHelper {
   constants?: Record<string, any>
 }
 
-export const Renderer: React.FC<RendererProps> = memo(props => {
-  const __ref = useRef<any>(null)
+export interface RendererState {
+  engineRenderError?: boolean
+  error?: Error
+}
 
-  const getRef = useCallback(
-    (ref: any) => {
-      __ref.current = ref
-      if (ref) {
-        props.onCompGetRef?.(schema, ref)
-      }
-    },
-    [schema, props.onCompGetRef],
-  )
+export const Renderer: React.FC<RendererProps> = memo(
+  props => {
+    const { schema = {} as RootSchema, components = {}, designMode = 'design', suspended = false } = props
 
-  const createElement = useCallback(
-    (Component: any, props: any, children?: any) => {
-      return props.customCreateElement ? (
+    const [state, setState] = useState<RendererState>({
+      engineRenderError: false,
+      error: undefined,
+    })
+    const __ref = useRef<any>(null)
+
+    const getRef = useCallback(
+      (ref: any) => {
+        __ref.current = ref
+        if (ref) {
+          props.onCompGetRef?.(schema, ref)
+        }
+      },
+      [schema, props.onCompGetRef],
+    )
+
+    const createElement = useCallback((Component: any, props: any, children?: any) => {
+      return props?.customCreateElement ? (
         props.customCreateElement(Component, props, children)
       ) : (
         <Component {...props}>{children}</Component>
       )
-    },
-    [props.customCreateElement],
-  )
+    }, [])
 
-  const getNotFoundComponent = useCallback(() => {
-    return props.notFoundComponent || NotFoundComponent
-  }, [props.notFoundComponent])
+    const getNotFoundComponent = useCallback(() => {
+      return props.notFoundComponent || NotFoundComponent
+    }, [props.notFoundComponent])
 
-  const getFaultComponent = useCallback(() => {
-    return props.faultComponent || FaultComponent
-  }, [props.faultComponent])
+    const getFaultComponent = useCallback(() => {
+      return props.faultComponent || FaultComponent
+    }, [props.faultComponent])
 
-  const getComp = useCallback(() => {
-    const { componentName } = props.schema
-    return props.components[componentName]
-  }, [props.components, props.schema])
+    const catchError = useCallback((error: Error) => {
+      setState(prev => ({ ...prev, engineRenderError: true, error }))
+    }, [])
 
-  if (props.suspended) {
-    return null
-  }
-
-  if (!props.schema) {
-    return null
-  }
-
-  const Comp = getComp()
-
-  if (Comp) {
-    return (
-      <RendererContext
-        value={{
-          appHelper: props.appHelper,
-          components: props.components,
-          engine: {
-            props,
-            __ref: __ref.current,
-          },
-        }}
-      >
-        <Comp
-          key={props.schema.id}
-          ref={getRef}
-          __appHelper={props.appHelper}
-          __components={props.components}
-          __schema={props.schema}
-          __designMode={props.designMode}
-          {...props}
-        />
-      </RendererContext>
+    const getComp = useCallback(
+      (componentName: string) => {
+        return components[componentName]
+      },
+      [components],
     )
-  }
 
-  return null
-})
+    logger.log(`entry.componentDidUpdate - ${schema.componentName}`)
+    useEffect(() => {
+      logger.log(`entry.componentDidMount - ${schema && schema.componentName}`)
+      return () => {
+        logger.log(`entry.componentWillUnmount - ${schema && schema.componentName}`)
+      }
+    }, [])
+
+    if (suspended) {
+      return null
+    }
+
+    if (!schema) {
+      return null
+    }
+
+    if (state.engineRenderError) {
+      const FaultComponent = getFaultComponent()
+      return <FaultComponent componentName={schema.componentName} error={state.error} />
+    }
+
+    const Comp = getComp(schema.componentName)
+
+    if (Comp) {
+      return (
+        <RendererContext
+          value={{
+            appHelper: props.appHelper,
+            components: props.components,
+            engine: {
+              props,
+              __ref: __ref.current,
+              state,
+              setState,
+              getRef,
+              getComp,
+              createElement,
+              getNotFoundComponent,
+              getFaultComponent,
+            },
+          }}
+        >
+          <ErrorBoundary catchError={catchError}>
+            <Comp
+              key={props.schema.id}
+              ref={getRef}
+              __appHelper={props.appHelper}
+              __components={props.components}
+              __schema={props.schema}
+              __designMode={props.designMode}
+              {...props}
+            />
+          </ErrorBoundary>
+        </RendererContext>
+      )
+    }
+
+    return null
+  },
+  (prevProps, nextProps) => {
+    return !nextProps.suspended
+  },
+)
