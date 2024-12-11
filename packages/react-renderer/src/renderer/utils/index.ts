@@ -41,3 +41,21 @@ export const getValue = (obj: any, path: string, defaultValue = {}) => {
   }
   return res
 }
+
+export function transformArrayToMap(arr: any[], key: string, overwrite = true) {
+  if (!arr || !Array.isArray(arr)) {
+    return {}
+  }
+  const res: any = {}
+  arr.forEach(item => {
+    const curKey = item[key]
+    if (item[key] === undefined) {
+      return
+    }
+    if (res[curKey] && !overwrite) {
+      return
+    }
+    res[curKey] = item
+  })
+  return res
+}

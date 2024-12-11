@@ -132,13 +132,16 @@ export const Renderer: React.FC<RendererProps> = memo(
       [components],
     )
 
-    logger.log(`entry.componentDidUpdate - ${schema.componentName}`)
     useEffect(() => {
       logger.log(`entry.componentDidMount - ${schema && schema.componentName}`)
       return () => {
         logger.log(`entry.componentWillUnmount - ${schema && schema.componentName}`)
       }
     }, [])
+
+    useEffect(() => {
+      logger.log(`entry.componentDidUpdate - ${schema.componentName}`)
+    }, [props.schema])
 
     if (suspended) {
       return null
