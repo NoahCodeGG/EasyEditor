@@ -41,6 +41,17 @@ const getSetterInfo = (field: SettingField) => {
     setterProps.multiValue = true
   }
 
+  // 根据是否支持变量配置做相应的更改
+  const supportVariable = field.extraProps?.supportVariable
+  const isUseVariableSetter = supportVariable
+  if (isUseVariableSetter === false) {
+    return {
+      setterProps,
+      initialValue,
+      setterType,
+    }
+  }
+
   return {
     setterProps,
     setterType,
@@ -76,11 +87,22 @@ export const SettingSetter = observer(({ field, children }: SettingSetterProps) 
       field={field}
       selected={field.top?.getNode()}
       initialValue={initialValue}
-      value={extraProps?.getValue ? extraProps.getValue(field, value) : value}
+      value={value}
       onChange={(newVal: any) => {
         field.setValue(newVal)
-        extraProps?.setValue && extraProps.setValue(field, newVal)
         onChange?.(field, newVal)
+      }}
+      onInitial={() => {
+        if (initialValue == null) {
+          return
+        }
+        const value = typeof initialValue === 'function' ? initialValue(field) : initialValue
+        field.setValue(value, true)
+      }}
+      removeProp={() => {
+        if (field.name) {
+          field.parent.clearPropValue(field.name)
+        }
       }}
       {...mixedSetterProps}
     >

@@ -67,7 +67,7 @@ export const SettingFieldView = ({ field }: SettingFieldViewProps) => {
 interface SettingRenderProps extends SettingRendererContext {}
 
 export const SettingRender = observer<SettingRenderProps>(props => {
-  const { editor } = props
+  const { editor, customFieldItem, customFieldGroup } = props
   const designer = editor.get<Designer>('designer')!
   const setterManager = editor.get<SetterManager>('setterManager')!
   const { settingsManager } = designer
@@ -78,11 +78,11 @@ export const SettingRender = observer<SettingRenderProps>(props => {
     const ctx = {} as SettingRendererContext
     ctx.setterManager = setterManager
     ctx.settingsManager = settingsManager
-    ctx.customFieldItem = props.customFieldItem
-    ctx.customFieldGroup = props.customFieldGroup
+    ctx.customFieldItem = customFieldItem
+    ctx.customFieldGroup = customFieldGroup
 
     return ctx
-  }, [setterManager, settingsManager, props])
+  }, [setterManager, settingsManager, customFieldItem, customFieldGroup])
 
   if (!settings) {
     // 未选中节点，提示选中 或者 显示根节点设置
