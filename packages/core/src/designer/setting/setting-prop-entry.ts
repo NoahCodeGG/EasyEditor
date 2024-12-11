@@ -7,6 +7,7 @@ import {
   type Node,
   type PropKey,
   createEventBus,
+  isJSExpression,
   uniqueId,
 } from '../..'
 import type { Editor } from '../../editor'
@@ -181,7 +182,7 @@ export class SettingPropEntry implements SettingEntry {
   /**
    * 设置当前属性值
    */
-  setValue(val: any, extraOptions?: SetValueOptions) {
+  setValue(val: any, isHotValue?: boolean, extraOptions?: SetValueOptions) {
     const oldValue = this.getValue()
     if (this.type === 'field') {
       this.name?.toString() && this.parent.setPropValue(this.name, val)
@@ -303,5 +304,54 @@ export class SettingPropEntry implements SettingEntry {
 
   isIgnore() {
     return false
+  }
+
+  getVariableValue() {
+    const v = this.getValue()
+    if (isJSExpression(v)) {
+      return v.value
+    }
+    return ''
+  }
+
+  setVariableValue(value: string) {
+    const v = this.getValue()
+    this.setValue({
+      type: 'JSExpression',
+      value,
+      mock: isJSExpression(v) ? v.mock : v,
+    })
+  }
+
+  setUseVariable(flag: boolean) {
+    if (this.isUseVariable() === flag) {
+      return
+    }
+    const v = this.getValue()
+    if (this.isUseVariable()) {
+      this.setValue(v.mock)
+    } else {
+      this.setValue({
+        type: 'JSExpression',
+        value: '',
+        mock: v,
+      })
+    }
+  }
+
+  isUseVariable() {
+    return isJSExpression(this.getValue())
+  }
+
+  get useVariable() {
+    return this.isUseVariable()
+  }
+
+  getMockOrValue() {
+    const v = this.getValue()
+    if (isJSExpression(v)) {
+      return v.mock
+    }
+    return v
   }
 }

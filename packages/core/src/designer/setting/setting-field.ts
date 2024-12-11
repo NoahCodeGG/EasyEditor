@@ -1,4 +1,5 @@
 import { action, computed, observable, untracked } from 'mobx'
+import { cloneDeep, isJSExpression } from '../..'
 import type { DynamicSetter, FieldConfig, FieldExtraProps, SetterType } from '../component-meta'
 import { SettingPropEntry } from './setting-prop-entry'
 import type { SettingTopEntry } from './setting-top-entry'
@@ -6,6 +7,7 @@ import type { SettingTopEntry } from './setting-top-entry'
 export interface SetValueOptions {
   disableMutator?: boolean
   type?: PropValueChangedType
+  fromSetHotValue?: boolean
 }
 
 export enum PropValueChangedType {
@@ -37,6 +39,8 @@ export class SettingField extends SettingPropEntry {
   readonly isRequired: boolean
 
   private _config: FieldConfig
+
+  private hotValue: any
 
   parent: SettingTopEntry | SettingField
 
@@ -129,7 +133,6 @@ export class SettingField extends SettingPropEntry {
   }
 
   // ======= compatibles for vision ======
-
   getConfig<K extends keyof FieldConfig>(configName?: K): FieldConfig[K] | FieldConfig {
     if (configName) {
       return this.config[configName]
@@ -147,8 +150,61 @@ export class SettingField extends SettingPropEntry {
   }
 
   @action
-  setValue(val: any, extraOptions?: SetValueOptions) {
-    super.setValue(val, extraOptions)
+  setValue(val: any, isHotValue?: boolean, extraOptions?: SetValueOptions) {
+    if (isHotValue) {
+      this.setHotValue(val, extraOptions)
+      return
+    }
+    super.setValue(val, isHotValue, extraOptions)
+  }
+
+  getHotValue(): any {
+    if (this.hotValue) {
+      return this.hotValue
+    }
+    // avoid View modify
+    let v = cloneDeep(this.getMockOrValue())
+    if (v == null) {
+      v = this.extraProps.defaultValue
+    }
+    return v
+  }
+
+  @action
+  setHotValue(data: any, options?: SetValueOptions) {
+    this.hotValue = data
+    const value = data
+    if (options) {
+      options.fromSetHotValue = true
+    } else {
+      options = { fromSetHotValue: true }
+    }
+    if (this.isUseVariable()) {
+      const oldValue = this.getValue()
+      if (isJSExpression(value)) {
+        this.setValue(
+          {
+            type: 'JSExpression',
+            value: value.value,
+            mock: oldValue.mock,
+          },
+          false,
+          options,
+        )
+      } else {
+        this.setValue(
+          {
+            type: 'JSExpression',
+            value: oldValue.value,
+            mock: value,
+          },
+          false,
+          options,
+        )
+      }
+    } else {
+      this.setValue(value, false, options)
+    }
   }
 }
 
