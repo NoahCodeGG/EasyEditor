@@ -1,6 +1,6 @@
 import type { Node, PropKey } from '../../document'
-import { isObject } from '../../document'
 import type { NodeSchema } from '../../types'
+import { isObject } from '../../utils'
 import type { SettingField, SettingPropEntry } from '../setting'
 
 export interface ComponentMetadata {

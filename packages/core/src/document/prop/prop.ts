@@ -5,13 +5,14 @@ import type { Props } from './props'
 import { action, computed, isObservableArray, observable, set, untracked } from 'mobx'
 import { DESIGNER_EVENT } from '../../designer'
 import { TRANSFORM_STAGE } from '../../types'
-import { uniqueId } from '../../utils'
+import { isObject, isPlainObject, uniqueId } from '../../utils'
+import { valueToSource } from './value-to-source'
 
 export const UNSET = Symbol.for('unset')
 export type UNSET = typeof UNSET
 
-// TODO: expression & slot
-export type ValueTypes = 'unset' | 'literal' | 'list' | 'map'
+// TODO: slot
+export type ValueTypes = 'unset' | 'literal' | 'list' | 'map' | 'expression'
 
 /**
  * a common interface for Prop and Props
@@ -32,7 +33,7 @@ export type PropValue = CompositeValue
 
 export type PropsMap = CompositeObject<NodeSchema | NodeSchema[]>
 
-export type CompositeValue = JSONValue | CompositeArray | CompositeObject
+export type CompositeValue = JSONValue | CompositeArray | CompositeObject | JSExpression | JSFunction
 
 export type CompositeArray = CompositeValue[]
 
@@ -46,6 +47,66 @@ export type JSONArray = JSONValue[]
 
 export interface JSONObject {
   [key: PropKey]: JSONValue
+}
+
+export interface JSExpression {
+  type: 'JSExpression'
+
+  /**
+   * 表达式字符串
+   */
+  value: string
+
+  /**
+   * 模拟值
+   *
+   * @todo 待标准描述
+   */
+  mock?: any
+
+  /**
+   * 源码
+   *
+   * @todo 待标准描述
+   */
+  compiled?: string
+}
+
+export interface JSFunction {
+  type: 'JSFunction'
+
+  /**
+   * 函数定义，或直接函数表达式
+   */
+  value: string
+
+  /**
+   * 源码
+   *
+   * @todo 待标准描述
+   */
+  compiled?: string
+
+  /**
+   * 模拟值
+   *
+   * @todo 待标准描述
+   */
+  mock?: any
+
+  /**
+   * 额外扩展属性，如 extType、events
+   *
+   * @todo 待标准描述
+   */
+  [key: string]: any
+}
+
+export const isJSExpression = (data: any): data is JSExpression => {
+  if (!isObject(data)) {
+    return false
+  }
+  return data.type === 'JSExpression' && data.extType !== 'function'
 }
 
 export class Prop {
@@ -72,6 +133,48 @@ export class Prop {
   @computed
   get value(): unknown | UNSET {
     return this.export(TRANSFORM_STAGE.SERIALIZE)
+  }
+
+  private _code: string | null = null
+
+  /**
+   * 获得表达式值
+   */
+  @computed get code() {
+    if (isJSExpression(this.value)) {
+      return this.value.value
+    }
+    return this._code != null ? this._code : JSON.stringify(this.value)
+  }
+
+  /**
+   * 设置表达式值
+   */
+  set code(code: string) {
+    if (isJSExpression(this._value)) {
+      this.setValue({
+        ...this._value,
+        value: code,
+      })
+      this._code = code
+      return
+    }
+
+    try {
+      const v = JSON.parse(code)
+      this.setValue(v)
+      this._code = code
+      return
+    } catch (e) {
+      // ignore
+    }
+
+    this.setValue({
+      type: 'JSExpression',
+      value: code,
+      mock: this._value,
+    })
+    this._code = code
   }
 
   @observable.ref private accessor _type: ValueTypes = 'unset'
@@ -203,7 +306,7 @@ export class Prop {
       return undefined
     }
 
-    if (type === 'literal') {
+    if (type === 'literal' || type === 'expression') {
       return this._value as CompositeValue
     }
 
@@ -333,7 +436,17 @@ export class Prop {
     } else if (Array.isArray(val)) {
       this._type = 'list'
     } else if (isPlainObject(val)) {
-      this._type = 'map'
+      if (isJSExpression(val)) {
+        this._type = 'expression'
+      } else {
+        this._type = 'map'
+      }
+    } else {
+      this._type = 'expression'
+      this._value = {
+        type: 'JSExpression',
+        value: valueToSource(val),
+      }
     }
 
     this.dispose()
@@ -618,16 +731,4 @@ export const splitPath = (path: PropKey) => {
 export function isValidArrayIndex(key: any, limit = -1): key is number {
   const n = Number.parseFloat(String(key))
   return n >= 0 && Math.floor(n) === n && Number.isFinite(n) && (limit < 0 || n < limit)
-}
-
-export const isObject = (value: any): value is Record<string, unknown> => {
-  return value !== null && typeof value === 'object'
-}
-
-export const isPlainObject = (value: any): value is any => {
-  if (!isObject(value)) {
-    return false
-  }
-  const proto = Object.getPrototypeOf(value)
-  return proto === Object.prototype || proto === null || Object.getPrototypeOf(proto) === null
 }
