@@ -28,9 +28,15 @@
   ],
   "peerDependencies": {
     "@easy-editor/core": "workspace:*",
+    "@types/react": "^19.0.1",
     "mobx-react-lite": "^4.0.5",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@types/react": "^19.0.1"
+    "react-dom": "^19.0.0"
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12"
   }
 }

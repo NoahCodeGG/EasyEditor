@@ -1,4 +1,4 @@
-import type { CompositeValue, JSONObject, PropsMap } from '../document'
+import type { CompositeValue, JSExpression, JSONObject, PropsMap } from '../document'
 
 export interface ProjectSchema<T = RootSchema> {
   id?: string
@@ -88,3 +88,5 @@ export interface NodeSchema {
 
   [key: string]: any
 }
+
+export type NodeData = NodeSchema | JSExpression

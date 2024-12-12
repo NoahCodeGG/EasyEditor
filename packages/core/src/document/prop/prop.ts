@@ -109,6 +109,13 @@ export const isJSExpression = (data: any): data is JSExpression => {
   return data.type === 'JSExpression' && data.extType !== 'function'
 }
 
+export function isJSFunction(data: any): data is JSFunction {
+  if (!isObject(data)) {
+    return false
+  }
+  return data.type === 'JSFunction'
+}
+
 export class Prop {
   readonly isProp = true
 
