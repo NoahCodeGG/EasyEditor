@@ -61,6 +61,8 @@ export enum DESIGNER_EVENT {
   SETTING_TOP_ENTRY_VALUE_CHANGE = 'designer:setting.top-entry.value.change',
 
   SELECTION_CHANGE = 'designer:selection.change',
+
+  NODE_RENDER = 'designer:node.render',
 }
 
 export class Designer {

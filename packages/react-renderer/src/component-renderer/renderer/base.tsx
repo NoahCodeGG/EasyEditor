@@ -12,6 +12,7 @@ import {
 import { forEach, isEmpty } from 'lodash-es'
 import { Component, createElement } from 'react'
 import { RendererContext } from './context'
+import { type ComponentConstruct, compWrapper, leafWrapper } from './hoc'
 import type { NodeInfo, RendererAppHelper } from './types'
 import {
   capitalizeFirstLetter,
@@ -74,25 +75,7 @@ export function getSchemaChildren(schema: NodeSchema | undefined) {
     return
   }
 
-  if (!schema.props) {
-    return schema.children
-  }
-
-  if (!schema.children) {
-    return schema.props.children
-  }
-
-  if (!schema.props.children) {
-    return schema.children
-  }
-
-  let result = ([] as NodeData[]).concat(schema.children)
-  if (Array.isArray(schema.props.children)) {
-    result = result.concat(schema.props.children)
-  } else {
-    result.push(schema.props.children)
-  }
-  return result
+  return schema.children
 }
 
 export interface BaseRendererProps {
@@ -130,6 +113,7 @@ export interface BaseRendererContext {
 
 const DEFAULT_LOOP_ARG_ITEM = 'item'
 const DEFAULT_LOOP_ARG_INDEX = 'index'
+let scopeIdx = 0
 
 export class BaseRenderer extends Component<BaseRendererProps, Record<string, any>> {
   [key: string]: any
@@ -607,7 +591,7 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
           props: transformArrayToMap(componentInfo.props, 'name'),
         }) || {}
 
-      this.__componentHOCs.forEach((ComponentConstruct: IComponentConstruct) => {
+      this.__componentHOCs.forEach(ComponentConstruct => {
         Comp = ComponentConstruct(Comp, {
           schema,
           componentInfo,
@@ -670,9 +654,9 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
    * get Component HOCs
    *
    * @readonly
-   * @type {IComponentConstruct[]}
+   * @type {ComponentConstruct[]}
    */
-  get __componentHOCs(): IComponentConstruct[] {
+  get __componentHOCs(): ComponentConstruct[] {
     if (this.__designModeIsDesign) {
       return [leafWrapper, compWrapper]
     }
@@ -871,14 +855,17 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
   }
 
   __renderContextProvider = (customProps?: object, children?: any) => {
-    return createElement(RendererContext, {
-      value: {
-        ...this.context,
-        blockContext: this,
-        ...(customProps || {}),
+    return createElement(
+      RendererContext,
+      {
+        value: {
+          ...this.context,
+          blockContext: this,
+          ...(customProps || {}),
+        },
       },
-      children: children || this.__createDom(),
-    })
+      children || this.__createDom(),
+    )
   }
 
   __renderContextConsumer = (children: any) => {
@@ -887,7 +874,7 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
 
   __getHOCWrappedComponent(OriginalComp: any, schema: any, scope: any) {
     let Comp = OriginalComp
-    this.__componentHOCs.forEach((ComponentConstruct: IComponentConstruct) => {
+    this.__componentHOCs.forEach(ComponentConstruct => {
       Comp = ComponentConstruct(Comp, {
         schema,
         componentInfo: {},
@@ -986,7 +973,7 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
     return this.appHelper?.constants
   }
 
-  render() {
-    return null
-  }
+  // render() {
+  //   return null
+  // }
 }

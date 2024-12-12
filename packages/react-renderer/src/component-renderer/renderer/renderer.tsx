@@ -1,9 +1,11 @@
 import { type DesignMode, type NodeSchema, type RootSchema, logger } from '@easy-editor/core'
 import { isEmpty } from 'lodash-es'
 import { Component, createElement } from 'react'
+import { CompRenderer } from './component'
 import FaultComponent, { type FaultComponentProps } from './components/FaultComponent'
 import NotFoundComponent, { type NotFoundComponentProps } from './components/NotFoundComponent'
 import { RendererContext } from './context'
+import { PageRenderer } from './page'
 import type { RendererAppHelper } from './types'
 import { isSchema } from './utils'
 
@@ -85,7 +87,12 @@ export interface RendererState {
   error?: Error
 }
 
-class Renderer extends Component<RendererProps> {
+const RENDERER_COMPS = {
+  PageRenderer,
+  CompRenderer,
+}
+
+export class Renderer extends Component<RendererProps> {
   static displayName = 'Renderer'
 
   state: Partial<RendererState> = {}
@@ -156,15 +163,15 @@ class Renderer extends Component<RendererProps> {
   getComp() {
     const { schema, components } = this.props
     const { componentName } = schema
-    const Comp = components[componentName]
-    // const allComponents = { ...RENDERER_COMPS, ...components }
+    const allComponents = { ...RENDERER_COMPS, ...components }
     // let Comp = allComponents[componentName] || RENDERER_COMPS[`${componentName}Renderer`]
     // if (Comp && Comp.prototype) {
     //   if (!(Comp.prototype instanceof BaseRenderer)) {
     //     Comp = RENDERER_COMPS[`${componentName}Renderer`]
     //   }
     // }
-    return Comp
+    // TODO: 默认最顶层使用 PageRenderer
+    return PageRenderer
   }
 
   render() {
@@ -173,7 +180,7 @@ class Renderer extends Component<RendererProps> {
       return null
     }
     // 兼容乐高区块模板
-    if (schema.componentName !== 'Div' && !isSchema(schema)) {
+    if (!isSchema(schema)) {
       logger.error(
         'The root component name needs to be one of Page、Block、Component, please check the schema: ',
         schema,
