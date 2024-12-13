@@ -1,10 +1,9 @@
 import { TRANSFORM_STAGE } from '@easy-editor/core'
-import { ReactRenderer } from '@easy-editor/react-renderer'
+import { DashboardRenderer } from '@easy-editor/react-renderer-dashboard'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
 import { project, simulator } from '../editor'
 import { defaultRootSchema } from '../editor/const'
-
 const Center = observer(() => {
   const viewportRef = useRef<HTMLDivElement>(null)
   const docSchema = project.currentDocument?.export(TRANSFORM_STAGE.RENDER)
@@ -27,16 +26,16 @@ const Center = observer(() => {
         </div> */}
         <div className='bg-white rounded-lg h-full border-2 border-dashed border-gray-300 relative' ref={viewportRef}>
           {/* {docSchema && <DocumentSchemaRender editor={editor} schema={docSchema} designMode='design' />} */}
-          {/* <DashboardRenderer
-            components={simulator.components}
-            schema={docSchema}
-            onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
-          /> */}
-          <ReactRenderer
+          <DashboardRenderer
             components={simulator.components}
             schema={docSchema}
             onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
           />
+          {/* <ReactRenderer
+            components={simulator.components}
+            schema={docSchema}
+            onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
+          /> */}
         </div>
       </div>
     </div>

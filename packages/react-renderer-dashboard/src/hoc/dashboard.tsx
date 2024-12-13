@@ -1,7 +1,6 @@
 import type { NodeSchema } from '@easy-editor/core'
+import { type ComponentHocInfo, createForwardRefHocElement } from '@easy-editor/react-renderer'
 import { Component, createElement } from 'react'
-import { createForwardRefHocElement } from '../../renderer'
-import type { ComponentHocInfo } from '../../renderer/hoc'
 
 export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo) {
   // if (cache.has(options.schema.id) && cache.get(options.schema.id)?.Comp === Comp) {

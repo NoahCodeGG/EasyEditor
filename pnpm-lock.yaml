@@ -98,6 +98,9 @@ importers:
       '@easy-editor/react-renderer':
         specifier: workspace:*
         version: link:../../packages/react-renderer
+      '@easy-editor/react-renderer-dashboard':
+        specifier: workspace:*
+        version: link:../../packages/react-renderer-dashboard
       mobx-react-lite:
         specifier: ^4.0.5
         version: 4.0.7(mobx@6.13.5)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -174,6 +177,34 @@ importers:
       '@easy-editor/core':
         specifier: workspace:*
         version: link:../core
+      '@types/react':
+        specifier: ^19.0.1
+        version: 19.0.1
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
+      mobx-react-lite:
+        specifier: ^4.0.5
+        version: 4.0.7(mobx@6.13.5)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      react:
+        specifier: ^19.0.0
+        version: 19.0.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.0.0(react@19.0.0)
+    devDependencies:
+      '@types/lodash-es':
+        specifier: ^4.17.12
+        version: 4.17.12
+
+  packages/react-renderer-dashboard:
+    dependencies:
+      '@easy-editor/core':
+        specifier: workspace:*
+        version: link:../core
+      '@easy-editor/react-renderer':
+        specifier: workspace:*
+        version: link:../react-renderer
       '@types/react':
         specifier: ^19.0.1
         version: 19.0.1

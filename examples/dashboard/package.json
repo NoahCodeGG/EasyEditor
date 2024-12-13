@@ -12,6 +12,7 @@
   "dependencies": {
     "@easy-editor/core": "workspace:*",
     "@easy-editor/react-renderer": "workspace:*",
+    "@easy-editor/react-renderer-dashboard": "workspace:*",
     "@easy-editor/plugin-dashboard": "workspace:*",
     "mobx-react-lite": "^4.0.5",
     "react": "^19.0.0",

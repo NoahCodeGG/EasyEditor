@@ -1,6 +1,4 @@
-import baseRendererFactory from '../../renderer/base'
-import { compWrapper } from '../../renderer/hoc/comp'
-import { type ComponentConstruct, leafWrapper } from '../../renderer/hoc/leaf'
+import { type ComponentConstruct, baseRendererFactory, compWrapper, leafWrapper } from '@easy-editor/react-renderer'
 import { dashboardWrapper } from '../hoc/dashboard'
 
 export const dashboardBaseRendererFactory: () => any = () => {
