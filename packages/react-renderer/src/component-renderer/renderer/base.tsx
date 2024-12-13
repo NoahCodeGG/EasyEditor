@@ -15,7 +15,6 @@ import { RendererContext } from './context'
 import { type ComponentConstruct, compWrapper, leafWrapper } from './hoc'
 import type { NodeInfo, RendererAppHelper } from './types'
 import {
-  capitalizeFirstLetter,
   checkPropTypes,
   getValue,
   isSchema,
@@ -150,8 +149,9 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
    */
   __styleElement: any
 
-  constructor(props: BaseRendererProps) {
+  constructor(props: BaseRendererProps, context: BaseRendererContext) {
     super(props)
+    this.context = context
     this.__parseExpression = (str: string, self: any) => {
       return parseExpression({ str, self, thisRequired: props?.thisRequiredInJSE, logScope: props.componentName })
     }
@@ -167,7 +167,6 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
     this.__compScopes = {}
     this.__instanceMap = {}
     this.__bindCustomMethods(props)
-    this.__initI18nAPIs()
   }
 
   __afterInit(_props: BaseRendererProps) {}
@@ -869,7 +868,7 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
   }
 
   __renderContextConsumer = (children: any) => {
-    return createElement(RendererContext, {}, children)
+    return createElement(RendererContext.Consumer, {}, children)
   }
 
   __getHOCWrappedComponent(OriginalComp: any, schema: any, scope: any) {
@@ -952,8 +951,9 @@ export class BaseRenderer extends Component<BaseRendererProps, Record<string, an
       extraComponents = [extraComponents]
     }
 
-    const builtin = capitalizeFirstLetter(this.__namespace)
-    const componentNames = [builtin, ...extraComponents]
+    // const builtin = capitalizeFirstLetter(this.__namespace)
+    // const componentNames = [builtin, ...extraComponents]
+    const componentNames = [...Object.keys(this.props.__components), ...extraComponents]
     return !isSchema(schema) || !componentNames.includes(schema?.componentName ?? '')
   }
 

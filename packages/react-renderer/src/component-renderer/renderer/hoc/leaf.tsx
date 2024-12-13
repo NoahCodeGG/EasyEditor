@@ -571,15 +571,15 @@ export function leafWrapper(Comp: BaseRenderer, { schema, baseRenderer, componen
     }
   }
 
-  let LeafWrapper = forwardRef((props: any, ref: any) => {
-    return createElement(LeafHoc, {
-      ...props,
-      forwardedRef: ref,
-    })
-  })
-
-  LeafWrapper = cloneEnumerableProperty(LeafWrapper, Comp)
-
+  const LeafWrapper = cloneEnumerableProperty(
+    forwardRef((props: any, ref: any) => {
+      return createElement(LeafHoc, {
+        ...props,
+        forwardedRef: ref,
+      })
+    }),
+    Comp,
+  )
   LeafWrapper.displayName = (Comp as any).displayName
 
   cache.component.set(componentCacheId, {

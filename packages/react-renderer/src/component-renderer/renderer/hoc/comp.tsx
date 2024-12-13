@@ -71,6 +71,7 @@ export function compWrapper(Comp: any, options: Options) {
     }),
     Comp,
   )
+  ;(WrapperComponent as any).displayName = Comp.displayName
 
   cache.set(options.schema.id, { WrapperComponent, Comp })
 

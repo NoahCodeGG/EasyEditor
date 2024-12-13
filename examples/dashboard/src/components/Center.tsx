@@ -1,9 +1,9 @@
-import { editor, project, simulator } from '@/editor'
-import { defaultRootSchema } from '@/editor/const'
 import { TRANSFORM_STAGE } from '@easy-editor/core'
-import { DocumentSchemaRender } from '@easy-editor/react-renderer'
+import { Renderer } from '@easy-editor/react-renderer'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
+import { project, simulator } from '../editor'
+import { defaultRootSchema } from '../editor/const'
 
 const Center = observer(() => {
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -26,7 +26,12 @@ const Center = observer(() => {
           <p className='text-gray-500'>拖拽组件到这里</p>
         </div> */}
         <div className='bg-white rounded-lg h-full border-2 border-dashed border-gray-300 relative' ref={viewportRef}>
-          {docSchema && <DocumentSchemaRender editor={editor} schema={docSchema} designMode='design' />}
+          {/* {docSchema && <DocumentSchemaRender editor={editor} schema={docSchema} designMode='design' />} */}
+          <Renderer
+            components={simulator.components}
+            schema={docSchema}
+            onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
+          />
         </div>
       </div>
     </div>

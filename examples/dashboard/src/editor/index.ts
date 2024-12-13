@@ -17,6 +17,8 @@ const setterMap = await import('./setters')
 const componentMap = await import('./materials/component')
 const componentMetaMap = await import('./materials/meta')
 
+export const components = formatMapFromESModule<Component>(componentMap)
+
 export const editor = createEasyEditor({
   lifeCycles: {
     init: () => {
