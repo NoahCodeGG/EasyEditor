@@ -30,6 +30,7 @@ const Center = observer(() => {
             components={simulator.components}
             schema={docSchema}
             onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
+            designMode='design'
           />
           {/* <ReactRenderer
             components={simulator.components}

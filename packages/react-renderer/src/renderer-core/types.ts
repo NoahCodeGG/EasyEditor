@@ -113,12 +113,6 @@ export interface BaseRenderComponent {
   new (props: BaseRendererProps, context: any): BaseRendererInstance
 }
 
-export interface RendererModules {
-  BaseRenderer?: BaseRenderComponent
-  PageRenderer: BaseRenderComponent
-  ComponentRenderer: BaseRenderComponent
-}
-
 export interface RenderComponent {
   displayName: string
   defaultProps: RendererProps

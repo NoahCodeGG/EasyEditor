@@ -1,6 +1,6 @@
 import type { NodeSchema } from '@easy-editor/core'
 import { type ComponentHocInfo, createForwardRefHocElement } from '@easy-editor/react-renderer'
-import { Component, createElement } from 'react'
+import { Component } from 'react'
 
 export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo) {
   // if (cache.has(options.schema.id) && cache.get(options.schema.id)?.Comp === Comp) {
@@ -15,11 +15,10 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
   class Wrapper extends Component {
     render() {
       console.log('dashboardInfo', this.props)
-      const { forwardRef, ...rest } = this.props
+      const { forwardRef, children, ...rest } = this.props
       const { __designMode } = this.props
 
       const rect = computeRect(schema)
-      console.log('🚀 ~ Wrapper ~ render ~ rect:', rect)
       let isHover = false
       let isSelected = false
 
@@ -28,7 +27,6 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
         isSelected = designer?.selection.has(schema.id!) ?? false
       }
 
-      // return createElement(Comp, { ...rest, ref: forwardRef })
       return (
         // mask 层
         <div
@@ -66,7 +64,7 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
               }}
             >
               {/* 组件渲染 */}
-              {/* <Comp {...compProps}>
+              <Comp ref={forwardRef} {...rest}>
                 {children && (
                   // 再次重置坐标系，用于内部组件定位
                   <div
@@ -79,8 +77,8 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
                     {children}
                   </div>
                 )}
-              </Comp> */}
-              {createElement(Comp, { ...rest, ref: forwardRef })}
+              </Comp>
+              {/* {createElement(Comp, { ...rest, ref: forwardRef })} */}
             </div>
           </div>
         </div>
@@ -89,82 +87,7 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
   }
   ;(Wrapper as any).displayName = Comp.displayName
 
-  const WrapperComponent = createForwardRefHocElement(Wrapper, Comp)
-
-  // cache.set(options.schema.id, { WrapperComponent, Comp })
-
-  return WrapperComponent
-}
-
-const NodeMask = (props: NodeMaskProps) => {
-  const { schema, Comp, compProps, children } = props
-  const designer = editor?.get<Designer>('designer')
-
-  const rect = computeRect(schema)
-  let isHover = false
-  let isSelected = false
-
-  if (designMode === 'design') {
-    isHover = designer?.detecting.current?.id === schema.id
-    isSelected = designer?.selection.has(schema.id!) ?? false
-  }
-
-  // TODO: 是否需要使用 transform 来移动，而不是使用绝对定位
-  return (
-    // mask 层
-    <div
-      id={`${schema.id}-mask`}
-      style={{
-        position: 'absolute',
-        left: rect.x,
-        top: rect.y,
-        width: rect.width,
-        height: rect.height,
-        border: isSelected ? '2px solid red' : isHover ? '1px solid blue' : 'none',
-        userSelect: 'none',
-        touchAction: 'none',
-        pointerEvents: 'auto',
-        // boxSizing: 'border-box',
-      }}
-    >
-      {/* 重置坐标系 */}
-      <div
-        style={{
-          position: 'absolute',
-          left: -rect.x!,
-          top: -rect.y!,
-        }}
-      >
-        {/* 组件坐标定位 */}
-        <div
-          id={schema.id}
-          style={{
-            position: 'absolute',
-            left: rect.x!,
-            top: rect.y!,
-            width: rect.width,
-            height: rect.height,
-          }}
-        >
-          {/* 组件渲染 */}
-          <Comp {...compProps}>
-            {children && (
-              // 再次重置坐标系，用于内部组件定位
-              <div
-                style={{
-                  position: 'absolute',
-                  left: -rect.x!,
-                  top: -rect.y!,
-                }}
-              >
-                {children}
-              </div>
-            )}
-          </Comp>
-        </div>
-      </div>
-    </div>
-  )
+  return createForwardRefHocElement(Wrapper, Comp)
 }
 
 /**
