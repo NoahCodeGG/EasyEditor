@@ -1,5 +1,5 @@
 import { TRANSFORM_STAGE } from '@easy-editor/core'
-import { Renderer } from '@easy-editor/react-renderer'
+import { ReactRenderer } from '@easy-editor/react-renderer'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
 import { project, simulator } from '../editor'
@@ -27,7 +27,12 @@ const Center = observer(() => {
         </div> */}
         <div className='bg-white rounded-lg h-full border-2 border-dashed border-gray-300 relative' ref={viewportRef}>
           {/* {docSchema && <DocumentSchemaRender editor={editor} schema={docSchema} designMode='design' />} */}
-          <Renderer
+          {/* <DashboardRenderer
+            components={simulator.components}
+            schema={docSchema}
+            onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
+          /> */}
+          <ReactRenderer
             components={simulator.components}
             schema={docSchema}
             onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}

@@ -1,9 +1,10 @@
-import { Component, PureComponent, createElement, forwardRef } from 'react'
-import type { BaseRenderer } from '../base'
+import { Component, PureComponent, createElement } from 'react'
 import type { RendererProps } from '../renderer'
+import type { BaseRendererInstance } from '../types'
+import { createForwardRefHocElement } from '../utils'
 
 interface Options {
-  baseRenderer: BaseRenderer
+  baseRenderer: BaseRendererInstance
   schema: any
 }
 
@@ -58,45 +59,17 @@ export function compWrapper(Comp: any, options: Options) {
 
   class Wrapper extends Component {
     render() {
-      return createElement(Comp, { ...this.props, ref: this.props.forwardRef })
+      const { forwardRef, ...rest } = this.props
+      return createElement(Comp, { ...rest, ref: forwardRef })
     }
   }
   ;(Wrapper as any).displayName = Comp.displayName
 
   patchDidCatch(Wrapper, options)
 
-  const WrapperComponent = cloneEnumerableProperty(
-    forwardRef((props: any, ref: any) => {
-      return createElement(Wrapper, { ...props, forwardRef: ref })
-    }),
-    Comp,
-  )
-  ;(WrapperComponent as any).displayName = Comp.displayName
+  const WrapperComponent = createForwardRefHocElement(Wrapper, Comp)
 
   cache.set(options.schema.id, { WrapperComponent, Comp })
 
   return WrapperComponent
-}
-
-const excludePropertyNames = [
-  '$$typeof',
-  'render',
-  'defaultProps',
-  'props',
-  'length',
-  'prototype',
-  'name',
-  'caller',
-  'callee',
-  'arguments',
-]
-
-export function cloneEnumerableProperty(target: any, origin: any, excludes = excludePropertyNames) {
-  const compExtraPropertyNames = Object.keys(origin).filter(d => !excludes.includes(d))
-
-  compExtraPropertyNames.forEach((d: string) => {
-    ;(target as any)[d] = origin[d]
-  })
-
-  return target
 }

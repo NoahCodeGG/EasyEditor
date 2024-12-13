@@ -1,12 +1,11 @@
 import { type DesignMode, type NodeSchema, type RootSchema, logger } from '@easy-editor/core'
 import { isEmpty } from 'lodash-es'
 import { Component, createElement } from 'react'
-import { CompRenderer } from './component'
+import { adapter } from './adapter'
 import FaultComponent, { type FaultComponentProps } from './components/FaultComponent'
 import NotFoundComponent, { type NotFoundComponentProps } from './components/NotFoundComponent'
 import { RendererContext } from './context'
-import { PageRenderer } from './page'
-import type { RendererAppHelper } from './types'
+import type { RenderComponent, RendererAppHelper } from './types'
 import { isSchema } from './utils'
 
 export interface RendererProps {
@@ -87,137 +86,139 @@ export interface RendererState {
   error?: Error
 }
 
-const RENDERER_COMPS = {
-  PageRenderer,
-  CompRenderer,
-}
+export function rendererFactory(): RenderComponent {
+  const RENDERER_COMPS: any = adapter.getRenderers()
+  console.log('🚀 ~ rendererFactory ~ RENDERER_COMPS:', RENDERER_COMPS)
 
-export class Renderer extends Component<RendererProps> {
-  static displayName = 'Renderer'
+  return class Renderer extends Component<RendererProps> {
+    static displayName = 'Renderer'
 
-  state: Partial<RendererState> = {}
+    state: Partial<RendererState> = {}
 
-  __ref: any
+    __ref: any
 
-  static defaultProps: RendererProps = {
-    appHelper: undefined,
-    components: {},
-    designMode: 'design',
-    suspended: false,
-    schema: {} as RootSchema,
-    onCompGetRef: () => {},
-    onCompGetCtx: () => {},
-    thisRequiredInJSE: true,
-  }
-
-  constructor(props: RendererProps) {
-    super(props)
-    this.state = {}
-    logger.log(`entry.constructor - ${props?.schema?.componentName}`)
-  }
-
-  async componentDidMount() {
-    logger.log(`entry.componentDidMount - ${this.props.schema && this.props.schema.componentName}`)
-  }
-
-  async componentDidUpdate() {
-    logger.log(`entry.componentDidUpdate - ${this.props?.schema?.componentName}`)
-  }
-
-  async componentWillUnmount() {
-    logger.log(`entry.componentWillUnmount - ${this.props?.schema?.componentName}`)
-  }
-
-  componentDidCatch(error: Error) {
-    this.state.engineRenderError = true
-    this.state.error = error
-  }
-
-  shouldComponentUpdate(nextProps: RendererProps) {
-    return !nextProps.suspended
-  }
-
-  __getRef = (ref: any) => {
-    this.__ref = ref
-    if (ref) {
-      this.props.onCompGetRef?.(this.props.schema, ref)
+    static defaultProps: RendererProps = {
+      appHelper: undefined,
+      components: {},
+      designMode: 'design',
+      suspended: false,
+      schema: {} as RootSchema,
+      onCompGetRef: () => {},
+      onCompGetCtx: () => {},
+      thisRequiredInJSE: true,
     }
-  }
 
-  isValidComponent(SetComponent: any) {
-    return SetComponent
-  }
+    constructor(props: RendererProps) {
+      super(props)
+      this.state = {}
+      logger.log(`entry.constructor - ${props?.schema?.componentName}`)
+    }
 
-  createElement(SetComponent: any, props: any, children?: any) {
-    return (this.props.customCreateElement || createElement)(SetComponent, props, children)
-  }
+    async componentDidMount() {
+      logger.log(`entry.componentDidMount - ${this.props.schema && this.props.schema.componentName}`)
+    }
 
-  getNotFoundComponent() {
-    return this.props.notFoundComponent || NotFoundComponent
-  }
+    async componentDidUpdate() {
+      logger.log(`entry.componentDidUpdate - ${this.props?.schema?.componentName}`)
+    }
 
-  getFaultComponent() {
-    return this.props.faultComponent || FaultComponent
-  }
+    async componentWillUnmount() {
+      logger.log(`entry.componentWillUnmount - ${this.props?.schema?.componentName}`)
+    }
 
-  getComp() {
-    const { schema, components } = this.props
-    const { componentName } = schema
-    const allComponents = { ...RENDERER_COMPS, ...components }
-    // let Comp = allComponents[componentName] || RENDERER_COMPS[`${componentName}Renderer`]
-    // if (Comp && Comp.prototype) {
-    //   if (!(Comp.prototype instanceof BaseRenderer)) {
-    //     Comp = RENDERER_COMPS[`${componentName}Renderer`]
-    //   }
-    // }
-    // TODO: 默认最顶层使用 PageRenderer
-    return PageRenderer
-  }
+    componentDidCatch(error: Error) {
+      this.state.engineRenderError = true
+      this.state.error = error
+    }
 
-  render() {
-    const { schema, designMode, appHelper, components } = this.props
-    if (isEmpty(schema)) {
+    shouldComponentUpdate(nextProps: RendererProps) {
+      return !nextProps.suspended
+    }
+
+    __getRef = (ref: any) => {
+      this.__ref = ref
+      if (ref) {
+        this.props.onCompGetRef?.(this.props.schema, ref)
+      }
+    }
+
+    isValidComponent(SetComponent: any) {
+      return SetComponent
+    }
+
+    createElement(SetComponent: any, props: any, children?: any) {
+      return (this.props.customCreateElement || createElement)(SetComponent, props, children)
+    }
+
+    getNotFoundComponent() {
+      return this.props.notFoundComponent || NotFoundComponent
+    }
+
+    getFaultComponent() {
+      return this.props.faultComponent || FaultComponent
+    }
+
+    getComp() {
+      const { schema, components } = this.props
+      const { componentName } = schema
+      const allComponents = { ...RENDERER_COMPS, ...components }
+      // let Comp = allComponents[componentName] || RENDERER_COMPS[`${componentName}Renderer`]
+      // if (Comp && Comp.prototype) {
+      //   if (!(Comp.prototype instanceof BaseRenderer)) {
+      //     Comp = RENDERER_COMPS[`${componentName}Renderer`]
+      //   }
+      // }
+      // TODO: 默认最顶层使用 PageRenderer
+      return allComponents.PageRenderer
+    }
+
+    render() {
+      debugger
+      const { schema, designMode, appHelper, components } = this.props
+      if (isEmpty(schema)) {
+        return null
+      }
+      // 兼容乐高区块模板
+      if (!isSchema(schema)) {
+        logger.error(
+          'The root component name needs to be one of Page、Block、Component, please check the schema: ',
+          schema,
+        )
+        return '模型结构异常'
+      }
+      logger.log('entry.render')
+      const allComponents = { ...RENDERER_COMPS, ...components }
+      const Comp = this.getComp()
+
+      if (this.state && this.state.engineRenderError) {
+        return createElement(this.getFaultComponent(), {
+          componentName: schema.componentName,
+          error: this.state.error,
+        })
+      }
+
+      if (Comp) {
+        return createElement(
+          RendererContext,
+          {
+            value: {
+              appHelper,
+              components: allComponents,
+              engine: this,
+            },
+          },
+          createElement(Comp, {
+            key: schema.__ctx && `${schema.__ctx.lceKey}_${schema.__ctx.idx || '0'}`,
+            ref: this.__getRef,
+            __appHelper: appHelper,
+            __components: allComponents,
+            __schema: schema,
+            __designMode: designMode,
+            ...this.props,
+          }),
+        )
+      }
       return null
     }
-    // 兼容乐高区块模板
-    if (!isSchema(schema)) {
-      logger.error(
-        'The root component name needs to be one of Page、Block、Component, please check the schema: ',
-        schema,
-      )
-      return '模型结构异常'
-    }
-    logger.log('entry.render')
-    const Comp = this.getComp()
-
-    if (this.state && this.state.engineRenderError) {
-      return createElement(this.getFaultComponent(), {
-        componentName: schema.componentName,
-        error: this.state.error,
-      })
-    }
-
-    if (Comp) {
-      return createElement(
-        RendererContext,
-        {
-          value: {
-            appHelper,
-            components,
-            engine: this,
-          },
-        },
-        createElement(Comp, {
-          key: schema.__ctx && `${schema.__ctx.lceKey}_${schema.__ctx.idx || '0'}`,
-          ref: this.__getRef,
-          __appHelper: appHelper,
-          __components: components,
-          __schema: schema,
-          __designMode: designMode,
-          ...this.props,
-        }),
-      )
-    }
-    return null
   }
 }

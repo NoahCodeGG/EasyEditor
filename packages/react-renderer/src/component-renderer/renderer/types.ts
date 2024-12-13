@@ -1,4 +1,6 @@
-import type { JSONObject, NodeSchema, RootSchema } from '@easy-editor/core'
+import type { DesignMode, JSONObject, NodeSchema, RootSchema, Simulator, SimulatorRenderer } from '@easy-editor/core'
+import type { Component } from 'react'
+import type { RendererProps, RendererState } from '../..'
 
 export type Schema = NodeSchema | RootSchema
 
@@ -44,4 +46,97 @@ export interface DataSourceItem {
 export interface DataSource {
   list?: DataSourceItem[]
   dataHandler?: JSExpression
+}
+
+export interface BaseRendererProps {
+  __appHelper: RendererAppHelper
+  __components: Record<string, any>
+  __ctx: Record<string, any>
+  __schema: RootSchema
+  __host?: Simulator
+  __container?: SimulatorRenderer
+  config?: Record<string, any>
+  designMode?: DesignMode
+  className?: string
+  style?: React.CSSProperties
+  id?: string | number
+  getSchemaChangedSymbol?: () => boolean
+  setSchemaChangedSymbol?: (symbol: boolean) => void
+  thisRequiredInJSE?: boolean
+  documentId?: string
+  getNode?: any
+
+  /**
+   * 设备类型，默认值：'default'
+   */
+  device?: 'default' | 'pc' | 'mobile' | string
+  componentName?: string
+}
+
+export interface BaseRendererContext {
+  appHelper: RendererAppHelper
+  components: Record<string, React.ElementType>
+  engine: Record<string, any>
+  pageContext?: BaseRenderComponent
+  compContext?: BaseRenderComponent
+}
+
+export type BaseRendererInstance = Component<BaseRendererProps, Record<string, any>, any> & {
+  reloadDataSource(): Promise<any>
+  __beforeInit(props: BaseRendererProps): void
+  __init(props: BaseRendererProps): void
+  __afterInit(props: BaseRendererProps): void
+  __executeLifeCycleMethod(method: string, args?: any[]): void
+  __bindCustomMethods(props: BaseRendererProps): void
+  __generateCtx(ctx: Record<string, any>): void
+  __parseData(data: any, ctx?: any): any
+  __initDataSource(props: BaseRendererProps): void
+  __render(): void
+  __getRef(ref: any): void
+  __getSchemaChildrenVirtualDom(schema: NodeSchema | undefined, Comp: any, nodeChildrenMap?: any): any
+  __getComponentProps(schema: NodeSchema | undefined, scope: any, Comp: any, componentInfo?: any): any
+  __createDom(): any
+  __createVirtualDom(schema: any, self: any, parentInfo: NodeInfo, idx: string | number): any
+  __createLoopVirtualDom(schema: any, self: any, parentInfo: NodeInfo, idx: number | string): any
+  __parseProps(props: any, self: any, path: string, info: NodeInfo): any
+  __initDebug?(): void
+  __debug(...args: any[]): void
+  __renderContextProvider(customProps?: object, children?: any): any
+  __renderContextConsumer(children: any): any
+  __renderContent(children: any): any
+  __checkSchema(schema: NodeSchema | undefined, extraComponents?: string | string[]): any
+  __renderComp(Comp: any, ctxProps: object): any
+  $(filedId: string, instance?: any): any
+}
+
+export interface BaseRenderComponent {
+  new (props: BaseRendererProps, context: any): BaseRendererInstance
+}
+
+export interface RendererModules {
+  BaseRenderer?: BaseRenderComponent
+  PageRenderer: BaseRenderComponent
+  ComponentRenderer: BaseRenderComponent
+}
+
+export interface RenderComponent {
+  displayName: string
+  defaultProps: RendererProps
+
+  new (
+    props: RendererProps,
+    context: any,
+  ): Component<RendererProps, RendererState> & {
+    [x: string]: any
+    __getRef: (ref: any) => void
+    componentDidMount(): Promise<void> | void
+    componentDidUpdate(): Promise<void> | void
+    componentWillUnmount(): Promise<void> | void
+    componentDidCatch(e: any): Promise<void> | void
+    shouldComponentUpdate(nextProps: RendererProps): boolean
+    isValidComponent(SetComponent: any): any
+    createElement(SetComponent: any, props: any, children?: any): any
+    getNotFoundComponent(): any
+    getFaultComponent(): any
+  }
 }

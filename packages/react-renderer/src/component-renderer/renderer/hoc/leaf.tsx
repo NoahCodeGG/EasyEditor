@@ -1,13 +1,12 @@
 import { DESIGNER_EVENT, type Node, type NodeSchema, TRANSFORM_STAGE } from '@easy-editor/core'
 import { debounce } from 'lodash-es'
-import { Component, createElement, forwardRef } from 'react'
-import type { BaseRenderer } from '../base'
-import type { Schema } from '../types'
-import { cloneEnumerableProperty } from './comp'
+import { Component } from 'react'
+import type { BaseRendererInstance, Schema } from '../types'
+import { createForwardRefHocElement } from '../utils'
 
 export interface ComponentHocInfo {
   schema: Schema
-  baseRenderer: BaseRenderer
+  baseRenderer: BaseRendererInstance
   componentInfo: any
   scope: any
 }
@@ -45,7 +44,7 @@ interface LeftWrapperProps {
 
   __tag: number
 
-  forwardedRef?: any
+  forwardRef?: any
 }
 
 enum RerenderType {
@@ -139,7 +138,10 @@ function clearRerenderEvent(id: string): void {
 }
 
 // 给每个组件包裹一个 HOC Leaf，支持组件内部属性变化，自响应渲染
-export function leafWrapper(Comp: BaseRenderer, { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo) {
+export function leafWrapper(
+  Comp: BaseRendererInstance,
+  { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo,
+) {
   const {
     __debug,
     __getComponentProps: getProps,
@@ -550,7 +552,7 @@ export function leafWrapper(Comp: BaseRenderer, { schema, baseRenderer, componen
         return null
       }
 
-      const { forwardedRef, ...rest } = this.props
+      const { forwardRef, ...rest } = this.props
 
       const compProps = {
         ...rest,
@@ -558,7 +560,7 @@ export function leafWrapper(Comp: BaseRenderer, { schema, baseRenderer, componen
         ...(this.state.nodeProps || {}),
         children: [],
         __id: this.props.componentId,
-        ref: forwardedRef,
+        ref: forwardRef,
       }
 
       delete compProps.__inner__
@@ -571,16 +573,7 @@ export function leafWrapper(Comp: BaseRenderer, { schema, baseRenderer, componen
     }
   }
 
-  const LeafWrapper = cloneEnumerableProperty(
-    forwardRef((props: any, ref: any) => {
-      return createElement(LeafHoc, {
-        ...props,
-        forwardedRef: ref,
-      })
-    }),
-    Comp,
-  )
-  LeafWrapper.displayName = (Comp as any).displayName
+  const LeafWrapper = createForwardRefHocElement(LeafHoc, Comp)
 
   cache.component.set(componentCacheId, {
     LeafWrapper,

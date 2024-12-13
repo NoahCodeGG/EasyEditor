@@ -14,3 +14,12 @@ export const useRendererContext = () => {
   }
   return {} as RendererContext
 }
+
+export function contextFactory() {
+  let context = (window as any).__appContext
+  if (!context) {
+    context = createContext({})
+    ;(window as any).__appContext = context
+  }
+  return context
+}
