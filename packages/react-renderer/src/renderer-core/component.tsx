@@ -1,5 +1,6 @@
 import { baseRendererFactory } from './base'
 import type { BaseRenderComponent, BaseRendererProps } from './types'
+import { logger } from './utils'
 
 export function componentRendererFactory(): BaseRenderComponent {
   const BaseRenderer = baseRendererFactory()
@@ -23,7 +24,7 @@ export function componentRendererFactory(): BaseRenderComponent {
       if (this.__checkSchema(__schema)) {
         return '自定义组件 schema 结构异常！'
       }
-      this.__debug(`${CompRenderer.displayName} render - ${__schema.fileName}`)
+      logger.log(`${CompRenderer.displayName} render - ${__schema.fileName}`)
 
       this.__generateCtx({
         component: this,
@@ -38,7 +39,7 @@ export function componentRendererFactory(): BaseRenderComponent {
         return this.__renderContextProvider({ compContext: this })
       }
 
-      const Comp = this._getComponentView(__schema.componentName)
+      const Comp = this.__getComponentView()
 
       if (!Comp) {
         return this.__renderContent(this.__renderContextProvider({ compContext: this }))

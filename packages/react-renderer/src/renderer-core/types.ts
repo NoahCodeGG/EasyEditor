@@ -49,10 +49,11 @@ export interface DataSource {
 }
 
 export interface BaseRendererProps {
-  __appHelper: RendererAppHelper
-  __components: Record<string, any>
-  __ctx: Record<string, any>
+  __appHelper?: RendererAppHelper
+  __components: Record<string, React.ComponentType>
+  __ctx?: Record<string, any>
   __schema: RootSchema
+  __designMode?: DesignMode
   __host?: Simulator
   __container?: SimulatorRenderer
   config?: Record<string, any>
@@ -75,7 +76,7 @@ export interface BaseRendererProps {
 
 export interface BaseRendererContext {
   appHelper: RendererAppHelper
-  components: Record<string, React.ElementType>
+  components: Record<string, React.ComponentType>
   engine: Record<string, any>
   pageContext?: BaseRenderComponent
   compContext?: BaseRenderComponent
@@ -87,10 +88,12 @@ export type BaseRendererInstance = Component<BaseRendererProps, Record<string, a
   __init(props: BaseRendererProps): void
   __afterInit(props: BaseRendererProps): void
   __executeLifeCycleMethod(method: string, args?: any[]): void
+  __getComponentView(): React.ComponentType | undefined
   __bindCustomMethods(props: BaseRendererProps): void
   __generateCtx(ctx: Record<string, any>): void
   __parseData(data: any, ctx?: any): any
   __initDataSource(props: BaseRendererProps): void
+  __writeCss(props: BaseRendererProps): void
   __render(): void
   __getRef(ref: any): void
   __getSchemaChildrenVirtualDom(schema: NodeSchema | undefined, Comp: any, nodeChildrenMap?: any): any
@@ -99,18 +102,16 @@ export type BaseRendererInstance = Component<BaseRendererProps, Record<string, a
   __createVirtualDom(schema: any, self: any, parentInfo: NodeInfo, idx: string | number): any
   __createLoopVirtualDom(schema: any, self: any, parentInfo: NodeInfo, idx: number | string): any
   __parseProps(props: any, self: any, path: string, info: NodeInfo): any
-  __initDebug?(): void
-  __debug(...args: any[]): void
   __renderContextProvider(customProps?: object, children?: any): any
   __renderContextConsumer(children: any): any
   __renderContent(children: any): any
   __checkSchema(schema: NodeSchema | undefined, extraComponents?: string | string[]): any
   __renderComp(Comp: any, ctxProps: object): any
-  $(filedId: string, instance?: any): any
+  $(id: string, instance?: any): any
 }
 
 export interface BaseRenderComponent {
-  new (props: BaseRendererProps, context: any): BaseRendererInstance
+  new (props: BaseRendererProps): BaseRendererInstance
 }
 
 export interface RenderComponent {

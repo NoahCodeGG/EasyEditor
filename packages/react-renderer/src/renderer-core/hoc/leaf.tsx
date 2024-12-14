@@ -1,8 +1,8 @@
 import { DESIGNER_EVENT, type Node, type NodeSchema, TRANSFORM_STAGE } from '@easy-editor/core'
 import { debounce } from 'lodash-es'
-import { Component } from 'react'
+import { Component, type ComponentType } from 'react'
 import type { BaseRendererInstance, Schema } from '../types'
-import { createForwardRefHocElement } from '../utils'
+import { createForwardRefHocElement, logger } from '../utils'
 
 export interface ComponentHocInfo {
   schema: Schema
@@ -11,7 +11,7 @@ export interface ComponentHocInfo {
   scope: any
 }
 
-export type ComponentConstruct = (Comp: Component, info: ComponentHocInfo) => Component
+export type ComponentConstruct = (Comp: ComponentType, info: ComponentHocInfo) => ComponentType
 
 export interface IComponentHocProps {
   __tag: any
@@ -81,7 +81,7 @@ class LeafCache {
 let cache: LeafCache
 
 /** 部分没有渲染的 node 节点进行兜底处理 or 渲染方式没有渲染 LeafWrapper */
-function initRerenderEvent({ schema, __debug, container, getNode }: any) {
+function initRerenderEvent({ schema, container, getNode }: any) {
   const leaf = getNode?.(schema.id)
   if (!leaf || cache.event.get(schema.id)?.clear || leaf === cache.event.get(schema.id)) {
     return
@@ -98,7 +98,7 @@ function initRerenderEvent({ schema, __debug, container, getNode }: any) {
         if (!container.autoRepaintNode) {
           return
         }
-        __debug(
+        logger.log(
           `${schema.componentName}[${schema.id}] leaf not render in SimulatorRendererView, leaf onPropsChange make rerender`,
         )
         debounceRerender()
@@ -107,7 +107,7 @@ function initRerenderEvent({ schema, __debug, container, getNode }: any) {
         if (!container.autoRepaintNode) {
           return
         }
-        __debug(
+        logger.log(
           `${schema.componentName}[${schema.id}] leaf not render in SimulatorRendererView, leaf onChildrenChange make rerender`,
         )
         debounceRerender()
@@ -116,7 +116,7 @@ function initRerenderEvent({ schema, __debug, container, getNode }: any) {
         if (!container.autoRepaintNode) {
           return
         }
-        __debug(
+        logger.log(
           `${schema.componentName}[${schema.id}] leaf not render in SimulatorRendererView, leaf onVisibleChange make rerender`,
         )
         debounceRerender()
@@ -138,16 +138,8 @@ function clearRerenderEvent(id: string): void {
 }
 
 // 给每个组件包裹一个 HOC Leaf，支持组件内部属性变化，自响应渲染
-export function leafWrapper(
-  Comp: BaseRendererInstance,
-  { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo,
-) {
-  const {
-    __debug,
-    __getComponentProps: getProps,
-    __getSchemaChildrenVirtualDom: getChildren,
-    __parseData,
-  } = baseRenderer
+export function leafWrapper(Comp: any, { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo) {
+  const { __getComponentProps: getProps, __getSchemaChildrenVirtualDom: getChildren, __parseData } = baseRenderer
   const { engine } = baseRenderer.context
   const host = baseRenderer.props?.__host
   const curDocumentId = baseRenderer.props?.documentId ?? ''
@@ -173,7 +165,6 @@ export function leafWrapper(
 
   initRerenderEvent({
     schema,
-    __debug,
     container,
     getNode,
   })
@@ -221,14 +212,14 @@ export function leafWrapper(
         nextState.nodeChildren = nextProps.children
       }
 
-      __debug(`${this.leaf?.componentName}(${this.props.componentId}) MinimalRenderUnit Render!`)
+      logger.log(`${this.leaf?.componentName}(${this.props.componentId}) MinimalRenderUnit Render!`)
       this.setState(nextState)
     }, 20)
 
     constructor(props: LeftWrapperProps) {
       super(props)
       // 监听以下事件，当变化时更新自己
-      __debug(`${schema.componentName}[${this.props.componentId}] leaf render in SimulatorRendererView`)
+      logger.log(`${schema.componentName}[${this.props.componentId}] leaf render in SimulatorRendererView`)
       clearRerenderEvent(componentCacheId)
       this.curEventLeaf = this.leaf
 
@@ -332,11 +323,11 @@ export function leafWrapper(
       const ref = cache.ref.get(renderUnitInfo.minimalUnitId)
 
       if (!ref) {
-        __debug('Cant find minimalRenderUnit ref! This make rerender!')
+        logger.log('Cant find minimalRenderUnit ref! This make rerender!')
         container?.rerender()
         return
       }
-      __debug(
+      logger.log(
         `${this.leaf?.componentName}(${this.props.componentId}) need render, make its minimalRenderUnit ${renderUnitInfo.minimalUnitName}(${renderUnitInfo.minimalUnitId})`,
       )
       ref.makeUnitRender()
@@ -404,7 +395,7 @@ export function leafWrapper(
         if (key === '___condition___') {
           const { condition = true } = this.leaf?.export(TRANSFORM_STAGE.RENDER) || {}
           const conditionValue = __parseData?.(condition, scope)
-          __debug(`key is ___condition___, change condition value to [${condition}]`)
+          logger.log(`key is ___condition___, change condition value to [${condition}]`)
           // 条件表达式改变
           this.setState({
             condition: conditionValue,
@@ -415,7 +406,7 @@ export function leafWrapper(
         // 如果循坏条件变化，从根节点重新渲染
         // 目前多层循坏无法判断需要从哪一层开始渲染，故先粗暴解决
         if (key === '___loop___') {
-          __debug('key is ___loop___, render a page!')
+          logger.log('key is ___loop___, render a page!')
           container?.rerender()
           // 由于 scope 变化，需要清空缓存，使用新的 scope
           cache.component.delete(componentCacheId)
@@ -429,7 +420,7 @@ export function leafWrapper(
           // 当 key 在 this.props 中时，且不存在在计算值中，需要用 newValue 覆盖掉 this.props 的取值
           nodeCacheProps[key] = newValue
         }
-        __debug(
+        logger.log(
           `${leaf?.componentName}[${this.props.componentId}] component trigger onPropsChange!`,
           nodeProps,
           nodeCacheProps,
@@ -475,7 +466,7 @@ export function leafWrapper(
           return
         }
 
-        __debug(`${leaf?.componentName}[${this.props.componentId}] component trigger onVisibleChange(${flag}) event`)
+        logger.log(`${leaf?.componentName}[${this.props.componentId}] component trigger onVisibleChange(${flag}) event`)
         this.beforeRender(RerenderType.VisibleChanged)
         this.setState({
           visible: flag,
@@ -500,7 +491,7 @@ export function leafWrapper(
         // 缓存二级 children Next 查询筛选组件有问题
         // 缓存一级 children Next Tab 组件有问题
         const nextChild = getChildren(leaf?.export?.(TRANSFORM_STAGE.RENDER) as NodeSchema, scope, Comp)
-        __debug(
+        logger.log(
           `${schema.componentName}[${this.props.componentId}] component trigger onChildrenChange event`,
           nextChild,
         )

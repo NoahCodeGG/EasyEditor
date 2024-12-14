@@ -7,10 +7,3 @@ export * from './page'
 export * from './renderer'
 export * from './types'
 export * from './utils'
-
-// adapter.setRenderers({
-//   PageRenderer: pageRendererFactory(),
-//   ComponentRenderer: componentRendererFactory(),
-// })
-
-// export const ReactRenderer = rendererFactory()

@@ -11,9 +11,6 @@ export function pageRendererFactory(): BaseRenderComponent {
     __namespace = 'page'
 
     __afterInit(props: BaseRendererProps, ...rest: unknown[]) {
-      this.__generateCtx({
-        page: this,
-      })
       const schema = props.__schema || {}
       this.state = this.__parseData(schema.state || {})
       this.__initDataSource(props)
@@ -41,7 +38,7 @@ export function pageRendererFactory(): BaseRenderComponent {
       if (this.__checkSchema(__schema)) {
         return '页面schema结构异常！'
       }
-      this.__debug(`${PageRenderer.displayName} render - ${__schema.fileName}`)
+      logger.log(`${PageRenderer.displayName} render - ${__schema.fileName}`)
 
       this.__bindCustomMethods(this.props)
       this.__initDataSource(this.props)
@@ -51,7 +48,7 @@ export function pageRendererFactory(): BaseRenderComponent {
       })
       this.__render()
 
-      const Comp = this._getComponentView(__schema.componentName)
+      const Comp = this.__getComponentView()
 
       if (!Comp) {
         return this.__renderContent(this.__renderContextProvider({ pageContext: this }))

@@ -13,7 +13,7 @@ export interface RendererProps {
   schema: RootSchema | NodeSchema
 
   /** 组件依赖的实例 */
-  components: Record<string, React.ElementType>
+  components: Record<string, React.ComponentType>
 
   /** CSS 类名 */
   className?: string
@@ -60,10 +60,10 @@ export interface RendererProps {
   rendererName?: 'LowCodeRenderer' | 'PageRenderer' | string
 
   /** 当找不到组件时，显示的组件 */
-  notFoundComponent?: React.ElementType<NotFoundComponentProps>
+  notFoundComponent?: React.ComponentType<NotFoundComponentProps>
 
   /** 当组件渲染异常时，显示的组件 */
-  faultComponent?: React.ElementType<FaultComponentProps>
+  faultComponent?: React.ComponentType<FaultComponentProps>
 
   /** 设备信息 */
   device?: 'default' | 'pc' | 'mobile' | string
@@ -99,7 +99,7 @@ export function rendererFactory(): RenderComponent {
     static defaultProps: RendererProps = {
       appHelper: undefined,
       components: {},
-      designMode: 'design',
+      designMode: 'live',
       suspended: false,
       schema: {} as RootSchema,
       onCompGetRef: () => {},
@@ -157,26 +157,13 @@ export function rendererFactory(): RenderComponent {
       return this.props.faultComponent || FaultComponent
     }
 
-    getComp() {
-      const { schema, components } = this.props
-      const { componentName } = schema
-      const allComponents = { ...RENDERER_COMPS, ...components }
-      // let Comp = allComponents[componentName] || RENDERER_COMPS[`${componentName}Renderer`]
-      // if (Comp && Comp.prototype) {
-      //   if (!(Comp.prototype instanceof BaseRenderer)) {
-      //     Comp = RENDERER_COMPS[`${componentName}Renderer`]
-      //   }
-      // }
-      // TODO: 默认最顶层使用 PageRenderer
-      return allComponents.PageRenderer
-    }
-
     render() {
       const { schema, designMode, appHelper, components } = this.props
+
       if (isEmpty(schema)) {
         return null
       }
-      // 兼容乐高区块模板
+
       if (!isSchema(schema)) {
         logger.error(
           'The root component name needs to be one of Page、Block、Component, please check the schema: ',
@@ -184,9 +171,11 @@ export function rendererFactory(): RenderComponent {
         )
         return '模型结构异常'
       }
+
       logger.log('entry.render')
       const allComponents = { ...RENDERER_COMPS, ...components }
-      const Comp = this.getComp()
+      // TODO: 默认最顶层使用 PageRenderer
+      const Comp = RENDERER_COMPS.PageRenderer
 
       if (this.state && this.state.engineRenderError) {
         return createElement(this.getFaultComponent(), {
@@ -195,28 +184,29 @@ export function rendererFactory(): RenderComponent {
         })
       }
 
-      if (Comp) {
-        return createElement(
-          RendererContext,
-          {
-            value: {
-              appHelper,
-              components: allComponents,
-              engine: this,
-            },
-          },
-          createElement(Comp, {
-            key: schema.__ctx && `${schema.__ctx.lceKey}_${schema.__ctx.idx || '0'}`,
-            ref: this.__getRef,
-            __appHelper: appHelper,
-            __components: allComponents,
-            __schema: schema,
-            __designMode: designMode,
-            ...this.props,
-          }),
-        )
+      if (!Comp) {
+        return null
       }
-      return null
+
+      return (
+        <RendererContext
+          value={{
+            appHelper,
+            components: allComponents,
+            engine: this,
+          }}
+        >
+          <RENDERER_COMPS.PageRenderer
+            key={schema.__ctx && `${schema.__ctx.lceKey}_${schema.__ctx.idx || '0'}`}
+            ref={this.__getRef}
+            __appHelper={appHelper}
+            __components={allComponents}
+            __schema={schema}
+            __designMode={designMode}
+            {...this.props}
+          />
+        </RendererContext>
+      )
     }
   }
 }

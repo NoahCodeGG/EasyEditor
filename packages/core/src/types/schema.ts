@@ -1,4 +1,4 @@
-import type { CompositeValue, JSExpression, JSONObject, PropsMap } from '../document'
+import type { CompositeValue, JSExpression, JSFunction, JSONObject, PropsMap } from '../document'
 
 export interface ProjectSchema<T = RootSchema> {
   id?: string
@@ -35,23 +35,23 @@ export interface RootSchema extends NodeSchema {
   /**
    * 容器初始数据
    */
-  // state?: {
-  //   [key: string]: IPublicTypeCompositeValue;
-  // };
+  state?: {
+    [key: string]: CompositeValue
+  }
 
   /**
    * 自定义方法设置
    */
-  // methods?: {
-  //   [key: string]: IPublicTypeJSExpression | IPublicTypeJSFunction;
-  // };
+  methods?: {
+    [key: string]: JSExpression | JSFunction
+  }
 
   /**
    * 生命周期对象
    */
-  // lifeCycles?: {
-  //   [key: string]: IPublicTypeJSExpression | IPublicTypeJSFunction;
-  // };
+  lifeCycles?: {
+    [key: string]: JSExpression | JSFunction
+  }
 
   /**
    * 样式文件

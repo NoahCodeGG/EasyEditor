@@ -3,6 +3,7 @@ import {
   type JSONValue,
   type NodeData,
   type NodeSchema,
+  type RootSchema,
   isJSExpression,
   isJSFunction,
 } from '@easy-editor/core'
@@ -10,8 +11,8 @@ import { forEach, isEmpty } from 'lodash-es'
 import { Component, createElement } from 'react'
 import { adapter } from './adapter'
 import { RendererContext } from './context'
-import { type ComponentConstruct, compWrapper, leafWrapper } from './hoc'
-import type { BaseRenderComponent, BaseRendererContext, BaseRendererProps, NodeInfo, RendererAppHelper } from './types'
+import { type ComponentConstruct, type ComponentHocInfo, compWrapper, leafWrapper } from './hoc'
+import type { BaseRenderComponent, BaseRendererContext, BaseRendererProps, NodeInfo } from './types'
 import {
   checkPropTypes,
   getValue,
@@ -31,7 +32,7 @@ import {
  */
 export function executeLifeCycleMethod(
   context: any,
-  schema: NodeSchema,
+  schema: RootSchema,
   method: string,
   args: any,
   thisRequiredInJSE: boolean | undefined,
@@ -65,7 +66,6 @@ export function executeLifeCycleMethod(
 
 /**
  * get children from a node schema
- * @PRIVATE
  */
 export function getSchemaChildren(schema: NodeSchema | undefined) {
   if (!schema) {
@@ -85,7 +85,8 @@ export function baseRendererFactory(): BaseRenderComponent {
   const DEFAULT_LOOP_ARG_ITEM = 'item'
   const DEFAULT_LOOP_ARG_INDEX = 'index'
   let scopeIdx = 0
-  return class BaseRenderer extends Component<BaseRendererProps, Record<string, any>> {
+
+  return class BaseRenderer extends Component<BaseRendererProps, BaseRendererProps> {
     [key: string]: any
 
     static displayName = 'BaseRenderer'
@@ -120,9 +121,8 @@ export function baseRendererFactory(): BaseRenderComponent {
      */
     __styleElement: any
 
-    constructor(props: BaseRendererProps, context: BaseRendererContext) {
+    constructor(props: BaseRendererProps) {
       super(props)
-      this.context = context
       this.__parseExpression = (str: string, self: any) => {
         return parseExpression({ str, self, thisRequired: props?.thisRequiredInJSE, logScope: props.componentName })
       }
@@ -132,7 +132,7 @@ export function baseRendererFactory(): BaseRenderComponent {
       logger.log(`constructor - ${props?.__schema?.fileName}`)
     }
 
-    __beforeInit(_props: BaseRendererProps) {}
+    __beforeInit(props: BaseRendererProps) {}
 
     __init(props: BaseRendererProps) {
       this.__compScopes = {}
@@ -140,7 +140,7 @@ export function baseRendererFactory(): BaseRenderComponent {
       this.__bindCustomMethods(props)
     }
 
-    __afterInit(_props: BaseRendererProps) {}
+    __afterInit(props: BaseRendererProps) {}
 
     static getDerivedStateFromProps(props: BaseRendererProps, state: any) {
       const result = executeLifeCycleMethod(
@@ -156,23 +156,23 @@ export function baseRendererFactory(): BaseRenderComponent {
 
     async getSnapshotBeforeUpdate(...args: any[]) {
       this.__executeLifeCycleMethod('getSnapshotBeforeUpdate', args)
-      logger.log(`getSnapshotBeforeUpdate - ${this.props?.__schema?.fileName}`)
+      logger.log(`getSnapshotBeforeUpdate - ${this.props?.__schema?.componentName}`)
     }
 
     async componentDidMount(...args: any[]) {
       this.reloadDataSource()
       this.__executeLifeCycleMethod('componentDidMount', args)
-      logger.log(`componentDidMount - ${this.props?.__schema?.fileName}`)
+      logger.log(`componentDidMount - ${this.props?.__schema?.componentName}`)
     }
 
     async componentDidUpdate(...args: any[]) {
       this.__executeLifeCycleMethod('componentDidUpdate', args)
-      logger.log(`componentDidUpdate - ${this.props.__schema.fileName}`)
+      logger.log(`componentDidUpdate - ${this.props.__schema.componentName}`)
     }
 
     async componentWillUnmount(...args: any[]) {
       this.__executeLifeCycleMethod('componentWillUnmount', args)
-      logger.log(`componentWillUnmount - ${this.props?.__schema?.fileName}`)
+      logger.log(`componentWillUnmount - ${this.props?.__schema?.componentName}`)
     }
 
     async componentDidCatch(...args: any[]) {
@@ -216,7 +216,6 @@ export function baseRendererFactory(): BaseRenderComponent {
 
     /**
      * execute method in schema.lifeCycles
-     * @PRIVATE
      */
     __executeLifeCycleMethod = (method: string, args?: any) => {
       executeLifeCycleMethod(this, this.props.__schema, method, args, this.props.thisRequiredInJSE)
@@ -224,14 +223,13 @@ export function baseRendererFactory(): BaseRenderComponent {
 
     /**
      * this method is for legacy purpose only, which used _ prefix instead of __ as private for some historical reasons
-     * @LEGACY
      */
-    _getComponentView = (componentName: string) => {
-      const { __components } = this.props
+    __getComponentView = () => {
+      const { __components, __schema } = this.props
       if (!__components) {
         return
       }
-      return __components[componentName]
+      return __components[__schema.componentName]
     }
 
     __bindCustomMethods = (props: BaseRendererProps) => {
@@ -383,7 +381,7 @@ export function baseRendererFactory(): BaseRenderComponent {
     }
 
     __createDom = () => {
-      const { __schema, __ctx, __components = {} } = this.props
+      const { __schema, __ctx } = this.props
       // merge defaultProps
       const scopeProps = {
         ...__schema.defaultProps,
@@ -395,14 +393,18 @@ export function baseRendererFactory(): BaseRenderComponent {
       scope.__proto__ = __ctx || this
 
       const _children = getSchemaChildren(__schema)
-      const Comp = __components[__schema.componentName]
+      const Comp = this.__getComponentView()
 
       if (!Comp) {
         logger.log(`${__schema.componentName} is invalid!`)
       }
+
       const parentNodeInfo = {
         schema: __schema,
-        Comp: this.__getHOCWrappedComponent(Comp, __schema, scope),
+        Comp: this.__getHOCWrappedComponent(Comp, {
+          schema: __schema,
+          scope,
+        }),
       } as NodeInfo
       return this.__createVirtualDom(_children, scope, parentNodeInfo)
     }
@@ -423,13 +425,16 @@ export function baseRendererFactory(): BaseRenderComponent {
       if (originalSchema === null || originalSchema === undefined) {
         return null
       }
+
       let scope = originalScope
       const schema = originalSchema
       const { engine } = this.context || {}
+
       if (!engine) {
         logger.log('this.context.engine is invalid!')
         return null
       }
+
       try {
         const { __appHelper: appHelper, __components: components = {} } = this.props || {}
 
@@ -466,6 +471,7 @@ export function baseRendererFactory(): BaseRenderComponent {
         if (!isSchema(schema)) {
           return null
         }
+
         let Comp = components[schema.componentName] || this.props.__container?.components?.[schema.componentName]
 
         // 容器类组件的上下文通过props传递，避免context传递带来的嵌套问题
@@ -482,6 +488,7 @@ export function baseRendererFactory(): BaseRenderComponent {
             `${schema.componentName} component is not found in components list! component list is:`,
             components || this.props.__container?.components,
           )
+
           return engine.createElement(
             engine.getNotFoundComponent(),
             {
@@ -512,6 +519,7 @@ export function baseRendererFactory(): BaseRenderComponent {
             )
           }
         }
+
         const condition = schema.condition == null ? true : this.__parseData(schema.condition, scope)
 
         // DesignMode 为 design 情况下，需要进入 leaf Hoc，进行相关事件注册
@@ -520,6 +528,7 @@ export function baseRendererFactory(): BaseRenderComponent {
           return null
         }
 
+        // TODO
         let scopeKey = ''
         // 判断组件是否需要生成scope，且只生成一次，挂在this.__compScopes上
         if (Comp.generateScope) {
@@ -554,6 +563,7 @@ export function baseRendererFactory(): BaseRenderComponent {
         if (this.__designModeIsDesign) {
           otherProps.__tag = Math.random()
         }
+
         const componentInfo: any = {}
         const props: any =
           this.__getComponentProps(schema, scope, Comp, {
@@ -561,17 +571,14 @@ export function baseRendererFactory(): BaseRenderComponent {
             props: transformArrayToMap(componentInfo.props, 'name'),
           }) || {}
 
-        this.__componentHOCs.forEach(ComponentConstruct => {
-          Comp = ComponentConstruct(Comp, {
-            schema,
-            componentInfo,
-            baseRenderer: this,
-            scope,
-          })
+        Comp = this.__getHOCWrappedComponent(Comp, {
+          schema,
+          componentInfo,
+          baseRenderer: this,
+          scope,
         })
 
         otherProps.ref = (ref: any) => {
-          // this.$(props.fieldId || props.ref, ref) // 收集ref
           this.$(schema.id || props.ref, ref) // 收集ref
           const refProps = props.ref
           if (refProps && typeof refProps === 'string') {
@@ -599,17 +606,18 @@ export function baseRendererFactory(): BaseRenderComponent {
           props.key = props.__id
         }
 
-        const child = this.__getSchemaChildrenVirtualDom(schema, scope, Comp, condition)
-        const renderComp = (innerProps: any) => engine.createElement(Comp, innerProps, child)
-
-        return renderComp({
-          ...props,
-          ...otherProps,
-          __inner__: {
-            hidden: schema.hidden,
-            condition,
+        return engine.createElement(
+          Comp,
+          {
+            ...props,
+            ...otherProps,
+            __inner__: {
+              hidden: schema.hidden,
+              condition,
+            },
           },
-        })
+          this.__getSchemaChildrenVirtualDom(schema, scope, Comp, condition),
+        )
       } catch (e) {
         return engine.createElement(engine.getFaultComponent(), {
           error: e,
@@ -637,7 +645,6 @@ export function baseRendererFactory(): BaseRenderComponent {
     __getSchemaChildrenVirtualDom = (schema: NodeSchema | undefined, scope: any, Comp: any, condition = true) => {
       let children = condition ? getSchemaChildren(schema) : null
 
-      // @todo 补完这里的 Element 定义 @承虎
       const result: any = []
       if (children) {
         if (!Array.isArray(children)) {
@@ -810,19 +817,15 @@ export function baseRendererFactory(): BaseRenderComponent {
       return checkProps(props)
     }
 
-    $(filedId: string, instance?: any) {
+    $(id: string, instance?: any) {
       this.__instanceMap = this.__instanceMap || {}
-      if (!filedId || typeof filedId !== 'string') {
+      if (!id || typeof id !== 'string') {
         return this.__instanceMap
       }
       if (instance) {
-        this.__instanceMap[filedId] = instance
+        this.__instanceMap[id] = instance
       }
-      return this.__instanceMap[filedId]
-    }
-
-    __debug = (...args: any[]) => {
-      logger.log(...args)
+      return this.__instanceMap[id]
     }
 
     __renderContextProvider = (customProps?: object, children?: any) => {
@@ -843,14 +846,21 @@ export function baseRendererFactory(): BaseRenderComponent {
       return createElement(RendererContext.Consumer, {}, children)
     }
 
-    __getHOCWrappedComponent(OriginalComp: any, schema: any, scope: any) {
+    __getHOCWrappedComponent(
+      OriginalComp: any,
+      info: {
+        schema: ComponentHocInfo['schema']
+        scope: ComponentHocInfo['scope']
+        componentInfo?: ComponentHocInfo['componentInfo']
+        baseRenderer?: ComponentHocInfo['baseRenderer']
+      },
+    ) {
       let Comp = OriginalComp
       this.__componentHOCs.forEach(ComponentConstruct => {
         Comp = ComponentConstruct(Comp, {
-          schema,
           componentInfo: {},
           baseRenderer: this,
-          scope,
+          ...info,
         })
       })
 
@@ -862,7 +872,10 @@ export function baseRendererFactory(): BaseRenderComponent {
       const { __schema, __ctx } = this.props
       const scope: any = {}
       scope.__proto__ = __ctx || this
-      Comp = this.__getHOCWrappedComponent(Comp, __schema, scope)
+      Comp = this.__getHOCWrappedComponent(Comp, {
+        schema: __schema,
+        scope,
+      })
       const data = this.__parseProps(__schema?.props, scope, '', {
         schema: __schema,
         Comp,
@@ -929,7 +942,7 @@ export function baseRendererFactory(): BaseRenderComponent {
       return !isSchema(schema) || !componentNames.includes(schema?.componentName ?? '')
     }
 
-    get appHelper(): RendererAppHelper {
+    get appHelper() {
       return this.props.__appHelper
     }
 
