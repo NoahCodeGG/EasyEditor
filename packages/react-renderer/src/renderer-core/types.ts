@@ -1,8 +1,108 @@
 import type { DesignMode, JSONObject, NodeSchema, RootSchema, Simulator, SimulatorRenderer } from '@easy-editor/core'
 import type { Component } from 'react'
-import type { RendererProps, RendererState } from '..'
+import type { FaultComponentProps } from './components/FaultComponent'
+import type { NotFoundComponentProps } from './components/NotFoundComponent'
 
 export type Schema = NodeSchema | RootSchema
+
+export interface RendererState {
+  engineRenderError?: boolean
+  error?: Error
+}
+
+export interface RendererProps {
+  /** 符合低代码搭建协议的数据 */
+  schema: RootSchema | NodeSchema
+
+  /** 组件依赖的实例 */
+  components: Record<string, React.ComponentType>
+
+  /** CSS 类名 */
+  className?: string
+
+  /** style */
+  style?: React.CSSProperties
+
+  /** id */
+  id?: string | number
+
+  /** 主要用于设置渲染模块的全局上下文，里面定义的内容可以在低代码中通过 this 来访问，比如 this.utils */
+  appHelper?: RendererAppHelper
+
+  /**
+   * 配置规范参见《低代码搭建组件描述协议》https://lowcode-engine.cn/lowcode
+   * 主要在搭建场景中使用，用于提升用户搭建体验。
+   *
+   * > 在生产环境下不需要设置
+   */
+  componentsMap?: Record<string, any>
+
+  /** 设计模式，可选值：live、design */
+  designMode?: DesignMode
+
+  /** 渲染模块是否挂起，当设置为 true 时，渲染模块最外层容器的 shouldComponentUpdate 将始终返回false，在下钻编辑或者多引擎渲染的场景会用到该参数。 */
+  suspended?: boolean
+
+  /** 组件获取 ref 时触发的钩子 */
+  onCompGetRef?: (schema: NodeSchema, ref: any) => void
+
+  /** 组件 ctx 更新回调 */
+  onCompGetCtx?: (schema: NodeSchema, ref: any) => void
+
+  /** 传入的 schema 是否有变更 */
+  getSchemaChangedSymbol?: () => boolean
+
+  /** 设置 schema 是否有变更 */
+  setSchemaChangedSymbol?: (symbol: boolean) => void
+
+  /** 自定义创建 element 的钩子 */
+  customCreateElement?: (Component: any, props: any, children: any) => any
+
+  /** 渲染类型，标识当前模块是以什么类型进行渲染的 */
+  rendererName?: 'LowCodeRenderer' | 'PageRenderer' | string
+
+  /** 当找不到组件时，显示的组件 */
+  notFoundComponent?: React.ComponentType<NotFoundComponentProps>
+
+  /** 当组件渲染异常时，显示的组件 */
+  faultComponent?: React.ComponentType<FaultComponentProps>
+
+  /** 设备信息 */
+  device?: 'default' | 'pc' | 'mobile' | string
+
+  /**
+   * @default true
+   * JSExpression 是否只支持使用 this 来访问上下文变量
+   */
+  thisRequiredInJSE?: boolean
+
+  /**
+   * @default false
+   * 当开启组件未找到严格模式时，渲染模块不会默认给一个容器组件
+   */
+  enableStrictNotFoundMode?: boolean
+}
+
+export interface RenderComponent {
+  displayName: string
+  defaultProps: RendererProps
+
+  new (
+    props: RendererProps,
+  ): Component<RendererProps, RendererState> & {
+    [x: string]: any
+    __getRef: (ref: any) => void
+    componentDidMount(): Promise<void> | void
+    componentDidUpdate(): Promise<void> | void
+    componentWillUnmount(): Promise<void> | void
+    componentDidCatch(e: any): Promise<void> | void
+    shouldComponentUpdate(nextProps: RendererProps): boolean
+    isValidComponent(SetComponent: any): any
+    createElement(SetComponent: any, props: any, children?: any): any
+    getNotFoundComponent(): any
+    getFaultComponent(): any
+  }
+}
 
 export interface RendererAppHelper {
   /** 全局公共函数 */
@@ -112,26 +212,4 @@ export type BaseRendererInstance = Component<BaseRendererProps, Record<string, a
 
 export interface BaseRenderComponent {
   new (props: BaseRendererProps): BaseRendererInstance
-}
-
-export interface RenderComponent {
-  displayName: string
-  defaultProps: RendererProps
-
-  new (
-    props: RendererProps,
-    context: any,
-  ): Component<RendererProps, RendererState> & {
-    [x: string]: any
-    __getRef: (ref: any) => void
-    componentDidMount(): Promise<void> | void
-    componentDidUpdate(): Promise<void> | void
-    componentWillUnmount(): Promise<void> | void
-    componentDidCatch(e: any): Promise<void> | void
-    shouldComponentUpdate(nextProps: RendererProps): boolean
-    isValidComponent(SetComponent: any): any
-    createElement(SetComponent: any, props: any, children?: any): any
-    getNotFoundComponent(): any
-    getFaultComponent(): any
-  }
 }

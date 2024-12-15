@@ -8,7 +8,7 @@ import {
   isJSFunction,
 } from '@easy-editor/core'
 import { forEach, isEmpty } from 'lodash-es'
-import { Component, createElement } from 'react'
+import { Component } from 'react'
 import { adapter } from './adapter'
 import { RendererContext } from './context'
 import { type ComponentConstruct, type ComponentHocInfo, compWrapper, leafWrapper } from './hoc'
@@ -28,7 +28,6 @@ import {
 
 /**
  * execute method in schema.lifeCycles with context
- * @PRIVATE
  */
 export function executeLifeCycleMethod(
   context: any,
@@ -79,7 +78,7 @@ export function baseRendererFactory(): BaseRenderComponent {
   const { BaseRenderer: customBaseRenderer } = adapter.getRenderers()
 
   if (customBaseRenderer) {
-    return customBaseRenderer
+    return customBaseRenderer as unknown as BaseRenderComponent
   }
 
   const DEFAULT_LOOP_ARG_ITEM = 'item'
@@ -829,21 +828,21 @@ export function baseRendererFactory(): BaseRenderComponent {
     }
 
     __renderContextProvider = (customProps?: object, children?: any) => {
-      return createElement(
-        RendererContext,
-        {
-          value: {
+      return (
+        <RendererContext
+          value={{
             ...this.context,
             blockContext: this,
             ...(customProps || {}),
-          },
-        },
-        children || this.__createDom(),
+          }}
+        >
+          {children || this.__createDom()}
+        </RendererContext>
       )
     }
 
     __renderContextConsumer = (children: any) => {
-      return createElement(RendererContext.Consumer, {}, children)
+      return <RendererContext.Consumer>{children}</RendererContext.Consumer>
     }
 
     __getHOCWrappedComponent(
@@ -918,15 +917,15 @@ export function baseRendererFactory(): BaseRenderComponent {
       // )
       const style = { ...(parsedProps.style || {}), ...(typeof this.props.style === 'object' ? this.props.style : {}) }
       const id = this.props.id || parsedProps.id
-      return createElement(
-        'div',
-        {
-          ref: this.__getRef,
-          // className,
-          id,
-          style,
-        },
-        children,
+      return (
+        <div
+          ref={this.__getRef}
+          // className={className}
+          id={id}
+          style={style}
+        >
+          {children}
+        </div>
       )
     }
 

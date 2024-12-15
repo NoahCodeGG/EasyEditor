@@ -17,7 +17,7 @@ export function pageRendererFactory(): BaseRenderComponent {
       this.__executeLifeCycleMethod('constructor', [props, ...rest])
     }
 
-    async componentDidUpdate(prevProps: BaseRendererProps, _prevState: {}, snapshot: unknown) {
+    async componentDidUpdate(prevProps: BaseRendererProps, _prevState: any, snapshot: unknown) {
       const { __ctx } = this.props
       // 当编排的时候修改 schema.state 值，需要将最新 schema.state 值 setState
       if (JSON.stringify(prevProps.__schema.state) !== JSON.stringify(this.props.__schema.state)) {
@@ -38,7 +38,7 @@ export function pageRendererFactory(): BaseRenderComponent {
       if (this.__checkSchema(__schema)) {
         return '页面schema结构异常！'
       }
-      logger.log(`${PageRenderer.displayName} render - ${__schema.fileName}`)
+      logger.log(`${PageRenderer.displayName} render - ${__schema.componentName}`)
 
       this.__bindCustomMethods(this.props)
       this.__initDataSource(this.props)

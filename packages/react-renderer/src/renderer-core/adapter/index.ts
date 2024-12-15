@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react'
 import type { BaseRenderComponent } from '../types'
 
 export interface RendererModules {
@@ -26,7 +27,7 @@ class Adapter {
   }
 
   getRenderers() {
-    return this.renderers || {}
+    return (this.renderers || {}) as unknown as Record<string, ComponentType>
   }
 }
 

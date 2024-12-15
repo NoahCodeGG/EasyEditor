@@ -24,7 +24,7 @@ export function componentRendererFactory(): BaseRenderComponent {
       if (this.__checkSchema(__schema)) {
         return '自定义组件 schema 结构异常！'
       }
-      logger.log(`${CompRenderer.displayName} render - ${__schema.fileName}`)
+      logger.log(`${CompRenderer.displayName} render - ${__schema.componentName}`)
 
       this.__generateCtx({
         component: this,
@@ -45,7 +45,7 @@ export function componentRendererFactory(): BaseRenderComponent {
         return this.__renderContent(this.__renderContextProvider({ compContext: this }))
       }
 
-      return this.__renderComp(Comp, this.__renderContextProvider({ compContext: this }))
+      return this.__renderComp(Comp, { compContext: this })
     }
   }
 }

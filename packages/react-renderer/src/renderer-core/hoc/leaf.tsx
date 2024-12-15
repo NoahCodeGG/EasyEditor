@@ -13,14 +13,14 @@ export interface ComponentHocInfo {
 
 export type ComponentConstruct = (Comp: ComponentType, info: ComponentHocInfo) => ComponentType
 
-export interface IComponentHocProps {
+export interface ComponentHocProps {
   __tag: any
   componentId: any
   _leaf: any
   forwardedRef?: any
 }
 
-export interface IComponentHocState {
+export interface ComponentHocState {
   childrenInState: boolean
   nodeChildren: any
   nodeCacheProps: any
@@ -81,7 +81,7 @@ class LeafCache {
 let cache: LeafCache
 
 /** 部分没有渲染的 node 节点进行兜底处理 or 渲染方式没有渲染 LeafWrapper */
-function initRerenderEvent({ schema, container, getNode }: any) {
+const initRerenderEvent = ({ schema, container, getNode }: any) => {
   const leaf = getNode?.(schema.id)
   if (!leaf || cache.event.get(schema.id)?.clear || leaf === cache.event.get(schema.id)) {
     return
@@ -126,7 +126,7 @@ function initRerenderEvent({ schema, container, getNode }: any) {
 }
 
 /** 渲染的 node 节点全局注册事件清除 */
-function clearRerenderEvent(id: string): void {
+const clearRerenderEvent = (id: string): void => {
   if (cache.event.get(id)?.clear) {
     return
   }
@@ -138,7 +138,7 @@ function clearRerenderEvent(id: string): void {
 }
 
 // 给每个组件包裹一个 HOC Leaf，支持组件内部属性变化，自响应渲染
-export function leafWrapper(Comp: any, { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo) {
+export const leafWrapper: ComponentConstruct = (Comp, { schema, baseRenderer, componentInfo, scope }) => {
   const { __getComponentProps: getProps, __getSchemaChildrenVirtualDom: getChildren, __parseData } = baseRenderer
   const { engine } = baseRenderer.context
   const host = baseRenderer.props?.__host
@@ -148,7 +148,6 @@ export function leafWrapper(Comp: any, { schema, baseRenderer, componentInfo, sc
   const container = baseRenderer.props?.__container
   const setSchemaChangedSymbol = baseRenderer.props?.setSchemaChangedSymbol
   const designer = host?.designer
-  const editor = host?.designer?.editor
 
   const componentCacheId = schema.id
 
@@ -248,12 +247,6 @@ export function leafWrapper(Comp: any, { schema, baseRenderer, componentInfo, sc
         type: this.recordInfo.type,
         nodeCount,
       })
-      // editor?.eventBus.emit(GlobalEvent.Node.Rerender, {
-      //   componentName,
-      //   time: endTime - this.recordInfo.startTime,
-      //   type: this.recordInfo.type,
-      //   nodeCount,
-      // })
       this.recordInfo.startTime = null
     }
 
@@ -280,6 +273,7 @@ export function leafWrapper(Comp: any, { schema, baseRenderer, componentInfo, sc
     getDefaultState(nextProps: any) {
       const { hidden = false, condition = true } =
         nextProps.__inner__ || this.leaf?.export?.(TRANSFORM_STAGE.RENDER) || {}
+
       return {
         nodeChildren: null,
         childrenInState: false,
@@ -529,7 +523,7 @@ export function leafWrapper(Comp: any, { schema, baseRenderer, componentInfo, sc
       return this.props.children
     }
 
-    get leaf(): INode | undefined {
+    get leaf(): Node | undefined {
       if (this.props._leaf?.isMock) {
         // 低代码组件作为一个整体更新，其内部的组件不需要监听相关事件
         return undefined

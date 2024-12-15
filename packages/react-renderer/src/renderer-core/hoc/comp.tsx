@@ -1,14 +1,9 @@
 import { Component, PureComponent, createElement } from 'react'
-import type { RendererProps } from '../renderer'
-import type { BaseRendererInstance } from '../types'
+import type { RendererProps } from '../types'
 import { createForwardRefHocElement } from '../utils'
+import type { ComponentConstruct, ComponentHocInfo } from './leaf'
 
-interface Options {
-  baseRenderer: BaseRendererInstance
-  schema: any
-}
-
-function patchDidCatch(Comp: any, { baseRenderer }: Options) {
+const patchDidCatch = (Comp: any, { baseRenderer }: ComponentHocInfo) => {
   if (Comp.patchedCatch) {
     return
   }
@@ -47,29 +42,30 @@ function patchDidCatch(Comp: any, { baseRenderer }: Options) {
 
 const cache = new Map<string, { Comp: any; WrapperComponent: any }>()
 
-export function compWrapper(Comp: any, options: Options) {
+export const compWrapper: ComponentConstruct = (Comp, info) => {
   if (Comp?.prototype?.isReactComponent || Comp?.prototype instanceof Component) {
-    patchDidCatch(Comp, options)
+    patchDidCatch(Comp, info)
     return Comp
   }
 
-  if (cache.has(options.schema.id) && cache.get(options.schema.id)?.Comp === Comp) {
-    return cache.get(options.schema.id)?.WrapperComponent
+  if (cache.has(info.schema.id) && cache.get(info.schema.id)?.Comp === Comp) {
+    return cache.get(info.schema.id)?.WrapperComponent
   }
 
   class Wrapper extends Component {
+    static displayName = Comp.displayName
+
     render() {
       const { forwardRef, ...rest } = this.props
       return createElement(Comp, { ...rest, ref: forwardRef })
     }
   }
-  ;(Wrapper as any).displayName = Comp.displayName
 
-  patchDidCatch(Wrapper, options)
+  patchDidCatch(Wrapper, info)
 
   const WrapperComponent = createForwardRefHocElement(Wrapper, Comp)
 
-  cache.set(options.schema.id, { WrapperComponent, Comp })
+  cache.set(info.schema.id, { WrapperComponent, Comp })
 
   return WrapperComponent
 }
