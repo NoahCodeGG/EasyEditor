@@ -90,12 +90,12 @@ export class ComponentMetaManager {
       if (metaData.devMode === 'lowCode') {
         maps[key] = metaData.schema
       } else {
-        // const { view } = config.advanced;
-        // if (view) {
-        //   maps[key] = view;
-        // } else {
-        //   maps[key] = config.npm;
-        // }
+        const { view } = config.advanced
+        if (view) {
+          maps[key] = view
+        } else {
+          // maps[key] = config.npm
+        }
       }
     })
     return maps

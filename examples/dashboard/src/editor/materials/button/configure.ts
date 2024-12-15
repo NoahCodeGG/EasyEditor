@@ -1,4 +1,5 @@
 import type { Configure } from '@easy-editor/core'
+import Button from './component'
 
 const configure: Configure = {
   props: [
@@ -18,7 +19,9 @@ const configure: Configure = {
   ],
   component: {},
   supports: {},
-  advanced: {},
+  advanced: {
+    view: Button,
+  },
 }
 
 export default configure

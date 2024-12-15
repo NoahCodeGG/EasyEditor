@@ -216,6 +216,12 @@ export interface Advanced {
    * auto add children when drag into container
    */
   initialChildren?: NodeSchema[] | ((target: Node) => NodeSchema[])
+
+  /**
+   * TODO: 补充文档
+   * @experimental not in spec yet
+   */
+  view?: ComponentType<any>
 }
 
 // TODO

@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     // TODO: 暂时需要 babel 插件，因为需要联调 @easy-editor/core 的代码，会用到装饰器内容
     babel({
-      extensions: ['.js', '.ts'],
+      extensions: ['.js', '.ts', '.jsx', '.tsx'],
       exclude: 'node_modules/**',
       babelrc: false,
       babelHelpers: 'bundled',

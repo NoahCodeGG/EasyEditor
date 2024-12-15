@@ -1,7 +1,7 @@
 {
   "name": "@easy-editor/react-renderer-dashboard",
   "private": true,
-  "description": "React Render package for EasyEditor.",
+  "description": "React Render for Dashboard package for EasyEditor.",
   "type": "module",
   "main": "./src/index.ts",
   "keywords": [
@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@easy-editor/react-renderer": "workspace:*",
-    "lodash-es": "^4.17.21"
+    "lodash-es": "^4.17.21",
+    "mobx": "^6.13.5"
   },
   "devDependencies": {
     "@types/lodash-es": "^4.17.12"

@@ -1,4 +1,12 @@
-import type { DesignMode, JSONObject, NodeSchema, RootSchema, Simulator, SimulatorRenderer } from '@easy-editor/core'
+import type {
+  DesignMode,
+  JSONObject,
+  Node,
+  NodeSchema,
+  RootSchema,
+  Simulator,
+  SimulatorRenderer,
+} from '@easy-editor/core'
 import type { Component } from 'react'
 import type { FaultComponentProps } from './components/FaultComponent'
 import type { NotFoundComponentProps } from './components/NotFoundComponent'
@@ -25,6 +33,9 @@ export interface RendererProps {
 
   /** id */
   id?: string | number
+
+  /** 当前文档的 id */
+  documentId?: string
 
   /** 主要用于设置渲染模块的全局上下文，里面定义的内容可以在低代码中通过 this 来访问，比如 this.utils */
   appHelper?: RendererAppHelper
@@ -81,6 +92,15 @@ export interface RendererProps {
    * 当开启组件未找到严格模式时，渲染模块不会默认给一个容器组件
    */
   enableStrictNotFoundMode?: boolean
+
+  /** 获取节点的方法 */
+  getNode?: (id: string) => Node
+
+  /** 渲染模块的 host */
+  __host?: Simulator
+
+  /** 渲染模块的 container */
+  __container?: SimulatorRenderer
 }
 
 export interface RenderComponent {

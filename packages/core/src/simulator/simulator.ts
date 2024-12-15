@@ -55,6 +55,40 @@ export class Simulator {
 
   autoRender = true
 
+  get editor() {
+    return this.designer.editor
+  }
+
+  @computed get device(): string {
+    return this.get('device') || 'default'
+  }
+
+  @computed get requestHandlersMap(): any {
+    // renderer 依赖
+    // TODO: 需要根据 design mode 不同切换鼠标响应情况
+    return this.get('requestHandlersMap') || null
+  }
+
+  get thisRequiredInJSE(): boolean {
+    return this.editor.get('thisRequiredInJSE') ?? true
+  }
+
+  get enableStrictNotFoundMode(): any {
+    return this.editor.get('enableStrictNotFoundMode') ?? false
+  }
+
+  get notFoundComponent(): any {
+    return this.editor.get('notFoundComponent') ?? null
+  }
+
+  get faultComponent(): any {
+    return this.editor.get('faultComponent') ?? null
+  }
+
+  get faultComponentMap(): any {
+    return this.editor.get('faultComponentMap') ?? null
+  }
+
   @computed
   get designMode(): DesignMode {
     return this.get('designMode') || 'design'
@@ -124,6 +158,15 @@ export class Simulator {
     return this._props[key]
   }
 
+  connect(
+    renderer: SimulatorRenderer,
+    effect: (reaction: IReactionPublic) => void,
+    options?: IReactionOptions<unknown, boolean>,
+  ) {
+    this._renderer = renderer
+    return autorun(effect, options)
+  }
+
   reaction(
     expression: (reaction: IReactionPublic) => unknown,
     effect: (value: unknown, prev: unknown, reaction: IReactionPublic) => void,
@@ -161,6 +204,25 @@ export class Simulator {
     this._contentDocument = viewport.ownerDocument
     this._contentWindow = viewport.ownerDocument.defaultView!
     this.viewport.mount(viewport)
+  }
+
+  async mountContentFrame(iframe: HTMLIFrameElement | HTMLElement | null): Promise<void> {
+    if (!iframe || this._iframe === iframe) {
+      return
+    }
+    this._iframe = iframe
+
+    if (iframe instanceof HTMLIFrameElement) {
+      this._contentWindow = iframe.contentWindow!
+      this._contentDocument = this._contentWindow.document
+    } else {
+      this._contentDocument = iframe.ownerDocument
+      this._contentWindow = iframe.ownerDocument.defaultView!
+    }
+
+    this._renderer?.run()
+    this.viewport.mount(iframe)
+    this.setupEvents()
   }
 
   /**
@@ -338,7 +400,6 @@ export class Simulator {
     this._components[name] = component
   }
 
-  @action
   setInstance(docId: string, id: string, instance: ComponentInstance | null) {
     if (!Object.prototype.hasOwnProperty.call(this.instancesMap, docId)) {
       this.instancesMap[docId] = new Map()
@@ -350,44 +411,33 @@ export class Simulator {
     }
   }
 
-  getComponentInstances(node: Node) {
-    const docId = node.document.id
+  getComponentInstance(node: Node, context?: NodeInstance<ComponentInstance, Node>): ComponentInstance | null {
+    const docId = node.document?.id
     if (!docId) {
       return null
     }
 
-    return this.instancesMap[docId]?.get(node.id) || null
+    const instance = this.instancesMap[docId]?.get(node.id) || null
+    if (!instance || !context) {
+      return instance
+    }
+
+    const closestInstance = this.getClosestNodeInstance(instance, context.nodeId)?.instance
+
+    return closestInstance === context.instance ? instance : null
   }
 
-  getClosestNodeInstance(from: ComponentInstance, specId?: string): NodeInstance<ComponentInstance, Node> | null {
-    const docId = this.project.currentDocument!.id
+  getClosestNodeInstance(from: ComponentInstance, specId?: string): NodeInstance<ComponentInstance> | null {
+    return this.renderer?.getClosestNodeInstance(from, specId) || null
+  }
 
-    if (specId && this.instancesMap[docId].has(specId)) {
-      return {
-        docId,
-        nodeId: specId,
-        instance: this.instancesMap[docId].get(specId)!,
-        node: this.project.getDocument(docId)?.getNode(specId) || null,
-      }
+  computeRect(node: Node): DOMRect | null {
+    const instance = this.getComponentInstances(node)
+    if (!instance) {
+      return null
     }
-
-    let current: Element | null = from
-    while (current) {
-      if (current.id) {
-        // Check if element exists in instancesMap
-        if (this.instancesMap[docId].has(current.id)) {
-          return {
-            docId,
-            nodeId: current.id,
-            instance: this.instancesMap[docId].get(current.id)!,
-            node: this.project.getDocument(docId)?.getNode(current.id) || null,
-          }
-        }
-      }
-      current = current.parentElement
-    }
-
-    return null
+    // return this.computeComponentInstanceRect(instances[0], node.componentMeta.rootSelector);
+    return this._renderer?.getClientRects(instance)
   }
 
   getNodeInstanceFromElement(target: Element | null): NodeInstance<ComponentInstance, Node> | null {
@@ -395,22 +445,92 @@ export class Simulator {
       return null
     }
 
-    return this.getClosestNodeInstance(target)
+    const nodeInstance = this.getClosestNodeInstance(target)
+    if (!nodeInstance) {
+      return null
+    }
+    const { docId } = nodeInstance
+    const doc = this.project.getDocument(docId)!
+    const node = doc.getNode(nodeInstance.nodeId)
+    return {
+      ...nodeInstance,
+      node,
+    }
   }
 
   /**
-   * compute the rect of node's instance
+   * @see ISimulator
    */
-  computeRect(node: Node) {
-    const instance = this.getComponentInstances(node)
-    if (!instance) {
+  // computeComponentInstanceRect(instance: IPublicTypeComponentInstance, selector?: string): IPublicTypeRect | null {
+  //   const renderer = this.renderer!;
+  //   const elements = this.findDOMNodes(instance, selector);
+  //   if (!elements) {
+  //     return null;
+  //   }
+
+  //   const elems = elements.slice();
+  //   let rects: DOMRect[] | undefined;
+  //   let last: { x: number; y: number; r: number; b: number } | undefined;
+  //   let _computed = false;
+  //   while (true) {
+  //     if (!rects || rects.length < 1) {
+  //       const elem = elems.pop();
+  //       if (!elem) {
+  //         break;
+  //       }
+  //       rects = renderer.getClientRects(elem);
+  //     }
+  //     const rect = rects.pop();
+  //     if (!rect) {
+  //       break;
+  //     }
+  //     if (rect.width === 0 && rect.height === 0) {
+  //       continue;
+  //     }
+  //     if (!last) {
+  //       last = {
+  //         x: rect.left,
+  //         y: rect.top,
+  //         r: rect.right,
+  //         b: rect.bottom,
+  //       };
+  //       continue;
+  //     }
+  //     if (rect.left < last.x) {
+  //       last.x = rect.left;
+  //       _computed = true;
+  //     }
+  //     if (rect.top < last.y) {
+  //       last.y = rect.top;
+  //       _computed = true;
+  //     }
+  //     if (rect.right > last.r) {
+  //       last.r = rect.right;
+  //       _computed = true;
+  //     }
+  //     if (rect.bottom > last.b) {
+  //       last.b = rect.bottom;
+  //       _computed = true;
+  //     }
+  //   }
+
+  //   if (last) {
+  //     const r: Rect = new DOMRect(last.x, last.y, last.r - last.x, last.b - last.y);
+  //     r.elements = elements;
+  //     r.computed = _computed;
+  //     return r;
+  //   }
+
+  //   return null;
+  // }
+
+  getComponentInstances(node: Node) {
+    const docId = node.document.id
+    if (!docId) {
       return null
     }
-    return this.computeComponentInstanceRect(instance)
-  }
 
-  computeComponentInstanceRect(instance: ComponentInstance) {
-    return instance.getBoundingClientRect()
+    return this.instancesMap[docId]?.get(node.id) || null
   }
 
   /**

@@ -51,15 +51,24 @@ export class Document {
     return this.project.simulator
   }
 
+  /** 对应 document 的 path */
+  get fileName(): string {
+    return this.rootNode?.getExtraProp('fileName', false)?.getAsString() || this.id
+  }
+
+  set fileName(fileName: string) {
+    this.rootNode?.getExtraProp('fileName', true)?.setValue(fileName)
+  }
+
   @observable.shallow private accessor nodes = new Set<Node>()
 
-  get name() {
-    return (this.rootNode?.getExtraProp('name', false)?.getValue() as string) || this.id
-  }
+  // get name() {
+  //   return (this.rootNode?.getExtraProp('name', false)?.getValue() as string) || this.id
+  // }
 
-  set name(name: string) {
-    this.rootNode?.getExtraProp('name', true)?.setValue(name)
-  }
+  // set name(name: string) {
+  //   this.rootNode?.getExtraProp('name', true)?.setValue(name)
+  // }
 
   get opened() {
     return this._opened

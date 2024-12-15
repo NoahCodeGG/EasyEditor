@@ -1,4 +1,5 @@
 import type { Configure } from '@easy-editor/core'
+import Group from './component'
 
 const configure: Configure = {
   props: [
@@ -10,7 +11,9 @@ const configure: Configure = {
   ],
   component: {},
   supports: {},
-  advanced: {},
+  advanced: {
+    view: Group,
+  },
 }
 
 export default configure

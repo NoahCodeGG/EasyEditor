@@ -1,5 +1,4 @@
 import { TRANSFORM_STAGE } from '@easy-editor/core'
-import { DashboardRenderer } from '@easy-editor/react-renderer-dashboard'
 import { observer } from 'mobx-react-lite'
 import { useEffect, useRef } from 'react'
 import { project, simulator } from '../editor'
@@ -10,11 +9,14 @@ const Center = observer(() => {
   console.log('🚀 ~ Center ~ docSchema:', docSchema)
 
   useEffect(() => {
+    // const renderer = new SimulatorRendererContainer(simulator)
+
     if (viewportRef.current) {
       project.open(defaultRootSchema)
 
-      simulator.mountViewport(viewportRef.current)
-      simulator.setupEvents()
+      // simulator.mountViewport(viewportRef.current)
+      // simulator.setupEvents()
+      simulator.mountContentFrame(viewportRef.current)
     }
   }, [])
 
@@ -26,18 +28,19 @@ const Center = observer(() => {
         </div> */}
         <div className='bg-white rounded-lg h-full border-2 border-dashed border-gray-300 relative' ref={viewportRef}>
           {/* {docSchema && <DocumentSchemaRender editor={editor} schema={docSchema} designMode='design' />} */}
-          <DashboardRenderer
+          {/* <DashboardRenderer
             components={simulator.components}
             schema={docSchema}
             onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
             onCompGetCtx={(schema, ctx) => console.log('onCompGetCtx', schema, ctx)}
             designMode='design'
-          />
+          /> */}
           {/* <ReactRenderer
             components={simulator.components}
             schema={docSchema}
             onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
           /> */}
+          <div ref={viewportRef} id='app' className='w-full h-full' />
         </div>
       </div>
     </div>

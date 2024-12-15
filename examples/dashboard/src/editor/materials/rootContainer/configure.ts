@@ -1,4 +1,5 @@
 import type { Configure } from '@easy-editor/core'
+import RootContainer from './component'
 
 const configure: Configure = {
   props: [
@@ -17,7 +18,9 @@ const configure: Configure = {
   ],
   component: {},
   supports: {},
-  advanced: {},
+  advanced: {
+    view: RootContainer,
+  },
 }
 
 export default configure
