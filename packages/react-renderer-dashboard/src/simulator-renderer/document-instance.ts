@@ -1,4 +1,5 @@
 import { type Document, type Node, TRANSFORM_STAGE, isElement } from '@easy-editor/core'
+import type { RendererProps } from '@easy-editor/react-renderer'
 import { computed, observable } from 'mobx'
 import type { ReactInstance } from 'react'
 import type { SimulatorRenderer } from './simulator-renderer'
@@ -12,58 +13,55 @@ export class DocumentInstance {
 
   private disposeFunctions: Array<() => void> = []
 
-  @observable.ref private accessor _components: any = {}
+  @observable.ref private accessor _components: NonNullable<RendererProps['components']> = {}
 
   @computed
-  get components(): object {
-    // 根据 device 选择不同组件，进行响应式
-    // 更好的做法是，根据 device 选择加载不同的组件资源，甚至是 simulatorUrl
+  get components() {
     return this._components
   }
 
-  // context from: utils、constants、history、location、match
-  @observable.ref private accessor _appContext = {}
+  @observable.ref private accessor _appContext: NonNullable<RendererProps['appHelper']> = {}
 
   @computed
-  get context(): any {
+  get context() {
     return this._appContext
   }
 
-  @observable.ref private accessor _designMode = 'design'
+  @observable.ref private accessor _designMode: NonNullable<RendererProps['designMode']> = 'design'
 
   @computed
-  get designMode(): any {
+  get designMode() {
     return this._designMode
   }
 
-  @observable.ref private accessor _requestHandlersMap = null
+  @observable.ref private accessor _requestHandlersMap: any = null
 
   @computed
-  get requestHandlersMap(): any {
+  get requestHandlersMap() {
     return this._requestHandlersMap
   }
 
-  @observable.ref private accessor _device = 'default'
+  @observable.ref private accessor _device: NonNullable<RendererProps['device']> = 'default'
 
   @computed
   get device() {
     return this._device
   }
 
-  @observable.ref private accessor _componentsMap = {}
+  @observable.ref private accessor _componentsMap: NonNullable<RendererProps['componentsMap']> = {}
 
   @computed
-  get componentsMap(): any {
+  get componentsMap() {
     return this._componentsMap
   }
 
   @computed
-  get suspended(): any {
-    return false
+  get suspended() {
+    return !this.document._opened
   }
 
   @computed
-  get scope(): any {
+  get scope() {
     return null
   }
 
@@ -154,8 +152,6 @@ export class DocumentInstance {
     instancesMap.set(id, instances)
     this.host.setInstance(this.document.id, id, instances)
   }
-
-  mountContext() {}
 
   getNode(id: string): Node | null {
     return this.document.getNode(id)

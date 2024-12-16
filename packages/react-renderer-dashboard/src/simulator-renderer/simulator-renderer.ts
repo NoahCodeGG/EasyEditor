@@ -1,11 +1,10 @@
 import {
-  type DesignMode,
   type SimulatorRenderer as ISimulatorRenderer,
   type NodeInstance,
   type Simulator,
   isElement,
 } from '@easy-editor/core'
-import type { RendererAppHelper } from '@easy-editor/react-renderer'
+import type { RendererProps } from '@easy-editor/react-renderer'
 import { isPlainObject } from 'lodash-es'
 import { computed, observable, untracked } from 'mobx'
 import { type ReactInstance, createElement } from 'react'
@@ -33,24 +32,23 @@ export class SimulatorRenderer implements ISimulatorRenderer {
     return this._components || {}
   }
 
-  // context from: utils、constants、history、location、match
-  @observable.ref private accessor _appContext: RendererAppHelper = {}
+  @observable.ref private accessor _appContext: NonNullable<RendererProps['appHelper']> = {}
   @computed get context() {
     return this._appContext
   }
 
-  @observable.ref private accessor _designMode: DesignMode = 'design'
+  @observable.ref private accessor _designMode: NonNullable<RendererProps['designMode']> = 'design'
   @computed get designMode() {
     return this._designMode
   }
 
-  @observable.ref private accessor _device = 'default'
+  @observable.ref private accessor _device: NonNullable<RendererProps['device']> = 'default'
   @computed get device() {
     return this._device
   }
 
-  @observable.ref private accessor _componentsMap = {}
-  @computed get componentsMap(): any {
+  @observable.ref private accessor _componentsMap: NonNullable<RendererProps['componentsMap']> = {}
+  @computed get componentsMap() {
     return this._componentsMap
   }
 
