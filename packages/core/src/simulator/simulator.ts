@@ -7,6 +7,7 @@ import type {
   LocationChildrenDetail,
   LocationData,
   NodeInstance,
+  Rect,
   Snippet,
 } from '../designer'
 import type { Node } from '../document'
@@ -94,6 +95,11 @@ export class Simulator {
     return this.get('designMode') || 'design'
   }
 
+  @computed get componentsMap() {
+    // renderer 依赖
+    return this.designer.componentMetaManager.componentsMap
+  }
+
   @observable.ref accessor _props: SimulatorProps = {}
 
   @observable.ref private accessor _contentWindow: Window | undefined
@@ -119,7 +125,7 @@ export class Simulator {
   }
 
   @observable private accessor instancesMap: {
-    [docId: string]: Map<string, ComponentInstance>
+    [docId: string]: Map<string, ComponentInstance[]>
   } = {}
 
   private _sensorAvailable = true
@@ -389,44 +395,107 @@ export class Simulator {
     this._components[name] = component
   }
 
-  setInstance(docId: string, id: string, instance: ComponentInstance | null) {
+  setInstance(docId: string, id: string, instances: ComponentInstance[] | null) {
     if (!Object.prototype.hasOwnProperty.call(this.instancesMap, docId)) {
       this.instancesMap[docId] = new Map()
     }
-    if (instance == null) {
+    if (instances == null) {
       this.instancesMap[docId].delete(id)
     } else {
-      this.instancesMap[docId].set(id, instance)
+      this.instancesMap[docId].set(id, instances.slice())
     }
   }
 
-  getComponentInstance(node: Node, context?: NodeInstance<ComponentInstance, Node>): ComponentInstance | null {
+  getComponentInstances(node: Node, context?: NodeInstance<ComponentInstance, Node>): ComponentInstance | null {
     const docId = node.document?.id
     if (!docId) {
       return null
     }
 
-    const instance = this.instancesMap[docId]?.get(node.id) || null
-    if (!instance || !context) {
-      return instance
+    const instances = this.instancesMap[docId]?.get(node.id) || null
+    if (!instances || !context) {
+      return instances
     }
 
-    const closestInstance = this.getClosestNodeInstance(instance, context.nodeId)?.instance
-
-    return closestInstance === context.instance ? instance : null
+    return instances.filter(instance => {
+      return this.getClosestNodeInstance(instance, context?.nodeId)?.instance === context.instance
+    })
   }
 
   getClosestNodeInstance(from: ComponentInstance, specId?: string): NodeInstance<ComponentInstance> | null {
     return this.renderer?.getClosestNodeInstance(from, specId) || null
   }
 
-  computeRect(node: Node): DOMRect | null {
-    const instance = this.getComponentInstances(node)
-    if (!instance) {
+  computeRect(node: Node) {
+    const instances = this.getComponentInstances(node)
+    if (!instances) {
       return null
     }
-    // return this.computeComponentInstanceRect(instances[0], node.componentMeta.rootSelector);
-    return this._renderer?.getClientRects(instance)
+    return this.computeComponentInstanceRect(instances[0], node.componentMeta.rootSelector)
+  }
+
+  computeComponentInstanceRect(instance: ComponentInstance, selector?: string): Rect | null {
+    return this.renderer?.getClientRects(instance)
+    // const renderer = this.renderer!;
+    // const elements = this.findDOMNodes(instance, selector);
+    // if (!elements) {
+    //   return null;
+    // }
+
+    // const elems = elements.slice();
+    // let rects: DOMRect[] | undefined;
+    // let last: { x: number; y: number; r: number; b: number } | undefined;
+    // let _computed = false;
+    // while (true) {
+    //   if (!rects || rects.length < 1) {
+    //     const elem = elems.pop();
+    //     if (!elem) {
+    //       break;
+    //     }
+    //     rects = renderer.getClientRects(elem);
+    //   }
+    //   const rect = rects.pop();
+    //   if (!rect) {
+    //     break;
+    //   }
+    //   if (rect.width === 0 && rect.height === 0) {
+    //     continue;
+    //   }
+    //   if (!last) {
+    //     last = {
+    //       x: rect.left,
+    //       y: rect.top,
+    //       r: rect.right,
+    //       b: rect.bottom,
+    //     };
+    //     continue;
+    //   }
+    //   if (rect.left < last.x) {
+    //     last.x = rect.left;
+    //     _computed = true;
+    //   }
+    //   if (rect.top < last.y) {
+    //     last.y = rect.top;
+    //     _computed = true;
+    //   }
+    //   if (rect.right > last.r) {
+    //     last.r = rect.right;
+    //     _computed = true;
+    //   }
+    //   if (rect.bottom > last.b) {
+    //     last.b = rect.bottom;
+    //     _computed = true;
+    //   }
+    // }
+
+    // if (last) {
+    //   const r: IPublicTypeRect = new DOMRect(last.x, last.y, last.r - last.x, last.b - last.y);
+    //   r.elements = elements;
+    //   r.computed = _computed;
+    //   return r;
+    // }
+
+    // return null;
   }
 
   getNodeInstanceFromElement(target: Element | null): NodeInstance<ComponentInstance, Node> | null {
@@ -445,81 +514,6 @@ export class Simulator {
       ...nodeInstance,
       node,
     }
-  }
-
-  /**
-   * @see ISimulator
-   */
-  // computeComponentInstanceRect(instance: IPublicTypeComponentInstance, selector?: string): IPublicTypeRect | null {
-  //   const renderer = this.renderer!;
-  //   const elements = this.findDOMNodes(instance, selector);
-  //   if (!elements) {
-  //     return null;
-  //   }
-
-  //   const elems = elements.slice();
-  //   let rects: DOMRect[] | undefined;
-  //   let last: { x: number; y: number; r: number; b: number } | undefined;
-  //   let _computed = false;
-  //   while (true) {
-  //     if (!rects || rects.length < 1) {
-  //       const elem = elems.pop();
-  //       if (!elem) {
-  //         break;
-  //       }
-  //       rects = renderer.getClientRects(elem);
-  //     }
-  //     const rect = rects.pop();
-  //     if (!rect) {
-  //       break;
-  //     }
-  //     if (rect.width === 0 && rect.height === 0) {
-  //       continue;
-  //     }
-  //     if (!last) {
-  //       last = {
-  //         x: rect.left,
-  //         y: rect.top,
-  //         r: rect.right,
-  //         b: rect.bottom,
-  //       };
-  //       continue;
-  //     }
-  //     if (rect.left < last.x) {
-  //       last.x = rect.left;
-  //       _computed = true;
-  //     }
-  //     if (rect.top < last.y) {
-  //       last.y = rect.top;
-  //       _computed = true;
-  //     }
-  //     if (rect.right > last.r) {
-  //       last.r = rect.right;
-  //       _computed = true;
-  //     }
-  //     if (rect.bottom > last.b) {
-  //       last.b = rect.bottom;
-  //       _computed = true;
-  //     }
-  //   }
-
-  //   if (last) {
-  //     const r: Rect = new DOMRect(last.x, last.y, last.r - last.x, last.b - last.y);
-  //     r.elements = elements;
-  //     r.computed = _computed;
-  //     return r;
-  //   }
-
-  //   return null;
-  // }
-
-  getComponentInstances(node: Node) {
-    const docId = node.document.id
-    if (!docId) {
-      return null
-    }
-
-    return this.instancesMap[docId]?.get(node.id) || null
   }
 
   /**

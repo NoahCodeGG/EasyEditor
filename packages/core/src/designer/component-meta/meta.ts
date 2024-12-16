@@ -315,7 +315,8 @@ export const isSetterConfig = (obj: any): obj is SetterConfig => {
 
 export type DynamicSetter = (target: SettingPropEntry) => string | SetterConfig | Component
 
-export type ComponentInstance = Element
+// export type ComponentInstance = Element
+export type ComponentInstance = any
 
 // export type ComponentType<T> = React.ComponentType<T>
 export type ComponentType<T> = any

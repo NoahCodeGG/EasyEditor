@@ -132,7 +132,7 @@ export interface RendererAppHelper {
   constants?: Record<string, any>
 
   /** @experimental 内部使用 */
-  requestHandlersMap: Record<string, any>
+  requestHandlersMap?: Record<string, any>
 }
 
 export interface NodeInfo {

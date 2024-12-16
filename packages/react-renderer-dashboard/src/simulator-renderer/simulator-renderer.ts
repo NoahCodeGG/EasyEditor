@@ -1,56 +1,46 @@
 import {
+  type DesignMode,
   type SimulatorRenderer as ISimulatorRenderer,
   type NodeInstance,
   type Simulator,
   isElement,
 } from '@easy-editor/core'
+import type { RendererAppHelper } from '@easy-editor/react-renderer'
 import { isPlainObject } from 'lodash-es'
 import { computed, observable, untracked } from 'mobx'
 import { type ReactInstance, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RendererView } from './RendereView'
-import { DocumentInstance } from './document-instance'
+import { DocumentInstance, REACT_KEY, SYMBOL_VDID, SYMBOL_VNID, cacheReactKey } from './document-instance'
 import { buildComponents, getClientRects } from './utils'
 
 export class SimulatorRenderer implements ISimulatorRenderer {
   readonly isSimulatorRenderer = true
+
+  private _requestHandlersMap: any
+
   private disposeFunctions: Array<() => void> = []
 
   @observable.ref private accessor _documentInstances: DocumentInstance[] = []
-  private _requestHandlersMap: any
   get documentInstances() {
     return this._documentInstances
   }
 
-  @observable private accessor _layout: any = null
-
-  @computed
-  get layout(): any {
-    // TODO: parse layout Component
-    return this._layout
-  }
-
-  set layout(value: any) {
-    this._layout = value
-  }
-
   private _libraryMap: { [key: string]: string } = {}
 
-  private _components: Record<string, React.FC | React.ComponentClass> | null = {}
-
-  get components(): Record<string, React.FC | React.ComponentClass> {
-    // 根据 device 选择不同组件，进行响应式
-    // 更好的做法是，根据 device 选择加载不同的组件资源，甚至是 simulatorUrl
+  private _components: Record<string, React.ComponentType> | null = {}
+  get components(): Record<string, React.ComponentType> {
     return this._components || {}
   }
+
   // context from: utils、constants、history、location、match
-  @observable.ref private accessor _appContext: any = {}
-  @computed get context(): any {
+  @observable.ref private accessor _appContext: RendererAppHelper = {}
+  @computed get context() {
     return this._appContext
   }
 
-  @observable.ref private accessor _designMode = 'design'
-  @computed get designMode(): any {
+  @observable.ref private accessor _designMode: DesignMode = 'design'
+  @computed get designMode() {
     return this._designMode
   }
 
@@ -78,46 +68,41 @@ export class SimulatorRenderer implements ISimulatorRenderer {
 
   host: Simulator
 
-  // constructor(readonly host: Simulator) {}
-
-  // mount(host: Simulator) {
-  //   this.init(host)
-  // }
-
   mount(host: Simulator) {
     this.host = host
-    this.autoRender = host.autoRender
+    this.init()
+  }
+
+  init() {
+    this.autoRender = this.host.autoRender
 
     this.disposeFunctions.push(
-      host.connect(this, () => {
-        // sync layout config
-        this._layout = host.project.get('config')?.layout
-
+      this.host.connect(this, () => {
         // todo: split with others, not all should recompute
         // if (this._libraryMap !== host.libraryMap) {
         //   this._libraryMap = host.libraryMap || {}
         // }
-        if (this._componentsMap !== host.designer.componentMetaManager.componentsMap) {
-          this._componentsMap = host.designer.componentMetaManager.componentsMap
+        if (this._componentsMap !== this.host.designer.componentMetaManager.componentsMap) {
+          this._componentsMap = this.host.designer.componentMetaManager.componentsMap
           this.buildComponents()
         }
 
         // sync designMode
-        this._designMode = host.designMode
+        this._designMode = this.host.designMode
 
         // sync requestHandlersMap
-        this._requestHandlersMap = host.requestHandlersMap
+        this._requestHandlersMap = this.host.requestHandlersMap
 
         // sync device
-        this._device = host.device
+        this._device = this.host.device
       }),
     )
     const documentInstanceMap = new Map<string, DocumentInstance>()
     let initialEntry = '/'
     let firstRun = true
     this.disposeFunctions.push(
-      host.autorun(() => {
-        this._documentInstances = host.project.documents.map(doc => {
+      this.host.autorun(() => {
+        this._documentInstances = this.host.project.documents.map(doc => {
           let inst = documentInstanceMap.get(doc.id)
           if (!inst) {
             inst = new DocumentInstance(this, doc)
@@ -125,63 +110,22 @@ export class SimulatorRenderer implements ISimulatorRenderer {
           }
           return inst
         })
-        const path = host.project.currentDocument ? documentInstanceMap.get(host.project.currentDocument.id)!.path : '/'
+        const path = this.host.project.currentDocument
+          ? documentInstanceMap.get(this.host.project.currentDocument.id)!.path
+          : '/'
         if (firstRun) {
           initialEntry = path
           firstRun = false
         }
-        // else if (this.history.location.pathname !== path) {
-        //   this.history.replace(path)
-        // }
       }),
     )
-    // const history = createMemoryHistory({
-    //   initialEntries: [initialEntry],
-    // })
-    // this.history = history
-    // history.listen(location => {
-    //   const docId = location.pathname.slice(1)
-    //   docId && host.project.open(docId)
-    // })
-    // host.componentsConsumer.consume(async componentsAsset => {
-    //   if (componentsAsset) {
-    //     await this.load(componentsAsset)
-    //     this.buildComponents()
-    //   }
-    // })
     this._appContext = {
       utils: {
-        // router: {
-        //   push(path: string, params?: object) {
-        //     history.push(withQueryParams(path, params))
-        //   },
-        //   replace(path: string, params?: object) {
-        //     history.replace(withQueryParams(path, params))
-        //   },
-        // },
-        // legaoBuiltins: {
-        //   getUrlParams() {
-        //     const { search } = history.location
-        //     return parseQuery(search)
-        //   },
-        // },
-        //   currentLocale: this.locale,
-        //   messages: {},
-        // },
         // ...getProjectUtils(this._libraryMap, host.get('utilsMetadata')),
       },
       constants: {},
       requestHandlersMap: this._requestHandlersMap,
     }
-
-    // host.injectionConsumer.consume(data => {
-    //   // TODO: sync utils, i18n, contants,... config
-    //   const newCtx = {
-    //     ...this._appContext,
-    //   }
-    //   merge(newCtx, data.appHelper || {})
-    //   this._appContext = newCtx
-    // })
   }
 
   private buildComponents() {
@@ -231,22 +175,6 @@ export class SimulatorRenderer implements ISimulatorRenderer {
   getClientRects(element: Element | Text) {
     return getClientRects(element)
   }
-
-  // setNativeSelection(enableFlag: boolean) {
-  //   setNativeSelection(enableFlag)
-  // }
-
-  // setDraggingState(state: boolean) {
-  //   cursor.setDragging(state)
-  // }
-
-  // setCopyState(state: boolean) {
-  //   cursor.setCopy(state)
-  // }
-
-  // clearState() {
-  //   cursor.release()
-  // }
 
   // createComponent(schema: ProjectSchema): Component | null {
   //   const _schema: ProjectSchema = {
@@ -311,7 +239,7 @@ export class SimulatorRenderer implements ISimulatorRenderer {
     let container = this.host.iframe
     if (!container) {
       const containerId = 'easy-editor'
-      container = document.getElementById(containerId)
+      container = document.getElementById(containerId)!
       if (!container) {
         container = document.createElement('div')
         document.body.appendChild(container)
@@ -321,11 +249,12 @@ export class SimulatorRenderer implements ISimulatorRenderer {
 
     createRoot(container).render(
       createElement(RendererView, {
-        rendererContainer: this,
+        simulatorRenderer: this,
         documentInstance: this.documentInstances[0],
         host: this.host,
       }),
     )
+
     this.host.project.setRendererReady(this)
   }
 
@@ -352,33 +281,16 @@ export class SimulatorRenderer implements ISimulatorRenderer {
     untracked(() => {
       this._componentsMap = {}
       this._components = null
-      this._appContext = null
+      this._appContext = {}
     })
   }
 }
-
-let REACT_KEY = ''
-export function cacheReactKey(el: Element): Element {
-  if (REACT_KEY !== '') {
-    return el
-  }
-  // react17 采用 __reactFiber 开头
-  REACT_KEY =
-    Object.keys(el).find(key => key.startsWith('__reactInternalInstance$') || key.startsWith('__reactFiber$')) || ''
-  if (!REACT_KEY && (el as HTMLElement).parentElement) {
-    return cacheReactKey((el as HTMLElement).parentElement!)
-  }
-  return el
-}
-
-export const SYMBOL_VNID = Symbol('_LCNodeId')
-export const SYMBOL_VDID = Symbol('_LCDocId')
 
 export const getReactInternalFiber = (el: any) => {
   return el._reactInternals || el._reactInternalFiber
 }
 
-function getClosestNodeInstance(from: ReactInstance, specId?: string): NodeInstance<ReactInstance> | null {
+const getClosestNodeInstance = (from: ReactInstance, specId?: string): NodeInstance<ReactInstance> | null => {
   let el: any = from
   if (el) {
     if (isElement(el)) {
@@ -408,7 +320,7 @@ function getClosestNodeInstance(from: ReactInstance, specId?: string): NodeInsta
   return null
 }
 
-function getNodeInstance(fiberNode: any, specId?: string): NodeInstance<ReactInstance> | null {
+const getNodeInstance = (fiberNode: any, specId?: string): NodeInstance<ReactInstance> | null => {
   const instance = fiberNode?.stateNode
   if (instance && SYMBOL_VNID in instance) {
     const nodeId = instance[SYMBOL_VNID]
@@ -425,7 +337,7 @@ function getNodeInstance(fiberNode: any, specId?: string): NodeInstance<ReactIns
   return getNodeInstance(fiberNode?.return)
 }
 
-function getLowCodeComponentProps(props: any) {
+const getLowCodeComponentProps = (props: any) => {
   if (!props || !isPlainObject(props)) {
     return props
   }

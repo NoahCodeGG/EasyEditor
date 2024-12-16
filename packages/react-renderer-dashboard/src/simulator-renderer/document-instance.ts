@@ -1,7 +1,7 @@
 import { type Document, type Node, TRANSFORM_STAGE, isElement } from '@easy-editor/core'
 import { computed, observable } from 'mobx'
 import type { ReactInstance } from 'react'
-import { SYMBOL_VDID, SYMBOL_VNID, type SimulatorRenderer, cacheReactKey } from './simulator-renderer'
+import type { SimulatorRenderer } from './simulator-renderer'
 
 export class DocumentInstance {
   instancesMap = new Map<string, ReactInstance[]>()
@@ -165,6 +165,23 @@ export class DocumentInstance {
     this.disposeFunctions.forEach(fn => fn())
     this.instancesMap = new Map()
   }
+}
+
+export const SYMBOL_VNID = Symbol('_LCNodeId')
+export const SYMBOL_VDID = Symbol('_LCDocId')
+
+export let REACT_KEY = ''
+export const cacheReactKey = (el: Element): Element => {
+  if (REACT_KEY !== '') {
+    return el
+  }
+  // react17 采用 __reactFiber 开头
+  REACT_KEY =
+    Object.keys(el).find(key => key.startsWith('__reactInternalInstance$') || key.startsWith('__reactFiber$')) || ''
+  if (!REACT_KEY && (el as HTMLElement).parentElement) {
+    return cacheReactKey((el as HTMLElement).parentElement!)
+  }
+  return el
 }
 
 function checkInstanceMounted(instance: any): boolean {

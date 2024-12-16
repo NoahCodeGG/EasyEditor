@@ -1,3 +1,4 @@
+import type { Node } from '..'
 import type { Component, ComponentInstance, NodeInstance } from '../designer'
 
 export interface SimulatorRenderer {
@@ -11,12 +12,8 @@ export interface SimulatorRenderer {
   getComponent(componentName: string): Component
   getClosestNodeInstance(from: ComponentInstance, nodeId?: string): NodeInstance<ComponentInstance, Node> | null
   // findDOMNodes(instance: ComponentInstance): Array<Element | Text> | null
-  // getClientRects(element: Element | Text): DOMRect[]
-  // setNativeSelection(enableFlag: boolean): void
-  // setDraggingState(state: boolean): void
-  // setCopyState(state: boolean): void
+  getClientRects(element: Element | Text): DOMRect[]
   // loadAsyncLibrary(asyncMap: { [index: string]: any }): void
-  // clearState(): void
   stopAutoRepaintNode(): void
   enableAutoRepaintNode(): void
   run(): void
