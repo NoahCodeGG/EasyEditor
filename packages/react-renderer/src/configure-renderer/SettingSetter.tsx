@@ -1,5 +1,5 @@
 import { type DynamicSetterProps, type SettingField, isSetterConfig } from '@easy-editor/core'
-import { observer } from 'mobx-react-lite'
+import { observer } from 'mobx-react'
 import type { PropsWithChildren, ReactNode } from 'react'
 import { useSettingRendererContext } from './context'
 

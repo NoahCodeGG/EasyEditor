@@ -1,5 +1,5 @@
 import { SimulatorRenderer } from '@easy-editor/react-renderer-dashboard'
-import { observer } from 'mobx-react-lite'
+import { observer } from 'mobx-react'
 import { useRef } from 'react'
 import { simulator } from '../editor'
 

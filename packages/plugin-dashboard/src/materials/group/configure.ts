@@ -3,11 +3,12 @@ import Group from './component'
 
 const configure: Configure = {
   props: [
-    {
-      title: '分组',
-      type: 'group',
-      items: [],
-    },
+    // {
+    //   name: 'test',
+    //   title: '分组',
+    //   type: 'group',
+    //   items: [],
+    // },
   ],
   component: {},
   supports: {},

@@ -7,7 +7,6 @@ interface ButtonProps {
 }
 
 const Button = (props: ButtonProps) => {
-  console.log('🚀 ~ Button ~ props:', props)
   return (
     <button ref={props.ref} type='button' className='w-full h-full'>
       {props?.text}

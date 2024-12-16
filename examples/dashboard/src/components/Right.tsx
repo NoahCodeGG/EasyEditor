@@ -1,5 +1,5 @@
 import { SettingRender } from '@easy-editor/react-renderer'
-import { observer } from 'mobx-react-lite'
+import { observer } from 'mobx-react'
 import { editor } from '../editor'
 
 const Right = observer(() => {

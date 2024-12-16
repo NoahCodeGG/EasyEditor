@@ -1,20 +1,16 @@
 import type { NodeSchema } from '@easy-editor/core'
 import { type ComponentHocInfo, createForwardRefHocElement } from '@easy-editor/react-renderer'
+import { observer } from 'mobx-react'
 import { Component } from 'react'
 
 export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo) {
-  // if (cache.has(options.schema.id) && cache.get(options.schema.id)?.Comp === Comp) {
-  //   return cache.get(options.schema.id)?.WrapperComponent
-  // }
-
   const getNode = baseRenderer.props?.getNode
   const container = baseRenderer.props?.__container
   const host = baseRenderer.props?.__host
   const designer = host?.designer
 
-  class Wrapper extends Component {
+  class Wrapper extends Component<any> {
     render() {
-      console.log('dashboardInfo', this.props)
       const { forwardRef, children, ...rest } = this.props
       const { __designMode } = this.props
 
@@ -30,7 +26,7 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
       return (
         // mask 层
         <div
-          id={`${schema.id}-mask`}
+          id={`${schema.id}-container`}
           style={{
             position: 'absolute',
             left: rect.x,
@@ -54,7 +50,7 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
           >
             {/* 组件坐标定位 */}
             <div
-              id={schema.id}
+              id={`${schema.id}-mask`}
               style={{
                 position: 'absolute',
                 left: rect.x!,
@@ -87,7 +83,7 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
   }
   ;(Wrapper as any).displayName = Comp.displayName
 
-  return createForwardRefHocElement(Wrapper, Comp)
+  return createForwardRefHocElement(observer(Wrapper), Comp)
 }
 
 /**

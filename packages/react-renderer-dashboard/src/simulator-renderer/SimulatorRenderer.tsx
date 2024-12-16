@@ -15,5 +15,5 @@ export const SimulatorRenderer = ({ host }: SimulatorRendererProps) => {
     host.mountContentFrame(iframeRef.current)
   }, [])
 
-  return <div ref={iframeRef} />
+  return <div ref={iframeRef} style={{ width: '100%', height: '100%' }} />
 }

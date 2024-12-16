@@ -120,7 +120,7 @@ export function rendererFactory(): RenderComponent {
         >
           <Comp
             key={schema.__ctx && `${schema.__ctx.lceKey}_${schema.__ctx.idx || '0'}`}
-            ref={this.__getRef}
+            // ref={this.__getRef}
             __appHelper={appHelper}
             __components={allComponents}
             __schema={schema}

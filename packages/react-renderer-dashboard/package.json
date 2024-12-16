@@ -29,9 +29,9 @@
   "peerDependencies": {
     "@easy-editor/core": "workspace:*",
     "@types/react": "^19.0.1",
-    "mobx-react-lite": "^4.0.5",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "mobx-react": "^9.2.0"
   },
   "dependencies": {
     "@easy-editor/react-renderer": "workspace:*",

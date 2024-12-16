@@ -215,8 +215,8 @@ export class Simulator {
       this._contentWindow = iframe.ownerDocument.defaultView!
     }
 
-    this._renderer?.run()
     this.viewport.mount(iframe)
+    this._renderer?.run()
     this.setupEvents()
   }
 
@@ -435,7 +435,8 @@ export class Simulator {
   }
 
   computeComponentInstanceRect(instance: ComponentInstance, selector?: string): Rect | null {
-    return this.renderer?.getClientRects(instance)
+    const rect = this.renderer?.getClientRects(instance)?.[0]
+    return rect
     // const renderer = this.renderer!;
     // const elements = this.findDOMNodes(instance, selector);
     // if (!elements) {
@@ -695,7 +696,7 @@ export class Simulator {
         instance = this.getClosestNodeInstance(nodeInstance.instance, container?.id)?.instance
       }
     } else {
-      instance = container && this.getComponentInstances(container!)
+      instance = container && this.getComponentInstances(container!)[0]
     }
 
     let dropContainer: DropContainer = {

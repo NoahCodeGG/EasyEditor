@@ -1,5 +1,5 @@
 import type { Designer, SetterManager, SettingField } from '@easy-editor/core'
-import { observer } from 'mobx-react-lite'
+import { observer } from 'mobx-react'
 import { useMemo } from 'react'
 import { SettingSetter } from './SettingSetter'
 import { SettingRendererContext, useSettingRendererContext } from './context'

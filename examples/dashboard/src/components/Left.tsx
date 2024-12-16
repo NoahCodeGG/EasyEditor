@@ -1,6 +1,6 @@
 import { designer, simulator } from '@/editor'
 import type { Snippet as ISnippet } from '@easy-editor/core'
-import { observer } from 'mobx-react-lite'
+import { observer } from 'mobx-react'
 import { useEffect, useRef } from 'react'
 
 const Snippet = ({ snippet }: { snippet: ISnippet }) => {
