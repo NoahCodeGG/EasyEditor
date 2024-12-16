@@ -1,45 +1,25 @@
-import {
-  type RenderComponent,
-  adapter,
-  componentRendererFactory,
-  pageRendererFactory,
-  rendererFactory,
-} from '@easy-editor/react-renderer'
-import { dashboardBaseRendererFactory } from './renderer/base'
+import { LowCodeRenderer } from './renderer'
+import { SimulatorRenderer, simulatorRenderer } from './simulator-renderer'
 
-export * from './simulator'
-
-// 抽离开单独设置，不然下面的 page 和 component 会走老的
-adapter.setBaseRenderer(dashboardBaseRendererFactory())
-adapter.setRenderers({
-  PageRenderer: pageRendererFactory(),
-  ComponentRenderer: componentRendererFactory(),
-})
-
-function factory(): RenderComponent {
-  return rendererFactory()
-  // const Renderer = rendererFactory()
-  // return class ReactRenderer extends Renderer implements Component {
-  //   readonly props: RendererProps
-
-  //   context: ContextType<any>
-
-  //   setState: (state: RendererState, callback?: () => void) => void
-
-  //   forceUpdate: (callback?: () => void) => void
-
-  //   refs: {
-  //     [key: string]: ReactInstance
-  //   }
-
-  //   constructor(props: RendererProps, context: ContextType<any>) {
-  //     super(props, context)
-  //   }
-
-  //   isValidComponent(obj: any) {
-  //     return obj?.prototype?.isReactComponent || obj?.prototype instanceof Component
-  //   }
-  // }
+export {
+  /**
+   * renderer: 用于 live 模式
+   * @example
+   * <LowCodeRenderer schema={schema} components={components} />
+   */
+  LowCodeRenderer,
+  /**
+   * SimulatorRenderer: 用于 design 模式
+   * @example
+   * <SimulatorRenderer host={simulator} />
+   */
+  SimulatorRenderer,
+  /**
+   * simulator renderer: 用于 design 模式
+   * @example
+   * <SimulatorRenderer schema={schema} components={components} />
+   * simulatorRenderer.mount(simulator)
+   * simulator.mountContentFrame(elem)
+   */
+  simulatorRenderer,
 }
-
-export const LowCodeRenderer = factory()

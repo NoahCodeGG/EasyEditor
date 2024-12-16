@@ -11,7 +11,7 @@ import type {
 } from '../designer'
 import type { Node } from '../document'
 import type { Project } from '../project'
-import type { SimulatorRenderer } from './simulator-render'
+import type { SimulatorRenderer } from './simulator-renderer'
 
 import { action, autorun, computed, observable, reaction } from 'mobx'
 import {
@@ -51,7 +51,7 @@ export class Simulator {
 
   readonly viewport = new Viewport()
 
-  private _iframe?: HTMLElement
+  iframe?: HTMLElement
 
   autoRender = true
 
@@ -195,22 +195,11 @@ export class Simulator {
     this.instancesMap = {}
   }
 
-  /**
-   * mount the viewport element
-   */
-  @action
-  mountViewport(viewport: HTMLElement) {
-    this._iframe = viewport
-    this._contentDocument = viewport.ownerDocument
-    this._contentWindow = viewport.ownerDocument.defaultView!
-    this.viewport.mount(viewport)
-  }
-
-  async mountContentFrame(iframe: HTMLIFrameElement | HTMLElement | null): Promise<void> {
-    if (!iframe || this._iframe === iframe) {
+  mountContentFrame(iframe: HTMLIFrameElement | HTMLElement | null) {
+    if (!iframe || this.iframe === iframe) {
       return
     }
-    this._iframe = iframe
+    this.iframe = iframe
 
     if (iframe instanceof HTMLIFrameElement) {
       this._contentWindow = iframe.contentWindow!
@@ -256,7 +245,7 @@ export class Simulator {
   setupDragAndClick() {
     const { designer } = this
     // const doc = this.contentDocument!
-    const doc = this._iframe!
+    const doc = this.iframe!
 
     doc.addEventListener(
       'mousedown',
@@ -350,7 +339,7 @@ export class Simulator {
 
   setupDetecting() {
     // const doc = this.contentDocument!
-    const doc = this._iframe!
+    const doc = this.iframe!
     const { detecting, dragon } = this.designer
     const hover = (e: MouseEvent) => {
       if (!detecting.enable || this.designMode !== 'design') {

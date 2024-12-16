@@ -1,24 +1,10 @@
-import { TRANSFORM_STAGE } from '@easy-editor/core'
+import { SimulatorRenderer } from '@easy-editor/react-renderer-dashboard'
 import { observer } from 'mobx-react-lite'
-import { useEffect, useRef } from 'react'
-import { project, simulator } from '../editor'
-import { defaultRootSchema } from '../editor/const'
+import { useRef } from 'react'
+import { simulator } from '../editor'
+
 const Center = observer(() => {
   const viewportRef = useRef<HTMLDivElement>(null)
-  const docSchema = project.currentDocument?.export(TRANSFORM_STAGE.RENDER)
-  console.log('🚀 ~ Center ~ docSchema:', docSchema)
-
-  useEffect(() => {
-    // const renderer = new SimulatorRendererContainer(simulator)
-
-    if (viewportRef.current) {
-      project.open(defaultRootSchema)
-
-      // simulator.mountViewport(viewportRef.current)
-      // simulator.setupEvents()
-      simulator.mountContentFrame(viewportRef.current)
-    }
-  }, [])
 
   return (
     <div className='flex-1 bg-gray-50 overflow-auto'>
@@ -40,7 +26,8 @@ const Center = observer(() => {
             schema={docSchema}
             onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
           /> */}
-          <div ref={viewportRef} id='app' className='w-full h-full' />
+          {/* <div ref={viewportRef} id='app' className='w-full h-full' /> */}
+          <SimulatorRenderer host={simulator} />
         </div>
       </div>
     </div>

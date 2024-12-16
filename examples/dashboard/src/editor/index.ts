@@ -10,7 +10,7 @@ import {
   createEasyEditor,
 } from '@easy-editor/core'
 import DashboardPlugin from '@easy-editor/plugin-dashboard'
-import { renderer } from '@easy-editor/react-renderer-dashboard'
+import { defaultRootSchema } from './const'
 import { formatMapFromESModule } from './utils'
 
 const plugins = (await import('./plugins')).default
@@ -55,5 +55,6 @@ console.log('componentMetas', componentMetaManager.componentMetasMap)
 
 console.log('--------------------------------')
 // simulator.setupEvents()
+// renderer.mount(simulator)
 
-renderer.mount(simulator)
+project.open(defaultRootSchema)

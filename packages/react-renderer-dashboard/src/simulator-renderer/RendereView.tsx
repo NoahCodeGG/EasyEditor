@@ -1,7 +1,8 @@
 import { DESIGNER_EVENT, type Simulator } from '@easy-editor/core'
 import { Component, type ReactInstance } from 'react'
-import type { DocumentInstance, SimulatorRendererContainer } from '.'
-import { LowCodeRenderer } from '..'
+import { LowCodeRenderer } from '../renderer'
+import type { DocumentInstance } from './document-instance'
+import type { SimulatorRenderer } from './simulator-renderer'
 
 /**
  * judges if current simulator renderer detached or not
@@ -13,7 +14,7 @@ export function isRendererDetached() {
 }
 
 export class RendererView extends Component<{
-  rendererContainer: SimulatorRendererContainer
+  rendererContainer: SimulatorRenderer
   documentInstance: DocumentInstance
   host: Simulator
 }> {
