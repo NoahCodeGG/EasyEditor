@@ -406,6 +406,10 @@ export class Simulator {
     }
   }
 
+  getInstance(docId: string, id: string) {
+    return this.instancesMap[docId]?.get(id)?.[0]
+  }
+
   getComponentInstances(node: Node, context?: NodeInstance<ComponentInstance, Node>): ComponentInstance | null {
     const docId = node.document?.id
     if (!docId) {

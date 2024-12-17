@@ -8,7 +8,7 @@ import {
   getConvertedExtraKey,
 } from '@easy-editor/core'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
-import { updateNodeRect, updateNodeRectByDOM } from './utils'
+import { getNodeRectByDOM, updateNodeRect, updateNodeRectByDOM } from './utils'
 
 interface DashboardPluginOptions {
   // TODO: 配置分组内容(schema、meta)
@@ -66,7 +66,8 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
 
       /* ----------------------------------- DND ---------------------------------- */
-      const startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
+      let startNodes: { [key: string]: { x: number; y: number } } = {}
+      let startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
 
       designer.dragon.onDragstart(e => {
         const { dragObject } = e
@@ -74,9 +75,22 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         if (dragObject && dragObject.type === DragObjectType.Node) {
           for (const node of dragObject.nodes!) {
             if (!node) continue
-            const rect = simulator.computeRect(node)
+            const instance = simulator.getInstance(node.document?.id!, node.id!)
+            if (!instance) continue
+            // const rect = simulator.computeRect(node)
+            // if (rect) {
+            //   startOffsetNodes[node.id] = { x: e.globalX - rect.x, y: e.globalY - rect.y }
+            // }
+            // TODO: 临时方案，直接用相对布局，需优化
+            // const rect = node.getExtraPropValue('$dashboard.rect') as any
+            // if (rect) {
+            //   startOffsetNodes[node.id] = { x: e.canvasX! - rect.x, y: e.canvasY! - rect.y }
+            // }
+            // TODO: 临时方案，直接用相对布局，需优化
+            const rect = getNodeRectByDOM(node.id!)
             if (rect) {
-              startOffsetNodes[node.id] = { x: e.globalX - rect.x, y: e.globalY - rect.y }
+              startNodes[node.id] = rect
+              startOffsetNodes[node.id] = { x: e.canvasX! - rect.x, y: e.canvasY! - rect.y }
             }
           }
         }
@@ -101,9 +115,19 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             if (!node) continue
 
             const { x = 0, y = 0 } = startOffsetNodes[node.id]
-            updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+            const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
+            if (node.isGroup) {
+              updateNodeRect(node, { x: e.canvasX! - x - startX, y: e.canvasY! - y - startY })
+            } else {
+              updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+            }
+
+            console.log(node.getAllNodesInGroup().map(node => simulator.getInstance(node.document?.id!, node.id!)))
           }
         }
+
+        startNodes = {}
+        startOffsetNodes = {}
       })
     },
     extend(ctx) {

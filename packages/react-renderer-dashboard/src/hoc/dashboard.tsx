@@ -23,6 +23,15 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
         isSelected = designer?.selection.has(schema.id!) ?? false
       }
 
+      // TODO: TEMP
+      if (schema.componentName === 'RootContainer') {
+        return (
+          <Comp ref={forwardRef} {...rest}>
+            {children}
+          </Comp>
+        )
+      }
+
       return (
         // mask 层
         <div

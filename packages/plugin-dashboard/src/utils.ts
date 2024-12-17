@@ -6,23 +6,18 @@ import type { Node } from '@easy-editor/core'
  * @param offset 节点相对于画布的偏移量
  * @param groupOffset 节点相对于其父组节点的偏移量
  */
-export const updateNodeRect = (node: Node, offset = { x: 0, y: 0 }, groupOffset = { x: 0, y: 0 }) => {
+export const updateNodeRect = (node: Node, offset = { x: 0, y: 0 }) => {
   if (node.isGroup) {
-    const groupRect = node.getDashboardRect()
-
-    for (const childNode of node.childrenNodes) {
-      const childRect = childNode.getDashboardRect()
-      // 计算 node to group 直接的偏移量
-      const childRectOffset = {
-        x: childRect.x - groupRect.x + groupOffset.x,
-        y: childRect.y - groupRect.y + groupOffset.y,
-      }
-
-      if (childNode.isGroup) {
-        updateNodeRect(childNode, offset, childRectOffset)
-      } else {
-        childNode.setExtraPropValue('$dashboard.rect.x', offset.x + childRectOffset.x)
-        childNode.setExtraPropValue('$dashboard.rect.y', offset.y + childRectOffset.y)
+    for (const childNode of node.getAllNodesInGroup()) {
+      if (!childNode.isGroup) {
+        childNode.setExtraPropValue(
+          '$dashboard.rect.x',
+          (childNode.getExtraPropValue('$dashboard.rect.x') as number) + offset.x,
+        )
+        childNode.setExtraPropValue(
+          '$dashboard.rect.y',
+          (childNode.getExtraPropValue('$dashboard.rect.y') as number) + offset.y,
+        )
       }
     }
   } else {
@@ -38,9 +33,24 @@ export const updateNodeRect = (node: Node, offset = { x: 0, y: 0 }, groupOffset 
  * @param groupOffset 节点相对于其父组节点的偏移量
  */
 export const updateNodeRectByDOM = (node: Node, offset = { x: 0, y: 0 }) => {
-  const domNode = document.getElementById(`${node.id}-mask`)
+  // 此处的 container 对应 hoc 的 container
+  const domNode = document.getElementById(`${node.id}-container`)
   if (domNode) {
     domNode.style.left = `${offset.x}px`
     domNode.style.top = `${offset.y}px`
   }
+}
+
+export const getNodeRectByDOM = (nodeId: string) => {
+  const domNode = document.getElementById(`${nodeId}-container`)
+  if (domNode) {
+    const properties = getComputedStyle(domNode)
+    return {
+      x: Number.parseFloat(properties.left),
+      y: Number.parseFloat(properties.top),
+      width: Number.parseFloat(properties.width),
+      height: Number.parseFloat(properties.height),
+    }
+  }
+  return { x: 0, y: 0, width: 0, height: 0 }
 }
