@@ -359,7 +359,7 @@ export const leafWrapper: ComponentConstruct = (Comp, { schema, baseRenderer, co
       }
     }
 
-    componentWillReceiveProps(nextProps: any) {
+    UNSAFE_componentWillReceiveProps(nextProps: any) {
       const { componentId } = nextProps
       if (nextProps.__tag === this.props.__tag) {
         return null

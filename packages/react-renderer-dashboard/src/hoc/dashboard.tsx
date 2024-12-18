@@ -10,11 +10,15 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
   const designer = host?.designer
 
   class Wrapper extends Component<any> {
+    // shouldComponentUpdate(nextProps, nextState) {
+    //   return designer?.detecting.current?.id === schema.id || designer?.selection.has(schema.id!)
+    // }
+
     render() {
-      const { forwardRef, children, ...rest } = this.props
-      const { __designMode } = this.props
+      const { forwardRef, children, __designMode, ...rest } = this.props
 
       const rect = computeRect(schema)
+      // TODO: designer 这一块内容应该抽出去，避免组件全部渲染
       let isHover = false
       let isSelected = false
 
