@@ -11,12 +11,13 @@
   },
   "dependencies": {
     "@easy-editor/core": "workspace:*",
+    "@easy-editor/plugin-dashboard": "workspace:*",
     "@easy-editor/react-renderer": "workspace:*",
     "@easy-editor/react-renderer-dashboard": "workspace:*",
-    "@easy-editor/plugin-dashboard": "workspace:*",
     "mobx-react": "^9.2.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-scan": "^0.0.50"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
