@@ -1,4 +1,4 @@
-import { computed, observable } from 'mobx'
+import { action, computed, observable } from 'mobx'
 import type { Point } from '../designer'
 
 export type AutoFit = '100%'
@@ -80,6 +80,7 @@ export class Viewport {
     return this._scale
   }
 
+  @action
   set scale(newScale: number) {
     if (Number.isNaN(newScale) || newScale <= 0) {
       // TODO: 统一错误信息

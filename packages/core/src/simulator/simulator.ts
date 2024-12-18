@@ -35,10 +35,27 @@ export interface DropContainer {
 
 export type DesignMode = 'design' | 'preview' | 'live'
 
+export type Device = 'mobile' | 'iphone' | 'pc' | string
+
 export interface SimulatorProps {
   designMode?: DesignMode
+  device?: Device
+  deviceClassName?: string
+  // @TODO 补充类型
+  /** @property 请求处理器配置 */
+  requestHandlersMap?: any
+  // library?: LibraryItem[];
+  // utilsMetadata?: UtilsMetadata
+  // simulatorUrl?: Asset;
+  // theme?: Asset;
+  // componentsAsset?: Asset;
 
   [key: string]: any
+}
+
+export interface DeviceStyleProps {
+  canvas?: object
+  viewport?: object
 }
 
 export class Simulator {
@@ -86,13 +103,13 @@ export class Simulator {
     return this.editor.get('faultComponent') ?? null
   }
 
-  get faultComponentMap(): any {
-    return this.editor.get('faultComponentMap') ?? null
-  }
-
   @computed
   get designMode(): DesignMode {
     return this.get('designMode') || 'design'
+  }
+
+  @computed get deviceStyle(): DeviceStyleProps | undefined {
+    return this.get('deviceStyle')
   }
 
   @computed get componentsMap() {
@@ -215,7 +232,6 @@ export class Simulator {
       this._contentWindow = iframe.ownerDocument.defaultView!
     }
 
-    this.viewport.mount(iframe)
     this._renderer?.run()
     this.setupEvents()
   }

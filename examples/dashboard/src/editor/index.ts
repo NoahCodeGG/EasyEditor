@@ -58,3 +58,6 @@ console.log('--------------------------------')
 // renderer.mount(simulator)
 
 project.open(defaultRootSchema)
+
+// 设置模拟器样式
+// simulator.set('deviceStyle', { viewport: { width: '1920px', height: '1080px' } })
