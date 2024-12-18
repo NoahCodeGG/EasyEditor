@@ -12,6 +12,8 @@ interface SimulatorRendererProps {
 export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => {
   const { viewport } = host
   const canvasRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const { canvas: canvasStyle = {}, viewport: viewportStyle = {} } = host.deviceStyle || {}
   const frameStyle: any = {
@@ -40,7 +42,9 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
   })
 
   useEffect(() => {
+    viewport.mount(viewportRef.current)
     simulatorRenderer.mount(host)
+    host.mountContentFrame(contentRef.current)
   }, [])
 
   return (
@@ -53,13 +57,13 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
       >
         {/* viewport */}
         <div
-          ref={ref => viewport.mount(ref)}
+          ref={viewportRef}
           style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '100%', ...viewportStyle }}
         >
           {/* BemTools */}
           {/* Content */}
           <div
-            ref={ref => host.mountContentFrame(ref)}
+            ref={contentRef}
             style={{
               position: 'absolute',
               top: 0,
