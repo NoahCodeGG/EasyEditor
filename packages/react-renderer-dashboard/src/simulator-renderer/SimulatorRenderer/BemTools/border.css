@@ -21,3 +21,13 @@
   border-style: dashed;
   background: var(--color-canvas-detecting-background, rgba(0, 121, 242, 0.04));
 }
+
+.lc-borders-selecting {
+  z-index: 2;
+  border-width: 2px;
+
+  &.dragging {
+    background: var(--color-layer-mask-background, rgba(182, 178, 178, 0.8));
+    border: none;
+  }
+}

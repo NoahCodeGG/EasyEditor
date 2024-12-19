@@ -1,7 +1,6 @@
 import { type Simulator, getClosestNode } from '@easy-editor/core'
 import { observer } from 'mobx-react'
 import { memo } from 'react'
-import './border.css'
 
 interface BorderDetectingInstanceProps {
   title: string

@@ -1,6 +1,9 @@
 import type { Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
 import { BorderDetecting } from './BorderDetecting'
+import { BorderSelecting } from './BorderSelecting'
+
+import './border.css'
 
 interface BemToolsProps {
   host: Simulator
@@ -15,7 +18,6 @@ export const BemTools: React.FC<BemToolsProps> = observer(({ host }) => {
 
   return (
     <div
-      id='bem-tools'
       style={{
         pointerEvents: 'none',
         position: 'absolute',
@@ -28,6 +30,7 @@ export const BemTools: React.FC<BemToolsProps> = observer(({ host }) => {
       }}
     >
       <BorderDetecting host={host} />
+      <BorderSelecting host={host} />
     </div>
   )
 })
