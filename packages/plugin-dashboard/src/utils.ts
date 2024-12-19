@@ -45,12 +45,12 @@ export const getNodeRectByDOM = (nodeId: string) => {
   const domNode = document.getElementById(`${nodeId}-container`)
   if (domNode) {
     const properties = getComputedStyle(domNode)
-    return {
-      x: Number.parseFloat(properties.left),
-      y: Number.parseFloat(properties.top),
-      width: Number.parseFloat(properties.width),
-      height: Number.parseFloat(properties.height),
-    }
+    return new DOMRect(
+      Number.parseFloat(properties.left),
+      Number.parseFloat(properties.top),
+      Number.parseFloat(properties.width),
+      Number.parseFloat(properties.height),
+    )
   }
-  return { x: 0, y: 0, width: 0, height: 0 }
+  return new DOMRect(0, 0, 0, 0)
 }

@@ -1,13 +1,12 @@
 import type { NodeSchema } from '@easy-editor/core'
 import { type ComponentHocInfo, createForwardRefHocElement } from '@easy-editor/react-renderer'
-import { observer } from 'mobx-react'
 import { Component } from 'react'
 
 export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInfo, scope }: ComponentHocInfo) {
-  const getNode = baseRenderer.props?.getNode
-  const container = baseRenderer.props?.__container
-  const host = baseRenderer.props?.__host
-  const designer = host?.designer
+  // const getNode = baseRenderer.props?.getNode
+  // const container = baseRenderer.props?.__container
+  // const host = baseRenderer.props?.__host
+  // const designer = host?.designer
 
   class Wrapper extends Component<any> {
     // shouldComponentUpdate(nextProps, nextState) {
@@ -18,14 +17,6 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
       const { forwardRef, children, __designMode, ...rest } = this.props
 
       const rect = computeRect(schema)
-      // TODO: designer 这一块内容应该抽出去，避免组件全部渲染
-      let isHover = false
-      let isSelected = false
-
-      if (__designMode === 'design') {
-        isHover = designer?.detecting.current?.id === schema.id
-        isSelected = designer?.selection.has(schema.id!) ?? false
-      }
 
       // TODO: TEMP
       if (schema.componentName === 'RootContainer') {
@@ -46,7 +37,7 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
             top: rect.y,
             width: rect.width,
             height: rect.height,
-            border: isSelected ? '2px solid red' : isHover ? '1px solid blue' : 'none',
+            border: 'none',
             userSelect: 'none',
             touchAction: 'none',
             pointerEvents: 'auto',
@@ -96,7 +87,7 @@ export function dashboardWrapper(Comp: any, { schema, baseRenderer, componentInf
   }
   ;(Wrapper as any).displayName = Comp.displayName
 
-  return createForwardRefHocElement(observer(Wrapper), Comp)
+  return createForwardRefHocElement(Wrapper, Comp)
 }
 
 /**

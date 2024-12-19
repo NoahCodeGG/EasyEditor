@@ -4,6 +4,9 @@ import { useEffect, useRef } from 'react'
 import { simulatorRenderer } from '..'
 import { useResizeObserver } from './hooks/useResizeObserver'
 
+import { BemTools } from './BemTools'
+import './css/theme.css'
+
 interface SimulatorRendererProps {
   // editor: Editor
   host: Simulator
@@ -26,9 +29,6 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
     height: '1080px',
     // height: viewport.contentHeight,
     // width: viewport.contentWidth,
-
-    // 临时样式
-    backgroundColor: 'white',
   }
 
   useResizeObserver({
@@ -58,9 +58,18 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
         {/* viewport */}
         <div
           ref={viewportRef}
-          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '100%', ...viewportStyle }}
+          // style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '100%', ...viewportStyle }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            ...frameStyle,
+          }}
         >
           {/* BemTools */}
+          <BemTools host={host} />
           {/* Content */}
           <div
             ref={contentRef}
@@ -71,7 +80,9 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
               left: 0,
               width: '100%',
               overflow: 'hidden',
-              ...frameStyle,
+              // ...frameStyle,
+              // 临时样式
+              backgroundColor: 'white',
             }}
           />
         </div>

@@ -1,0 +1,23 @@
+.lc-borders {
+  box-sizing: border-box;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  border: 1px solid var(--color-brand-light);
+  will-change: transform, width, height;
+  overflow: visible;
+}
+
+.lc-borders-title {
+  color: var(--color-brand-light);
+  transform: translateY(-100%);
+  font-weight: lighter;
+}
+
+.lc-borders-detecting {
+  z-index: 1;
+  border-style: dashed;
+  background: var(--color-canvas-detecting-background, rgba(0, 121, 242, 0.04));
+}
