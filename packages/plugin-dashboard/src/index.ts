@@ -1,16 +1,20 @@
 import {
+  type ComponentInstance,
   DESIGNER_EVENT,
   type Document,
   DragObjectType,
   type DropLocation,
   type Node,
   type PluginCreator,
+  type Simulator,
   getConvertedExtraKey,
 } from '@easy-editor/core'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
-import { getNodeRectByDOM, updateNodeRect, updateNodeRectByDOM } from './utils'
+import { updateNodeRect, updateNodeRectByDOM } from './utils'
 
 interface DashboardPluginOptions {
+  dndMode?: 'props' | 'dom'
+
   // TODO: 配置分组内容(schema、meta)
   xxx?: string
 }
@@ -22,6 +26,8 @@ const groupSchema = {
 }
 
 const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
+  const { dndMode = 'dom' } = options || {}
+
   return {
     name: 'DashboardPlugin',
     deps: [],
@@ -75,19 +81,9 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         if (dragObject && dragObject.type === DragObjectType.Node) {
           for (const node of dragObject.nodes!) {
             if (!node) continue
-            const instance = simulator.getInstance(node.document?.id!, node.id!)
-            if (!instance) continue
-            // const rect = simulator.computeRect(node)
-            // if (rect) {
-            //   startOffsetNodes[node.id] = { x: e.globalX - rect.x, y: e.globalY - rect.y }
-            // }
-            // TODO: 临时方案，直接用相对布局，需优化
-            // const rect = node.getExtraPropValue('$dashboard.rect') as any
-            // if (rect) {
-            //   startOffsetNodes[node.id] = { x: e.canvasX! - rect.x, y: e.canvasY! - rect.y }
-            // }
-            // TODO: 临时方案，直接用相对布局，需优化
-            const rect = getNodeRectByDOM(node.id!)
+
+            // 计算鼠标偏移量
+            const rect = node.getDashboardRect()
             if (rect) {
               startNodes[node.id] = rect
               startOffsetNodes[node.id] = { x: e.canvasX! - rect.x, y: e.canvasY! - rect.y }
@@ -102,8 +98,20 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
           for (const node of dragObject.nodes!) {
             if (!node) continue
 
-            const { x = 0, y = 0 } = startOffsetNodes[node.id]
-            updateNodeRectByDOM(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+            // 更新节点位置
+            if (dndMode === 'dom') {
+              const { x = 0, y = 0 } = startOffsetNodes[node.id]
+              updateNodeRectByDOM(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+            } else if (dndMode === 'props') {
+              const { x = 0, y = 0 } = startOffsetNodes[node.id]
+              const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
+              if (node.isGroup) {
+                updateNodeRect(node, { x: e.canvasX! - x - startX, y: e.canvasY! - y - startY })
+              } else {
+                updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+              }
+              startNodes[node.id] = node.getDashboardRect()
+            }
           }
         }
       })
@@ -114,15 +122,15 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
           for (const node of dragObject.nodes!) {
             if (!node) continue
 
-            const { x = 0, y = 0 } = startOffsetNodes[node.id]
-            const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
-            if (node.isGroup) {
-              updateNodeRect(node, { x: e.canvasX! - x - startX, y: e.canvasY! - y - startY })
-            } else {
-              updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+            if (dndMode === 'dom') {
+              const { x = 0, y = 0 } = startOffsetNodes[node.id]
+              const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
+              if (node.isGroup) {
+                updateNodeRect(node, { x: e.canvasX! - x - startX, y: e.canvasY! - y - startY })
+              } else {
+                updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+              }
             }
-
-            console.log(node.getAllNodesInGroup().map(node => simulator.getInstance(node.document?.id!, node.id!)))
           }
         }
 
@@ -131,7 +139,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
     },
     extend(ctx) {
-      const { Document, Node } = ctx
+      const { Document, Node, Simulator } = ctx
 
       Object.defineProperties(Document.prototype, {
         group: {
@@ -191,8 +199,6 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
           value(this: Node) {
             if (!this.isGroup) return this.getExtraPropValue('$dashboard.rect')
 
-            const childNodes = this.getAllNodesInGroup()
-
             let [minX, minY, maxX, maxY] = [
               Number.POSITIVE_INFINITY,
               Number.POSITIVE_INFINITY,
@@ -200,10 +206,10 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               Number.NEGATIVE_INFINITY,
             ]
 
-            for (const child of childNodes) {
+            for (const child of this.childrenNodes) {
               let childRect: any
               if (child.isGroup) {
-                childRect = child.getRect()
+                childRect = child.getDashboardRect()
               } else {
                 childRect = child.getExtraPropValue('$dashboard.rect')
               }
@@ -214,12 +220,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               maxY = Math.max(maxY, childRect.y + childRect.height)
             }
 
-            return {
-              x: minX,
-              y: minY,
-              width: maxX - minX,
-              height: maxY - minY,
-            }
+            return new DOMRect(minX, minY, maxX - minX, maxY - minY)
           },
         },
         isGroup: {
@@ -262,13 +263,30 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             return groups
           },
         },
+        getNodesInGroup: {
+          value(this: Node) {
+            if (!this.isGroup) return []
+
+            const nodes: Node[] = []
+            for (const node of this.childrenNodes) {
+              if (!node.isGroup) {
+                nodes.push(node)
+              }
+            }
+            return nodes
+          },
+        },
         getAllNodesInGroup: {
           value(this: Node) {
             if (!this.isGroup) return []
 
             const nodes: Node[] = []
             for (const node of this.childrenNodes) {
-              nodes.push(node, ...node.getAllNodesInGroup())
+              if (node.isGroup) {
+                nodes.push(...node.getAllNodesInGroup())
+              } else {
+                nodes.push(node)
+              }
             }
             return nodes
           },
@@ -281,6 +299,33 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             originalInitProps.call(this)
 
             this.props.has(getConvertedExtraKey('isGroup')) || this.props.add(getConvertedExtraKey('isGroup'), false)
+          },
+        },
+      })
+
+      // TODO: 是否需要
+      Object.defineProperties(Simulator.prototype, {
+        computeDashboardRect: {
+          value(this: Simulator, node: Node) {
+            const instances = this.getComponentInstances(node)
+            if (!instances) {
+              return null
+            }
+            return this.computeComponentInstanceRect(instances[0])
+          },
+        },
+        computeComponentInstanceDashboardRect: {
+          value(this: Simulator, instance: ComponentInstance) {
+            if (!instance || !instance.parentNode) return new DOMRect(0, 0, 0, 0)
+
+            // const style = instance.parentNode.style
+            const properties = getComputedStyle(instance.parentNode)
+            return new DOMRect(
+              Number.parseFloat(properties.left ?? 0),
+              Number.parseFloat(properties.top ?? 0),
+              Number.parseFloat(properties.width ?? 0),
+              Number.parseFloat(properties.height ?? 0),
+            )
           },
         },
       })

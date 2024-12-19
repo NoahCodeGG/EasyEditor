@@ -1,4 +1,4 @@
-import type { Rect } from '@easy-editor/core'
+import type { ComponentInstance, Rect } from '@easy-editor/core'
 
 declare module '@easy-editor/core' {
   interface Document {
@@ -42,6 +42,11 @@ declare module '@easy-editor/core' {
     getAllGroups(): Node[]
 
     /**
+     * 获取当前 Group 下的 Node
+     */
+    getNodesInGroup(): Node[]
+
+    /**
      * 获取当前 Group 下的所有 Node
      */
     getAllNodesInGroup(): Node[]
@@ -62,6 +67,18 @@ declare module '@easy-editor/core' {
        */
       rect?: DashboardRect
     }
+  }
+
+  interface Simulator {
+    /**
+     * 获取组件在 dashboard 中的位置
+     */
+    computeDashboardRect(node: Node): DOMRect
+
+    /**
+     * 获取组件实例在 dashboard 中的位置
+     */
+    computeComponentInstanceDashboardRect(instance: ComponentInstance): DOMRect
   }
 }
 

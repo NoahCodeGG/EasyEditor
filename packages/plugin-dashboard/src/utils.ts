@@ -34,23 +34,9 @@ export const updateNodeRect = (node: Node, offset = { x: 0, y: 0 }) => {
  */
 export const updateNodeRectByDOM = (node: Node, offset = { x: 0, y: 0 }) => {
   // 此处的 container 对应 hoc 的 container
-  const domNode = document.getElementById(`${node.id}-container`)
+  const domNode = document.getElementById(`${node.id}-mask`)
   if (domNode) {
     domNode.style.left = `${offset.x}px`
     domNode.style.top = `${offset.y}px`
   }
-}
-
-export const getNodeRectByDOM = (nodeId: string) => {
-  const domNode = document.getElementById(`${nodeId}-container`)
-  if (domNode) {
-    const properties = getComputedStyle(domNode)
-    return new DOMRect(
-      Number.parseFloat(properties.left),
-      Number.parseFloat(properties.top),
-      Number.parseFloat(properties.width),
-      Number.parseFloat(properties.height),
-    )
-  }
-  return new DOMRect(0, 0, 0, 0)
 }

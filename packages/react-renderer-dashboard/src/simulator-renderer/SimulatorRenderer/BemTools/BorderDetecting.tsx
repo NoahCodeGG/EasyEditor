@@ -61,11 +61,6 @@ export const BorderDetecting: React.FC<BorderDetectingProps> = observer(({ host 
   if (!instances || instances.length < 1) {
     return null
   }
-  console.log(
-    '🚀 ~ constBorderDetecting:React.FC<BorderDetectingProps>=observer ~ instances:',
-    host.computeComponentInstanceRect(instances[0]),
-    document.getElementById(`${current.id}-container`)?.getBoundingClientRect(),
-  )
 
   return (
     <>

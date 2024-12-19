@@ -451,7 +451,7 @@ export class Simulator {
     if (!instances) {
       return null
     }
-    return this.computeComponentInstanceRect(instances[0], node.componentMeta.rootSelector)
+    return this.computeComponentInstanceRect(instances[0])
   }
 
   computeComponentInstanceRect(instance: ComponentInstance, selector?: string): Rect | null {
