@@ -197,7 +197,10 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       Object.defineProperties(Node.prototype, {
         getDashboardRect: {
           value(this: Node) {
-            if (!this.isGroup) return this.getExtraPropValue('$dashboard.rect')
+            if (!this.isGroup) {
+              const rect = this.getExtraPropValue('$dashboard.rect') as any
+              return new DOMRect(rect.x ?? 0, rect.y ?? 0, rect.width ?? 0, rect.height ?? 0)
+            }
 
             let [minX, minY, maxX, maxY] = [
               Number.POSITIVE_INFINITY,

@@ -1,4 +1,4 @@
-import type { Simulator } from '@easy-editor/core'
+import { type Simulator, getClosestNode } from '@easy-editor/core'
 import { observer } from 'mobx-react'
 import { memo } from 'react'
 import './border.css'
@@ -16,12 +16,9 @@ const BorderDetectingInstance: React.FC<BorderDetectingInstanceProps> = memo(({ 
   }
 
   const style = {
-    // width: rect.width * scale,
-    // height: rect.height * scale,
-    // transform: `translate(${rect.left * scale}px, ${rect.top * scale}px)`,
     width: rect.width,
     height: rect.height,
-    transformOrigin: '0 0',
+    // transformOrigin: '0 0',
     transform: `translate(${rect.left}px, ${rect.top}px)`,
   }
 
@@ -57,39 +54,22 @@ export const BorderDetecting: React.FC<BorderDetectingProps> = observer(({ host 
     return null
   }
 
-  const instances = host.getComponentInstances(current)
-  if (!instances || instances.length < 1) {
-    return null
-  }
+  const lockedNode = getClosestNode(current, n => {
+    // 假如当前节点就是 locked 状态，要从当前节点的父节点开始查找
+    return !n.isLocked()
+  })
 
-  return (
-    <>
-      {instances.map((inst, i) => (
-        <BorderDetectingInstance
-          key={`line-h-${i}`}
-          title={current.title}
-          scale={host.viewport.scale}
-          // scrollX={this.scrollX}
-          // scrollY={this.scrollY}
-          // rect={host.computeComponentInstanceRect(inst)}
-          rect={getNodeRectByDOM(current.id)}
-          // rect={document.querySelector(`${current.id}-container`)?.getBoundingClientRect()}
-        />
-      ))}
-    </>
-  )
-})
-
-const getNodeRectByDOM = (nodeId: string) => {
-  const domNode = document.getElementById(`${nodeId}-container`)
-  if (domNode) {
-    const properties = getComputedStyle(domNode)
-    return new DOMRect(
-      Number.parseFloat(properties.left),
-      Number.parseFloat(properties.top),
-      Number.parseFloat(properties.width),
-      Number.parseFloat(properties.height),
+  if (lockedNode && lockedNode.id !== current.id) {
+    // 选中父节锁定的节点
+    return (
+      <BorderDetectingInstance
+        title={current.title}
+        scale={host.viewport.scale}
+        rect={lockedNode.getDashboardRect()}
+        isLocked={lockedNode.id !== current.id}
+      />
     )
   }
-  return new DOMRect(0, 0, 0, 0)
-}
+
+  return <BorderDetectingInstance title={current.title} scale={host.viewport.scale} rect={current.getDashboardRect()} />
+})
