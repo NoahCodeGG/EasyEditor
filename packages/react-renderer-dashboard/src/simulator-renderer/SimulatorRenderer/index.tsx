@@ -2,10 +2,11 @@ import type { Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
 import { useEffect, useRef } from 'react'
 import { simulatorRenderer } from '..'
+import { BemTools } from './BemTools'
 import { useResizeObserver } from './hooks/useResizeObserver'
 
-import { BemTools } from './BemTools'
 import './css/theme.css'
+import './index.css'
 
 interface SimulatorRendererProps {
   // editor: Editor
@@ -49,22 +50,15 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
 
   return (
     // Simulator
-    <div style={{ position: 'relative', height: '100%', width: '100%', overflow: 'auto' }}>
+    <div className='lc-simulator'>
       {/* Canvas */}
-      <div
-        ref={canvasRef}
-        style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '100%', overflow: 'hidden', ...canvasStyle }}
-      >
+      <div ref={canvasRef} className='lc-simulator-canvas lc-simulator-device-default-canvas' style={canvasStyle}>
         {/* viewport */}
         <div
           ref={viewportRef}
-          // style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '100%', ...viewportStyle }}
+          className='lc-simulator-viewport lc-simulator-device-default-viewport'
           style={{
-            position: 'absolute',
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: '100%',
+            ...viewportStyle,
             ...frameStyle,
           }}
         >
@@ -73,14 +67,8 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
           {/* Content */}
           <div
             ref={contentRef}
+            className='lc-simulator-content'
             style={{
-              position: 'absolute',
-              top: 0,
-              bottom: 0,
-              left: 0,
-              width: '100%',
-              overflow: 'hidden',
-              // ...frameStyle,
               // 临时样式
               backgroundColor: 'white',
             }}
