@@ -5,6 +5,7 @@ import {
   DragObjectType,
   type DropLocation,
   type Node,
+  type OffsetObserver,
   type PluginCreator,
   type Simulator,
   getConvertedExtraKey,
@@ -139,7 +140,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
     },
     extend(ctx) {
-      const { Document, Node, Simulator } = ctx
+      const { Document, Node, Simulator, OffsetObserver } = ctx
 
       Object.defineProperties(Document.prototype, {
         group: {
@@ -329,6 +330,44 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               Number.parseFloat(properties.width ?? 0),
               Number.parseFloat(properties.height ?? 0),
             )
+          },
+        },
+      })
+
+      Object.defineProperties(OffsetObserver.prototype, {
+        computeRect: {
+          value(this: OffsetObserver) {
+            return this.node.getDashboardRect()
+          },
+        },
+        height: {
+          get(this: OffsetObserver) {
+            return this.isRoot ? this.viewport.height : this._height
+          },
+        },
+        width: {
+          get(this: OffsetObserver) {
+            return this.isRoot ? this.viewport.width : this._width
+          },
+        },
+        top: {
+          get(this: OffsetObserver) {
+            return this.isRoot ? 0 : this._top
+          },
+        },
+        left: {
+          get(this: OffsetObserver) {
+            return this.isRoot ? 0 : this._left
+          },
+        },
+        bottom: {
+          get(this: OffsetObserver) {
+            return this.isRoot ? this.viewport.height : this._bottom
+          },
+        },
+        right: {
+          get(this: OffsetObserver) {
+            return this.isRoot ? this.viewport.width : this._right
           },
         },
       })

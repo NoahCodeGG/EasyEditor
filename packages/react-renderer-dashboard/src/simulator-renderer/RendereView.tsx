@@ -95,7 +95,7 @@ export const RendererView = observer(
     recordTime() {
       if (this.startTime) {
         const time = Date.now() - this.startTime
-        const nodeCount = this.props.host.designer.currentDocument?.getNodeCount?.()
+        const nodeCount = this.props.host.currentDocument?.getNodeCount?.()
         this.props.host.designer.postEvent(DESIGNER_EVENT.NODE_RENDER, {
           componentName: 'Renderer',
           type: 'All',

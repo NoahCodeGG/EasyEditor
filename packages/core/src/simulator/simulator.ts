@@ -415,6 +415,7 @@ export class Simulator {
     this._components[name] = component
   }
 
+  @action
   setInstance(docId: string, id: string, instances: ComponentInstance[] | null) {
     if (!Object.prototype.hasOwnProperty.call(this.instancesMap, docId)) {
       this.instancesMap[docId] = new Map()

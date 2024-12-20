@@ -34,7 +34,7 @@ interface BorderDetectingProps {
 }
 
 export const BorderDetecting: React.FC<BorderDetectingProps> = observer(({ host }) => {
-  const curDoc = host.designer.project.currentDocument
+  const curDoc = host.currentDocument
   const { selection } = host.designer
   const { current } = host.designer.detecting
   if (!current || current.document !== curDoc || selection.has(current.id)) {

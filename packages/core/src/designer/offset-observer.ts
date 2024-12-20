@@ -1,4 +1,4 @@
-import { computed, observable } from 'mobx'
+import { action, computed, observable } from 'mobx'
 import type { ComponentInstance, Node, Viewport } from '..'
 import { uniqueId } from '../utils'
 
@@ -63,48 +63,43 @@ export class OffsetObserver {
   @observable accessor hasOffset = false
 
   // TODO：scroll 暂时用不到
-  offsetLeft = 0
-  offsetTop = 0
-  offsetHeight = 0
-  offsetWidth = 0
+  @computed
+  get offsetLeft() {
+    if (this.isRoot) {
+      return 0
+    }
+    if (this.lastOffsetLeft == null) {
+      this.lastOffsetLeft = this.left
+    }
+    return this.lastOffsetLeft
+  }
 
-  // @computed
-  // get offsetLeft() {
-  //   if (this.isRoot) {
-  //     return this.viewport.scrollX * this.scale
-  //   }
-  //   if (!this.viewport.scrolling || this.lastOffsetLeft == null) {
-  //     this.lastOffsetLeft = this.left + this.viewport.scrollX * this.scale
-  //   }
-  //   return this.lastOffsetLeft
-  // }
+  @computed
+  get offsetTop() {
+    if (this.isRoot) {
+      return 0
+    }
+    if (this.lastOffsetTop == null) {
+      this.lastOffsetTop = this.top
+    }
+    return this.lastOffsetTop
+  }
 
-  // @computed
-  // get offsetTop() {
-  //   if (this.isRoot) {
-  //     return this.viewport.scrollY * this.scale
-  //   }
-  //   if (!this.viewport.scrolling || this.lastOffsetTop == null) {
-  //     this.lastOffsetTop = this.top + this.viewport.scrollY * this.scale
-  //   }
-  //   return this.lastOffsetTop
-  // }
+  @computed
+  get offsetHeight() {
+    if (this.lastOffsetHeight == null) {
+      this.lastOffsetHeight = this.isRoot ? this.viewport.height : this.height
+    }
+    return this.lastOffsetHeight
+  }
 
-  // @computed
-  // get offsetHeight() {
-  //   if (!this.viewport.scrolling || this.lastOffsetHeight == null) {
-  //     this.lastOffsetHeight = this.isRoot ? this.viewport.height : this.height
-  //   }
-  //   return this.lastOffsetHeight
-  // }
-
-  // @computed
-  // get offsetWidth() {
-  //   if (!this.viewport.scrolling || this.lastOffsetWidth == null) {
-  //     this.lastOffsetWidth = this.isRoot ? this.viewport.width : this.width
-  //   }
-  //   return this.lastOffsetWidth
-  // }
+  @computed
+  get offsetWidth() {
+    if (this.lastOffsetWidth == null) {
+      this.lastOffsetWidth = this.isRoot ? this.viewport.width : this.width
+    }
+    return this.lastOffsetWidth
+  }
 
   @computed
   get scale() {
@@ -143,19 +138,9 @@ export class OffsetObserver {
         return
       }
 
-      const rect = host.computeComponentInstanceRect(instance!)
+      // const rect = host.computeComponentInstanceRect(instance!)
+      this.checkRect()
 
-      if (!rect) {
-        this.hasOffset = false
-      } else if (!this.hasOffset) {
-        this._height = rect.height
-        this._width = rect.width
-        this._left = rect.left
-        this._top = rect.top
-        this._right = rect.right
-        this._bottom = rect.bottom
-        this.hasOffset = true
-      }
       this.pid = requestIdleCallback(compute)
       pid = this.pid
     }
@@ -167,6 +152,30 @@ export class OffsetObserver {
     // try second, ensure the dom mounted
     this.pid = requestIdleCallback(compute)
     pid = this.pid
+  }
+
+  // 这部分抽出来，用于后续的 dashboard 扩展
+  @action
+  checkRect() {
+    const rect = this.computeRect()
+
+    if (!rect) {
+      this.hasOffset = false
+    } else if (!this.hasOffset) {
+      this._height = rect.height
+      this._width = rect.width
+      this._left = rect.left
+      this._top = rect.top
+      this._right = rect.right
+      this._bottom = rect.bottom
+      this.hasOffset = true
+    }
+  }
+
+  computeRect() {
+    const { node, instance } = this.nodeInstance
+    const host = node.document?.simulator!
+    return host.computeComponentInstanceRect(instance!)
   }
 
   purge() {
