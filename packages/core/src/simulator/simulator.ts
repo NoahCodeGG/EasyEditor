@@ -159,6 +159,10 @@ export class Simulator {
 
   private sensing = false
 
+  get currentDocument() {
+    return this.project.currentDocument
+  }
+
   constructor(designer: Designer) {
     this.designer = designer
     this.project = designer.project

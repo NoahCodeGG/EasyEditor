@@ -11,6 +11,7 @@ import { createEventBus, logger } from '../utils'
 import { Detecting } from './detecting'
 import { Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
 import { DropLocation, isLocationChildrenDetail } from './location'
+import { type NodeSelector, type OffsetObserver, createOffsetObserver } from './offset-observer'
 import { Selection } from './selection'
 import { SettingsManager } from './setting'
 import { SettingTopEntry } from './setting/setting-top-entry'
@@ -89,6 +90,8 @@ export class Designer {
   private props?: DesignerProps
 
   private propsReducers = new Map<TRANSFORM_STAGE, PropsTransducer[]>()
+
+  private oobxList: OffsetObserver[] = []
 
   get currentDocument() {
     return this.project.currentDocument
@@ -236,6 +239,31 @@ export class Designer {
     }
     this.postEvent(DESIGNER_EVENT.DROP_LOCATION_CHANGE, undefined)
     this._dropLocation = undefined
+  }
+
+  createOffsetObserver(nodeInstance: NodeSelector): OffsetObserver | null {
+    const oobx = createOffsetObserver(nodeInstance)
+    this.clearOobxList()
+    if (oobx) {
+      this.oobxList.push(oobx)
+    }
+    return oobx
+  }
+
+  private clearOobxList(force?: boolean) {
+    let l = this.oobxList.length
+    if (l > 20 || force) {
+      while (l-- > 0) {
+        if (this.oobxList[l].isPurged()) {
+          this.oobxList.splice(l, 1)
+        }
+      }
+    }
+  }
+
+  touchOffsetObserver() {
+    this.clearOobxList(true)
+    this.oobxList.forEach(item => item.compute())
   }
 
   onInit(listener: (designer: Designer) => void) {
