@@ -193,7 +193,7 @@ export class Dragon {
      * When you press esc while dragging, it will stop dnd
      */
     const checkEsc = (e: KeyboardEvent) => {
-      if (e.keyCode === 27) {
+      if (e.key === 'Escape') {
         designer.clearLocation()
         over()
       }
@@ -275,20 +275,19 @@ export class Dragon {
       if (lastSensor) {
         lastSensor.deactiveSensor()
       }
-      /* istanbul ignore next */
       if (isBoostFromDragAPI) {
         if (!didDrop) {
           designer.clearLocation()
         }
       }
 
-      const locateEvent = createLocateEvent(e)
-      const sensor = chooseSensor(locateEvent)
+      // const locateEvent = createLocateEvent(e)
+      // const sensor = chooseSensor(locateEvent)
 
-      if (sensor) {
-        sensor.fixEvent(locateEvent)
-        sensor.locate(locateEvent)
-      }
+      // if (sensor) {
+      //   sensor.fixEvent(locateEvent)
+      //   sensor.locate(locateEvent)
+      // }
 
       let exception: unknown
       if (this._dragging) {
@@ -296,7 +295,9 @@ export class Dragon {
         try {
           // TODO: copy
           // this.emitter.emit(DRAGON_EVENT.DRAGEND, { dragObject, copy: false, e })
-          this.emitter.emit(DRAGON_EVENT.DRAGEND, locateEvent)
+          // this.emitter.emit(DRAGON_EVENT.DRAGEND, locateEvent)
+          // TODO: escape
+          this.emitter.emit(DRAGON_EVENT.DRAGEND, { dragObject, copy: false, esc: !e })
         } catch (ex) {
           exception = ex
         }
@@ -488,7 +489,7 @@ export class Dragon {
     }
   }
 
-  onDragend(func: (e: LocateEvent) => void) {
+  onDragend(func: (e: { dragObject: DragObject; copy?: boolean; esc?: boolean }) => void) {
     this.emitter.on(DRAGON_EVENT.DRAGEND, func)
 
     return () => {

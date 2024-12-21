@@ -75,6 +75,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       /* ----------------------------------- DND ---------------------------------- */
       let startNodes: { [key: string]: { x: number; y: number } } = {}
       let startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
+      let lastOffsetNodes: { [key: string]: { x: number; y: number } } = {}
 
       designer.dragon.onDragstart(e => {
         const { dragObject } = e
@@ -103,6 +104,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             if (dndMode === 'dom') {
               const { x = 0, y = 0 } = startOffsetNodes[node.id]
               updateNodeRectByDOM(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+              lastOffsetNodes[node.id] = { x: e.canvasX!, y: e.canvasY! }
             } else if (dndMode === 'props') {
               const { x = 0, y = 0 } = startOffsetNodes[node.id]
               const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
@@ -118,18 +120,36 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
 
       designer.dragon.onDragend(e => {
-        const { dragObject } = e
+        const { dragObject, esc } = e
+
         if (dragObject && dragObject.type === DragObjectType.Node) {
           for (const node of dragObject.nodes!) {
             if (!node) continue
 
-            if (dndMode === 'dom') {
-              const { x = 0, y = 0 } = startOffsetNodes[node.id]
-              const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
-              if (node.isGroup) {
-                updateNodeRect(node, { x: e.canvasX! - x - startX, y: e.canvasY! - y - startY })
-              } else {
-                updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+            if (esc) {
+              // dom 的话，因为没有更新内部节点值，所以直接重新渲染就行了
+              if (dndMode === 'dom') {
+                simulator.rerender()
+              }
+              // TODO: props 有点问题
+              else if (dndMode === 'props') {
+                const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
+                if (node.isGroup) {
+                  updateNodeRect(node, { x: 0 + 1, y: 0 + 1 })
+                } else {
+                  updateNodeRect(node, { x: startX + 1, y: startY + 1 })
+                }
+              }
+            } else {
+              if (dndMode === 'dom') {
+                const { x = 0, y = 0 } = startOffsetNodes[node.id]
+                const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
+                const { x: lastX = 0, y: lastY = 0 } = lastOffsetNodes[node.id]
+                if (node.isGroup) {
+                  updateNodeRect(node, { x: lastX - x - startX, y: lastY - y - startY })
+                } else {
+                  updateNodeRect(node, { x: lastX - x, y: lastY - y })
+                }
               }
             }
           }
@@ -137,6 +157,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
         startNodes = {}
         startOffsetNodes = {}
+        lastOffsetNodes = {}
       })
     },
     extend(ctx) {

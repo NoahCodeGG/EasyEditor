@@ -222,6 +222,13 @@ export class Simulator {
     this.instancesMap = {}
   }
 
+  /**
+   * force to rerender the viewport
+   */
+  rerender() {
+    this.renderer?.rerender?.()
+  }
+
   mountContentFrame(iframe: HTMLIFrameElement | HTMLElement | null) {
     if (!iframe || this.iframe === iframe) {
       return
@@ -238,13 +245,6 @@ export class Simulator {
 
     this._renderer?.run()
     this.setupEvents()
-  }
-
-  /**
-   * force to rerender the viewport
-   */
-  rerender() {
-    return this._renderer?.rerender()
   }
 
   getComponent(componentName: string) {
