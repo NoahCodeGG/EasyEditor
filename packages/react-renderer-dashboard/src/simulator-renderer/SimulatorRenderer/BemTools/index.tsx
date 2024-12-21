@@ -1,6 +1,7 @@
 import type { Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
 import { BorderDetecting } from './BorderDetecting'
+import { BorderResizing } from './BorderResizing'
 import { BorderSelecting } from './BorderSelecting'
 
 import './border.css'
@@ -21,6 +22,7 @@ export const BemTools: React.FC<BemToolsProps> = observer(({ host }) => {
     <div className='lc-bem-tools'>
       <BorderDetecting host={host} />
       <BorderSelecting host={host} />
+      <BorderResizing host={host} />
     </div>
   )
 })

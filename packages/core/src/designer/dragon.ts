@@ -498,7 +498,7 @@ export class Dragon {
   }
 }
 
-const makeEventsHandler = (boostEvent: MouseEvent | DragEvent, sensors: Simulator[]) => {
+export const makeEventsHandler = (boostEvent: MouseEvent | DragEvent, sensors: Simulator[]) => {
   const topDoc = window.document
   const sourceDoc = boostEvent.view?.document || topDoc
 
