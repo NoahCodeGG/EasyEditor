@@ -35,8 +35,7 @@ export default class DragResizeEngine {
       const moveX = x.clientX - startEvent.clientX
       const moveY = x.clientY - startEvent.clientY
 
-      console.log('move', e, direction, node, moveX, moveY)
-      this.emitter.emit('resize', e, direction, node, moveX, moveY)
+      this.emitter.emit('resize', { e, direction, node, moveX, moveY })
     }
 
     const masterSensors = this.getMasterSensors()
@@ -65,7 +64,7 @@ export default class DragResizeEngine {
       this.designer.detecting.enable = true
       // cursor.release()
 
-      this.emitter.emit('resizeEnd', e, direction, node)
+      this.emitter.emit('resizeEnd', { e, direction, node })
     }
 
     const mousedown = (e: MouseEvent) => {
@@ -77,7 +76,7 @@ export default class DragResizeEngine {
         doc.addEventListener('mouseup', over, true)
       })
 
-      this.emitter.emit('resizeStart', e, direction, node)
+      this.emitter.emit('resizeStart', { e, direction, node })
       this.dragResizing = true
       this.designer.detecting.enable = false
       // cursor.addState('ew-resize')
@@ -88,21 +87,21 @@ export default class DragResizeEngine {
     }
   }
 
-  onResizeStart(func: (e: MouseEvent, direction: string, node: any) => any) {
+  onResizeStart(func: (evt: { e: MouseEvent; direction: string; node: any }) => any) {
     this.emitter.on('resizeStart', func)
     return () => {
       this.emitter.off('resizeStart', func)
     }
   }
 
-  onResize(func: (e: MouseEvent, direction: string, node: any, moveX: number, moveY: number) => any) {
+  onResize(func: (evt: { e: MouseEvent; direction: string; node: any; moveX: number; moveY: number }) => any) {
     this.emitter.on('resize', func)
     return () => {
       this.emitter.off('resize', func)
     }
   }
 
-  onResizeEnd(func: (e: MouseEvent, direction: string, node: any) => any) {
+  onResizeEnd(func: (evt: { e: MouseEvent; direction: string; node: any }) => any) {
     this.emitter.on('resizeEnd', func)
     return () => {
       this.emitter.off('resizeEnd', func)
