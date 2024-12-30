@@ -7,7 +7,9 @@ import {
   type Node,
   type OffsetObserver,
   type PluginCreator,
+  type Point,
   type Simulator,
+  Viewport,
   getConvertedExtraKey,
 } from '@easy-editor/core'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
@@ -389,6 +391,47 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         right: {
           get(this: OffsetObserver) {
             return this.isRoot ? this.viewport.width : this._right
+          },
+        },
+      })
+
+      /**
+       * 这里需要对坐标转换的偏移做额外的处理，因为在大屏的使用中，外层画布容器使用到了 translate(-50%, -50%) 进行居中定位，但是
+       * 在计算坐标的时候，需要减去这个偏移量，否则会导致坐标转换不准确
+       */
+      Object.defineProperties(Viewport.prototype, {
+        // 局部坐标 -> 缩放(×scale) -> 加上视口偏移(+rect.left/top) -> 减去居中偏移(-centerOffset) -> 全局坐标
+        toGlobalPoint: {
+          value(this: Viewport, point: Point) {
+            if (!this.viewportElement) {
+              return point
+            }
+
+            const rect = this.bounds
+            const centerOffsetX = rect.width * 0.5
+            const centerOffsetY = rect.height * 0.5
+
+            return {
+              clientX: point.clientX * this.scale + rect.left - centerOffsetX,
+              clientY: point.clientY * this.scale + rect.top - centerOffsetY,
+            }
+          },
+        },
+        // 全局坐标 -> 减去视口偏移(-rect.left/top) -> 加上居中偏移(+centerOffset) -> 缩放还原(/scale) -> 局部坐标
+        toLocalPoint: {
+          value(this: Viewport, point: Point): Point {
+            if (!this.viewportElement) {
+              return point
+            }
+
+            const rect = this.bounds
+            const centerOffsetX = rect.width * 0.5
+            const centerOffsetY = rect.height * 0.5
+
+            return {
+              clientX: (point.clientX - rect.left + centerOffsetX) / this.scale,
+              clientY: (point.clientY - rect.top + centerOffsetY) / this.scale,
+            }
           },
         },
       })

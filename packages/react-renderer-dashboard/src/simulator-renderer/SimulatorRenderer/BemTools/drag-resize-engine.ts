@@ -25,6 +25,7 @@ export default class DragResizeEngine {
   from(shell: HTMLElement, direction: string, boost: (e: MouseEvent) => any) {
     let node: any
     let startEvent: Point
+    let scale = 1
 
     if (!shell) {
       return () => {}
@@ -32,8 +33,9 @@ export default class DragResizeEngine {
 
     const move = (e: MouseEvent) => {
       const x = createResizeEvent(e)
-      const moveX = x.clientX - startEvent.clientX
-      const moveY = x.clientY - startEvent.clientY
+      // 将计算的坐标转换为画布内缩放后的坐标
+      const moveX = (x.clientX - startEvent.clientX) / scale
+      const moveY = (x.clientY - startEvent.clientY) / scale
 
       this.emitter.emit('resize', { e, direction, node, moveX, moveY })
     }
@@ -42,11 +44,12 @@ export default class DragResizeEngine {
 
     const createResizeEvent = (e: MouseEvent | DragEvent): Point => {
       const sourceDocument = e.view?.document
+      const srcSim = masterSensors.find(sim => sim.contentDocument === sourceDocument)
+      scale = srcSim?.viewport.scale || 1
 
       if (!sourceDocument || sourceDocument === document) {
         return e
       }
-      const srcSim = masterSensors.find(sim => sim.contentDocument === sourceDocument)
       if (srcSim) {
         return srcSim.viewport.toGlobalPoint(e)
       }
