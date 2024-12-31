@@ -1,7 +1,7 @@
 import type { Designer, Node, OffsetObserver, Rect, Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
 import { Component } from 'react'
-import DragResizeEngine from './drag-resize-engine'
+import DragResizeEngine, { Direction } from './drag-resize-engine'
 
 interface BorderResizingInstanceProps {
   observed: OffsetObserver
@@ -32,23 +32,149 @@ export const BorderResizingInstance = observer(
       this.dragEngine = new DragResizeEngine(props.designer)
     }
 
-    calculateResizeRectByDirection(
+    /**
+     * 计算 resize 后的 rect
+     * @param node 节点
+     * @param direction 方向
+     * @param delta 偏移量
+     * @param startNodeRect 拖拽开始时的 rect
+     */
+    private updateResizeRectByDirection(
       node: Node,
-      direction: string,
+      direction: Direction,
       delta: { x: number; y: number },
       startNodeRect: Rect,
     ) {
-      if (direction === 'e') {
-        node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width + delta.x)
-      } else if (direction === 'w') {
-        node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width - delta.x)
-        node.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + delta.x)
-      } else if (direction === 's') {
-        node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height + delta.y)
-      } else if (direction === 'n') {
-        node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height - delta.y)
-        node.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + delta.y)
+      switch (direction) {
+        case Direction.N:
+          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height - delta.y)
+          node.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + delta.y)
+          break
+        case Direction.S:
+          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height + delta.y)
+          break
+        case Direction.W:
+          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width - delta.x)
+          node.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + delta.x)
+          break
+        case Direction.E:
+          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width + delta.x)
+          break
+        case Direction.NW:
+          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width - delta.x)
+          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height - delta.y)
+          node.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + delta.x)
+          node.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + delta.y)
+          break
+        case Direction.NE:
+          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width + delta.x)
+          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height - delta.y)
+          node.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + delta.y)
+          break
+        case Direction.SE:
+          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width + delta.x)
+          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height + delta.y)
+          break
+        case Direction.SW:
+          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width - delta.x)
+          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height + delta.y)
+          node.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + delta.x)
+          break
       }
+    }
+
+    /**
+     * 计算 resize 后的 rect 通过 DOM 计算
+     * @param node 节点
+     * @param direction 方向
+     * @param delta 偏移量
+     * @param startNodeRect 拖拽开始时的 rect
+     */
+    private updateResizeRectByDirectionByDOM(
+      node: Node,
+      direction: Direction,
+      delta: { x: number; y: number },
+      startNodeRect: Rect,
+    ) {
+      const domNode = document.getElementById(`${node.id}-mask`)
+      if (!domNode) {
+        return
+      }
+
+      const newRect = {
+        width: startNodeRect.width,
+        height: startNodeRect.height,
+        x: startNodeRect.x,
+        y: startNodeRect.y,
+      }
+
+      switch (direction) {
+        case Direction.N:
+          newRect.height = startNodeRect.height - delta.y
+          newRect.y = startNodeRect.y + delta.y
+          break
+        case Direction.S:
+          newRect.height = startNodeRect.height + delta.y
+          break
+        case Direction.W:
+          newRect.width = startNodeRect.width - delta.x
+          newRect.x = startNodeRect.x + delta.x
+          break
+        case Direction.E:
+          newRect.width = startNodeRect.width + delta.x
+          break
+        case Direction.NW:
+          newRect.width = startNodeRect.width - delta.x
+          newRect.height = startNodeRect.height - delta.y
+          newRect.x = startNodeRect.x + delta.x
+          newRect.y = startNodeRect.y + delta.y
+          break
+        case Direction.NE:
+          newRect.width = startNodeRect.width + delta.x
+          newRect.height = startNodeRect.height - delta.y
+          newRect.y = startNodeRect.y + delta.y
+          break
+        case Direction.SE:
+          newRect.width = startNodeRect.width + delta.x
+          newRect.height = startNodeRect.height + delta.y
+          break
+        case Direction.SW:
+          newRect.width = startNodeRect.width - delta.x
+          newRect.height = startNodeRect.height + delta.y
+          newRect.x = startNodeRect.x + delta.x
+          break
+      }
+
+      domNode.style.left = `${newRect.x}px`
+      domNode.style.top = `${newRect.y}px`
+      domNode.style.width = `${newRect.width}px`
+      domNode.style.height = `${newRect.height}px`
+      this.updateAllOutlines(newRect)
+    }
+
+    /**
+     * 更新所有 outline 通过 DOM
+     * @param rect 矩形
+     */
+    private updateAllOutlines(rect: { x: number; y: number; width: number; height: number }) {
+      // 更新四边
+      this.outlineN.style.width = `${rect.width}px`
+      this.outlineN.style.transform = `translate(${rect.x}px, ${rect.y - 10}px)`
+
+      this.outlineS.style.width = `${rect.width}px`
+      this.outlineS.style.transform = `translate(${rect.x}px, ${rect.y + rect.height - 10}px)`
+
+      this.outlineE.style.height = `${rect.height}px`
+      this.outlineE.style.transform = `translate(${rect.x + rect.width - 10}px, ${rect.y}px)`
+
+      this.outlineW.style.height = `${rect.height}px`
+      this.outlineW.style.transform = `translate(${rect.x - 10}px, ${rect.y}px)`
+
+      // 更新四角
+      this.outlineNW.style.transform = `translate(${rect.x - 3}px, ${rect.y - 3}px)`
+      this.outlineNE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y - 3}px)`
+      this.outlineSW.style.transform = `translate(${rect.x - 3}px, ${rect.y + rect.height - 5}px)`
+      this.outlineSE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y + rect.height - 5}px)`
     }
 
     componentWillUnmount() {
@@ -62,15 +188,16 @@ export const BorderResizingInstance = observer(
       // this.hoveringCapture.setBoundary(this.outline);
       this.willBind()
 
-      let startNodeRect
+      let startNodeRect: Rect
+      let lastNodeInfo: any
 
-      const resizeStart = ({ e, direction, node }: { e: MouseEvent; direction: string; node: Node }) => {
+      const resizeStart = ({ e, direction, node }: { e: MouseEvent; direction: Direction; node: Node }) => {
         const { advanced } = node.componentMeta
         if (advanced.callbacks && typeof advanced.callbacks.onResizeStart === 'function') {
           ;(e as any).trigger = direction
           advanced.callbacks.onResizeStart({ ...e, trigger: direction }, node)
         }
-        startNodeRect = node.getExtraPropValue('$dashboard.rect')
+        startNodeRect = node.getExtraPropValue('$dashboard.rect') as Rect
       }
 
       const resize = ({
@@ -79,7 +206,7 @@ export const BorderResizingInstance = observer(
         node,
         moveX,
         moveY,
-      }: { e: MouseEvent; direction: string; node: Node; moveX: number; moveY: number }) => {
+      }: { e: MouseEvent; direction: Direction; node: Node; moveX: number; moveY: number }) => {
         const { advanced } = node.componentMeta
         if (advanced.callbacks && typeof advanced.callbacks.onResize === 'function') {
           ;(e as any).trigger = direction
@@ -87,15 +214,34 @@ export const BorderResizingInstance = observer(
           ;(e as any).deltaY = moveY
           advanced.callbacks.onResize({ ...e, trigger: direction, deltaX: moveX, deltaY: moveY }, node)
         }
-        this.calculateResizeRectByDirection(node, direction, { x: moveX, y: moveY }, startNodeRect)
+        // this.calculateResizeRectByDirection(node, direction, { x: moveX, y: moveY }, startNodeRect)
+        this.updateResizeRectByDirectionByDOM(node, direction, { x: moveX, y: moveY }, startNodeRect)
+        lastNodeInfo = {
+          node,
+          direction,
+          moveX,
+          moveY,
+        }
         console.log('resizelog', e, direction, node, moveX, moveY)
       }
 
-      const resizeEnd = ({ e, direction, node }: { e: MouseEvent; direction: string; node: Node }) => {
+      const resizeEnd = ({ e, direction, node }: { e: MouseEvent; direction: Direction; node: Node }) => {
         const { advanced } = node.componentMeta
         if (advanced.callbacks && typeof advanced.callbacks.onResizeEnd === 'function') {
           ;(e as any).trigger = direction
           advanced.callbacks.onResizeEnd({ ...e, trigger: direction }, node)
+        }
+
+        if (lastNodeInfo) {
+          this.updateResizeRectByDirection(
+            lastNodeInfo.node,
+            lastNodeInfo.direction,
+            {
+              x: lastNodeInfo.moveX,
+              y: lastNodeInfo.moveY,
+            },
+            startNodeRect,
+          )
         }
 
         const editor = node.document?.designer.editor
@@ -134,14 +280,14 @@ export const BorderResizingInstance = observer(
 
       unBind.push(
         ...[
-          this.dragEngine.from(this.outlineN, 'n', () => node),
-          this.dragEngine.from(this.outlineE, 'e', () => node),
-          this.dragEngine.from(this.outlineS, 's', () => node),
-          this.dragEngine.from(this.outlineW, 'w', () => node),
-          this.dragEngine.from(this.outlineNE, 'ne', () => node),
-          this.dragEngine.from(this.outlineNW, 'nw', () => node),
-          this.dragEngine.from(this.outlineSE, 'se', () => node),
-          this.dragEngine.from(this.outlineSW, 'sw', () => node),
+          this.dragEngine.from(this.outlineN, Direction.N, () => node),
+          this.dragEngine.from(this.outlineE, Direction.E, () => node),
+          this.dragEngine.from(this.outlineS, Direction.S, () => node),
+          this.dragEngine.from(this.outlineW, Direction.W, () => node),
+          this.dragEngine.from(this.outlineNE, Direction.NE, () => node),
+          this.dragEngine.from(this.outlineNW, Direction.NW, () => node),
+          this.dragEngine.from(this.outlineSE, Direction.SE, () => node),
+          this.dragEngine.from(this.outlineSW, Direction.SW, () => node),
         ],
       )
 
@@ -157,7 +303,6 @@ export const BorderResizingInstance = observer(
 
     render() {
       const { observed } = this.props
-      let triggerVisible: any = ['N', 'E', 'S', 'W', 'NE', 'NW', 'SE', 'SW']
       let offsetWidth = 0
       let offsetHeight = 0
       let offsetTop = 0
@@ -167,14 +312,7 @@ export const BorderResizingInstance = observer(
         offsetHeight = observed.offsetHeight
         offsetTop = observed.offsetTop
         offsetLeft = observed.offsetLeft
-        const { node } = observed
-        const metadata = node.componentMeta.getMetadata()
-        // if (metadata.configure?.advanced?.getResizingHandlers) {
-        //   triggerVisible = metadata.configure.advanced.getResizingHandlers(node.internalToShellNode())
-        // }
       }
-      // triggerVisible = normalizeTriggers(triggerVisible)
-      triggerVisible = triggerVisible.map((trigger: string) => trigger?.toUpperCase())
 
       const baseSideClass = 'lc-borders lc-resize-side'
       const baseCornerClass = 'lc-borders lc-resize-corner'
@@ -190,7 +328,6 @@ export const BorderResizingInstance = observer(
               height: 20,
               transform: `translate(${offsetLeft}px, ${offsetTop - 10}px)`,
               width: offsetWidth,
-              display: triggerVisible.includes('N') ? 'flex' : 'none',
             }}
           />
           <div
@@ -201,7 +338,6 @@ export const BorderResizingInstance = observer(
             style={{
               transform: `translate(${offsetLeft + offsetWidth - 5}px, ${offsetTop - 3}px)`,
               cursor: 'nesw-resize',
-              display: triggerVisible.includes('NE') ? 'flex' : 'none',
             }}
           />
           <div
@@ -213,7 +349,6 @@ export const BorderResizingInstance = observer(
               height: offsetHeight,
               transform: `translate(${offsetLeft + offsetWidth - 10}px, ${offsetTop}px)`,
               width: 20,
-              display: triggerVisible.includes('E') ? 'flex' : 'none',
             }}
           />
           <div
@@ -224,7 +359,6 @@ export const BorderResizingInstance = observer(
             style={{
               transform: `translate(${offsetLeft + offsetWidth - 5}px, ${offsetTop + offsetHeight - 5}px)`,
               cursor: 'nwse-resize',
-              display: triggerVisible.includes('SE') ? 'flex' : 'none',
             }}
           />
           <div
@@ -236,7 +370,6 @@ export const BorderResizingInstance = observer(
               height: 20,
               transform: `translate(${offsetLeft}px, ${offsetTop + offsetHeight - 10}px)`,
               width: offsetWidth,
-              display: triggerVisible.includes('S') ? 'flex' : 'none',
             }}
           />
           <div
@@ -247,7 +380,6 @@ export const BorderResizingInstance = observer(
             style={{
               transform: `translate(${offsetLeft - 3}px, ${offsetTop + offsetHeight - 5}px)`,
               cursor: 'nesw-resize',
-              display: triggerVisible.includes('SW') ? 'flex' : 'none',
             }}
           />
           <div
@@ -259,7 +391,6 @@ export const BorderResizingInstance = observer(
               height: offsetHeight,
               transform: `translate(${offsetLeft - 10}px, ${offsetTop}px)`,
               width: 20,
-              display: triggerVisible.includes('W') ? 'flex' : 'none',
             }}
           />
           <div
@@ -270,7 +401,6 @@ export const BorderResizingInstance = observer(
             style={{
               transform: `translate(${offsetLeft - 3}px, ${offsetTop - 3}px)`,
               cursor: 'nwse-resize',
-              display: triggerVisible.includes('NW') ? 'flex' : 'none',
             }}
           />
         </div>
@@ -292,6 +422,8 @@ const BorderResizingForNode: React.FC<BorderResizingForNodeProps> = observer(({ 
   if (!instances || instances.length < 1 || dragging) {
     return null
   }
+
+  console.log('🚀 ~ constBorderResizing:React.FC<BorderResizingProps>=observer ~ selecting instances:', instances)
 
   return (
     <>
@@ -318,6 +450,7 @@ export const BorderResizing: React.FC<BorderResizingProps> = observer(({ host })
   const { selection } = host.designer
   const dragging = host.designer.dragon.dragging
   const selecting = dragging ? selection.getTopNodes() : selection.getNodes()
+  console.log('🚀 ~ constBorderResizing:React.FC<BorderResizingProps>=observer ~ selecting:', selecting)
 
   if (!selecting || selecting.length < 1) {
     return null

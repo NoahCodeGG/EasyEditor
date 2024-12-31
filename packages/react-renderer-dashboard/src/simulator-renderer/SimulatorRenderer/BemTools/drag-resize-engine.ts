@@ -1,5 +1,16 @@
 import { type Designer, type Point, type Simulator, createEventBus, makeEventsHandler } from '@easy-editor/core'
 
+export enum Direction {
+  N = 'n',
+  E = 'e',
+  S = 's',
+  W = 'w',
+  NE = 'ne',
+  NW = 'nw',
+  SE = 'se',
+  SW = 'sw',
+}
+
 // 拖动缩放
 export default class DragResizeEngine {
   private emitter = createEventBus('DragResizeEngine')
@@ -22,7 +33,7 @@ export default class DragResizeEngine {
    * @param direction n/s/e/w
    * @param boost (e: MouseEvent) => VE.Node
    */
-  from(shell: HTMLElement, direction: string, boost: (e: MouseEvent) => any) {
+  from(shell: HTMLElement, direction: Direction, boost: (e: MouseEvent) => any) {
     let node: any
     let startEvent: Point
     let scale = 1
@@ -90,21 +101,21 @@ export default class DragResizeEngine {
     }
   }
 
-  onResizeStart(func: (evt: { e: MouseEvent; direction: string; node: any }) => any) {
+  onResizeStart(func: (evt: { e: MouseEvent; direction: Direction; node: any }) => any) {
     this.emitter.on('resizeStart', func)
     return () => {
       this.emitter.off('resizeStart', func)
     }
   }
 
-  onResize(func: (evt: { e: MouseEvent; direction: string; node: any; moveX: number; moveY: number }) => any) {
+  onResize(func: (evt: { e: MouseEvent; direction: Direction; node: any; moveX: number; moveY: number }) => any) {
     this.emitter.on('resize', func)
     return () => {
       this.emitter.off('resize', func)
     }
   }
 
-  onResizeEnd(func: (evt: { e: MouseEvent; direction: string; node: any }) => any) {
+  onResizeEnd(func: (evt: { e: MouseEvent; direction: Direction; node: any }) => any) {
     this.emitter.on('resizeEnd', func)
     return () => {
       this.emitter.off('resizeEnd', func)
