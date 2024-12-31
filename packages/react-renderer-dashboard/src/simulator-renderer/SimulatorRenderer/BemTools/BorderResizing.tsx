@@ -423,8 +423,6 @@ const BorderResizingForNode: React.FC<BorderResizingForNodeProps> = observer(({ 
     return null
   }
 
-  console.log('🚀 ~ constBorderResizing:React.FC<BorderResizingProps>=observer ~ selecting instances:', instances)
-
   return (
     <>
       {instances.map(instance => {

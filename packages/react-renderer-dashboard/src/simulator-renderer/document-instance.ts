@@ -180,9 +180,10 @@ export const cacheReactKey = (el: Element): Element => {
   return el
 }
 
-function checkInstanceMounted(instance: any): boolean {
+const checkInstanceMounted = (instance: any): boolean => {
   if (isElement(instance)) {
-    return instance.parentElement != null
+    // 检查元素是否仍在文档中
+    return document.contains(instance)
   }
   return true
 }
