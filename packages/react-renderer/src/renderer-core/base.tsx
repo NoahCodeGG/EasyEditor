@@ -375,7 +375,9 @@ export function baseRendererFactory(): BaseRenderComponent {
     __getRef = (ref: any) => {
       const { engine } = this.context
       const { __schema } = this.props
-      ref && engine?.props?.onCompGetRef(__schema, ref)
+      // ref && engine?.props?.onCompGetRef(__schema, ref)
+      // TODO: 只在 ref 存在执行，会影响 documentInstance 的卸载
+      engine?.props?.onCompGetRef(__schema, ref)
       this.__ref = ref
     }
 
