@@ -10,6 +10,11 @@ interface BorderResizingInstanceProps {
   designer: Designer
 }
 
+/** resize 的最小宽度 */
+const RESIZE_MIN_WIDTH = 50
+/** resize 的最小高度 */
+const RESIZE_MIN_HEIGHT = 50
+
 export const BorderResizingInstance = observer(
   class BoxResizingInstance extends Component<BorderResizingInstanceProps> {
     // private outline: any;
@@ -34,6 +39,97 @@ export const BorderResizingInstance = observer(
 
     /**
      * 计算 resize 后的 rect
+     * @param direction 方向
+     * @param delta 偏移量
+     * @param startNodeRect 拖拽开始时的 rect
+     */
+    private calculateResizeRectByDirection(direction: Direction, delta: { x: number; y: number }, startNodeRect: Rect) {
+      const newRect = {
+        width: startNodeRect.width,
+        height: startNodeRect.height,
+        x: startNodeRect.x,
+        y: startNodeRect.y,
+      }
+
+      switch (direction) {
+        case Direction.N:
+          if (startNodeRect.height - delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height - delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          break
+        case Direction.S:
+          newRect.height =
+            startNodeRect.height + delta.y > RESIZE_MIN_HEIGHT ? startNodeRect.height + delta.y : RESIZE_MIN_HEIGHT
+          break
+        case Direction.W:
+          if (startNodeRect.width - delta.x > RESIZE_MIN_WIDTH) {
+            newRect.width = startNodeRect.width - delta.x
+            newRect.x = startNodeRect.x + delta.x
+          } else {
+            newRect.width = RESIZE_MIN_WIDTH
+            newRect.x = startNodeRect.x + startNodeRect.width - RESIZE_MIN_WIDTH
+          }
+          break
+        case Direction.E:
+          newRect.width =
+            startNodeRect.width + delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width + delta.x : RESIZE_MIN_WIDTH
+          break
+        case Direction.NW:
+          if (startNodeRect.width - delta.x > RESIZE_MIN_WIDTH) {
+            newRect.width = startNodeRect.width - delta.x
+            newRect.x = startNodeRect.x + delta.x
+          } else {
+            newRect.width = RESIZE_MIN_WIDTH
+            newRect.x = startNodeRect.x + startNodeRect.width - RESIZE_MIN_WIDTH
+          }
+          if (startNodeRect.height - delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height - delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          break
+        case Direction.NE:
+          newRect.width =
+            startNodeRect.width + delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width + delta.x : RESIZE_MIN_WIDTH
+          if (startNodeRect.height - delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height - delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          break
+        case Direction.SE:
+          newRect.width =
+            startNodeRect.width + delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width + delta.x : RESIZE_MIN_WIDTH
+          newRect.height =
+            startNodeRect.height + delta.y > RESIZE_MIN_HEIGHT ? startNodeRect.height + delta.y : RESIZE_MIN_HEIGHT
+          break
+        case Direction.SW:
+          newRect.width =
+            startNodeRect.width - delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width - delta.x : RESIZE_MIN_WIDTH
+          if (startNodeRect.height + delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height + delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          newRect.x = startNodeRect.x + delta.x
+          break
+      }
+
+      return new DOMRect(newRect.x, newRect.y, newRect.width, newRect.height)
+    }
+
+    /**
+     * 计算 resize 后的 rect
      * @param node 节点
      * @param direction 方向
      * @param delta 偏移量
@@ -45,40 +141,42 @@ export const BorderResizingInstance = observer(
       delta: { x: number; y: number },
       startNodeRect: Rect,
     ) {
+      const resizeRect = this.calculateResizeRectByDirection(direction, delta, startNodeRect)
+
       switch (direction) {
         case Direction.N:
-          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height - delta.y)
-          node.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + delta.y)
+          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
+          node.setExtraPropValue('$dashboard.rect.y', resizeRect.y)
           break
         case Direction.S:
-          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height + delta.y)
+          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
           break
         case Direction.W:
-          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width - delta.x)
-          node.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + delta.x)
+          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
+          node.setExtraPropValue('$dashboard.rect.x', resizeRect.x)
           break
         case Direction.E:
-          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width + delta.x)
+          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
           break
         case Direction.NW:
-          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width - delta.x)
-          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height - delta.y)
-          node.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + delta.x)
-          node.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + delta.y)
+          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
+          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
+          node.setExtraPropValue('$dashboard.rect.x', resizeRect.x)
+          node.setExtraPropValue('$dashboard.rect.y', resizeRect.y)
           break
         case Direction.NE:
-          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width + delta.x)
-          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height - delta.y)
-          node.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + delta.y)
+          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
+          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
+          node.setExtraPropValue('$dashboard.rect.y', resizeRect.y)
           break
         case Direction.SE:
-          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width + delta.x)
-          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height + delta.y)
+          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
+          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
           break
         case Direction.SW:
-          node.setExtraPropValue('$dashboard.rect.width', startNodeRect.width - delta.x)
-          node.setExtraPropValue('$dashboard.rect.height', startNodeRect.height + delta.y)
-          node.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + delta.x)
+          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
+          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
+          node.setExtraPropValue('$dashboard.rect.x', resizeRect.x)
           break
       }
     }
@@ -101,55 +199,12 @@ export const BorderResizingInstance = observer(
         return
       }
 
-      const newRect = {
-        width: startNodeRect.width,
-        height: startNodeRect.height,
-        x: startNodeRect.x,
-        y: startNodeRect.y,
-      }
-
-      switch (direction) {
-        case Direction.N:
-          newRect.height = startNodeRect.height - delta.y
-          newRect.y = startNodeRect.y + delta.y
-          break
-        case Direction.S:
-          newRect.height = startNodeRect.height + delta.y
-          break
-        case Direction.W:
-          newRect.width = startNodeRect.width - delta.x
-          newRect.x = startNodeRect.x + delta.x
-          break
-        case Direction.E:
-          newRect.width = startNodeRect.width + delta.x
-          break
-        case Direction.NW:
-          newRect.width = startNodeRect.width - delta.x
-          newRect.height = startNodeRect.height - delta.y
-          newRect.x = startNodeRect.x + delta.x
-          newRect.y = startNodeRect.y + delta.y
-          break
-        case Direction.NE:
-          newRect.width = startNodeRect.width + delta.x
-          newRect.height = startNodeRect.height - delta.y
-          newRect.y = startNodeRect.y + delta.y
-          break
-        case Direction.SE:
-          newRect.width = startNodeRect.width + delta.x
-          newRect.height = startNodeRect.height + delta.y
-          break
-        case Direction.SW:
-          newRect.width = startNodeRect.width - delta.x
-          newRect.height = startNodeRect.height + delta.y
-          newRect.x = startNodeRect.x + delta.x
-          break
-      }
-
-      domNode.style.left = `${newRect.x}px`
-      domNode.style.top = `${newRect.y}px`
-      domNode.style.width = `${newRect.width}px`
-      domNode.style.height = `${newRect.height}px`
-      this.updateAllOutlines(newRect)
+      const resizeRect = this.calculateResizeRectByDirection(direction, delta, startNodeRect)
+      domNode.style.left = `${resizeRect.x}px`
+      domNode.style.top = `${resizeRect.y}px`
+      domNode.style.width = `${resizeRect.width}px`
+      domNode.style.height = `${resizeRect.height}px`
+      this.updateAllOutlines(resizeRect)
     }
 
     /**

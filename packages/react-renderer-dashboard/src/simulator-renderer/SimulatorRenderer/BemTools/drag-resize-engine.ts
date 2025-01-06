@@ -82,6 +82,9 @@ export default class DragResizeEngine {
     }
 
     const mousedown = (e: MouseEvent) => {
+      // 阻止浏览器拖拽的默认行为，存在冲突
+      e.preventDefault()
+
       node = boost(e)
       startEvent = createResizeEvent(e)
       const handleEvents = makeEventsHandler(e, masterSensors)
