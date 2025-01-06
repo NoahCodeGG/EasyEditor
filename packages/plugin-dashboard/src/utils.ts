@@ -33,10 +33,11 @@ export const updateNodeRect = (node: Node, offset = { x: 0, y: 0 }) => {
  * @param groupOffset 节点相对于其父组节点的偏移量
  */
 export const updateNodeRectByDOM = (node: Node, offset = { x: 0, y: 0 }) => {
-  // 此处的 container 对应 hoc 的 container
-  const domNode = document.getElementById(`${node.id}-mask`)
-  if (domNode) {
-    domNode.style.left = `${offset.x}px`
-    domNode.style.top = `${offset.y}px`
+  const domNode = node.getDashboardContainer()
+  if (!domNode) {
+    return
   }
+
+  domNode.style.left = `${offset.x}px`
+  domNode.style.top = `${offset.y}px`
 }

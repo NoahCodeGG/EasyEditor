@@ -194,7 +194,7 @@ export const BorderResizingInstance = observer(
       delta: { x: number; y: number },
       startNodeRect: Rect,
     ) {
-      const domNode = document.getElementById(`${node.id}-mask`)
+      const domNode = node.getDashboardContainer()
       if (!domNode) {
         return
       }

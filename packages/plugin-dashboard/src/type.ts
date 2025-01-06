@@ -17,6 +17,11 @@ declare module '@easy-editor/core' {
 
   interface Node {
     /**
+     * 获取 dashboard 容器 DOM
+     */
+    getDashboardContainer(): HTMLElement | null
+
+    /**
      * 获取 dashboard 位置信息
      */
     getDashboardRect(): Rect
