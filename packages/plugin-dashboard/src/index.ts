@@ -1,6 +1,7 @@
 import {
   type ComponentInstance,
   DESIGNER_EVENT,
+  type Designer,
   type Document,
   DragObjectType,
   type DropLocation,
@@ -10,6 +11,7 @@ import {
   type Simulator,
   getConvertedExtraKey,
 } from '@easy-editor/core'
+import { GuideLine } from './designer/guideline'
 import { GroupComponent, GroupComponentMeta } from './materials/group'
 import { updateNodeRect, updateNodeRectByDOM } from './utils'
 
@@ -34,6 +36,12 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
     deps: [],
     init(ctx) {
       const { designer, simulator, componentMetaManager } = ctx
+
+      // add guideline
+      designer.onEvent(DESIGNER_EVENT.INIT, (designer: Designer) => {
+        designer.guideline = new GuideLine(designer)
+        console.log('🚀 ~ designer.onEvent ~ designer:', designer)
+      })
 
       // add componentMeta
       componentMetaManager.createComponentMeta(GroupComponentMeta)
@@ -161,7 +169,26 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
     },
     extend(ctx) {
-      const { Document, Node, Simulator, OffsetObserver } = ctx
+      const { Document, Node, Simulator, OffsetObserver, Designer } = ctx
+
+      /* -------------------------------- Designer -------------------------------- */
+      // const originalDesignerConstructor = Designer.prototype.constructor
+
+      // // 重写构造函数
+      // Object.defineProperties(Designer.prototype, {
+      //   constructor: {
+      //     value: function (props: DesignerProps) {
+      //       console.log('Custom logic before original constructor') // 调试信息
+
+      //       // 调用原始构造函数
+      //       originalDesignerConstructor.call(this, props)
+
+      //       console.log('Custom logic after original constructor') // 调试信息
+      //     },
+      //     writable: true,
+      //     configurable: true,
+      //   },
+      // })
 
       /* -------------------------------- Document -------------------------------- */
       Object.defineProperties(Document.prototype, {

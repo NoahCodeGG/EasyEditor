@@ -1,6 +1,14 @@
-import type { ComponentInstance, Rect } from '@easy-editor/core'
+import type { ComponentInstance } from '@easy-editor/core'
+import type { GuideLine } from './designer/guideline'
 
 declare module '@easy-editor/core' {
+  interface Designer {
+    /**
+     * 辅助线
+     */
+    guideline: GuideLine
+  }
+
   interface Document {
     /**
      * 将一批 Node 组合成 Group
@@ -24,7 +32,7 @@ declare module '@easy-editor/core' {
     /**
      * 获取 dashboard 位置信息
      */
-    getDashboardRect(): Rect
+    getDashboardRect(): DOMRect
 
     /**
      * 是否是 Group
