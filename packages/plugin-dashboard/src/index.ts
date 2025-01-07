@@ -89,6 +89,9 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         const { dragObject } = e
 
         if (dragObject && dragObject.type === DragObjectType.Node) {
+          // 计算辅助线位置
+          designer.guideline.calculateGuideLineInfo()
+
           for (const node of dragObject.nodes!) {
             if (!node) continue
 
@@ -112,6 +115,11 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             if (dndMode === 'dom') {
               const { x = 0, y = 0 } = startOffsetNodes[node.id]
               updateNodeRectByDOM(node, { x: e.canvasX! - x, y: e.canvasY! - y })
+              // TODO: 计算外部包围盒
+              const nodeRect = node.getDashboardRect()
+              designer.guideline.getAdsorptionPosition(
+                new DOMRect(e.canvasX! - x, e.canvasY! - y, nodeRect.width, nodeRect.height),
+              )
               lastOffsetNodes[node.id] = { x: e.canvasX!, y: e.canvasY! }
             } else if (dndMode === 'props') {
               const { x = 0, y = 0 } = startOffsetNodes[node.id]
@@ -161,6 +169,9 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               }
             }
           }
+
+          // 清空辅助线
+          designer.guideline.resetAdsorptionLines()
         }
 
         startNodes = {}
@@ -172,23 +183,16 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       const { Document, Node, Simulator, OffsetObserver, Designer } = ctx
 
       /* -------------------------------- Designer -------------------------------- */
-      // const originalDesignerConstructor = Designer.prototype.constructor
+      const originalInit = Designer.prototype.init
+      Object.defineProperties(Designer.prototype, {
+        init: {
+          value(this: Designer) {
+            originalInit.call(this)
 
-      // // 重写构造函数
-      // Object.defineProperties(Designer.prototype, {
-      //   constructor: {
-      //     value: function (props: DesignerProps) {
-      //       console.log('Custom logic before original constructor') // 调试信息
-
-      //       // 调用原始构造函数
-      //       originalDesignerConstructor.call(this, props)
-
-      //       console.log('Custom logic after original constructor') // 调试信息
-      //     },
-      //     writable: true,
-      //     configurable: true,
-      //   },
-      // })
+            this.guideline = new GuideLine(this)
+          },
+        },
+      })
 
       /* -------------------------------- Document -------------------------------- */
       Object.defineProperties(Document.prototype, {

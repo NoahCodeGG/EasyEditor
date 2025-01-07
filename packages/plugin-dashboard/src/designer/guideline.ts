@@ -42,6 +42,14 @@ export class GuideLine {
     horizontalLinesMap: new Map<number, AlignmentLine>(),
   }
 
+  /**
+   * 实时显示的吸附辅助线
+   */
+  @observable accessor adsorptionLines = {
+    verticalLines: new Set<number>(),
+    horizontalLines: new Set<number>(),
+  }
+
   get currentDocument() {
     return this.designer.currentDocument
   }
@@ -99,9 +107,9 @@ export class GuideLine {
     }
 
     nodes
-      .filter(node => !node.isHidden)
+      .filter(node => !node.isHidden())
       .forEach(node => {
-        if (selected.includes(node.id) || node.isRootNode || node.isGroup) return
+        if (selected.includes(node.id) || node.isRoot() || node.isGroup) return
 
         const nodeRect = node.getDashboardRect()
         const verticalNodeLines = [nodeRect.left, nodeRect.left + nodeRect.width / 2, nodeRect.right]
@@ -142,8 +150,8 @@ export class GuideLine {
     fillX: number | undefined
     fillY: number | undefined
   } {
-    const adsorptionVerticalLine = new Set<number>()
-    const adsorptionHorizontalLine = new Set<number>()
+    this.resetAdsorptionLines()
+
     const currentVerticalLine = [rect.left, rect.left + rect.width / 2, rect.right]
     const currentHorizontalLine = [rect.top, rect.top + rect.height / 2, rect.bottom]
 
@@ -163,7 +171,7 @@ export class GuideLine {
       })
 
       if (minDistance !== -1) {
-        adsorptionVerticalLine.add(minDistance)
+        this.adsorptionLines.verticalLines.add(minDistance)
       }
     })
     currentHorizontalLine.forEach(item => {
@@ -181,17 +189,17 @@ export class GuideLine {
       })
 
       if (minDistance !== -1) {
-        adsorptionHorizontalLine.add(minDistance)
+        this.adsorptionLines.horizontalLines.add(minDistance)
       }
     })
 
-    const isAdsorption = adsorptionVerticalLine.size > 0 || adsorptionHorizontalLine.size > 0
+    const isAdsorption = this.adsorptionLines.verticalLines.size > 0 || this.adsorptionLines.horizontalLines.size > 0
     let fillX: number | undefined = undefined
     let fillY: number | undefined = undefined
     if (isAdsorption) {
       // 如果吸附，则计算吸附的距离
-      fillX = Math.min(...adsorptionVerticalLine.values())
-      fillY = Math.min(...adsorptionHorizontalLine.values())
+      fillX = Math.min(...this.adsorptionLines.verticalLines.values())
+      fillY = Math.min(...this.adsorptionLines.horizontalLines.values())
     }
     return {
       isAdsorption,
@@ -233,5 +241,11 @@ export class GuideLine {
     //     fillY = item - rect.height / 2
     //   }
     // })
+  }
+
+  @action
+  resetAdsorptionLines() {
+    this.adsorptionLines.verticalLines.clear()
+    this.adsorptionLines.horizontalLines.clear()
   }
 }

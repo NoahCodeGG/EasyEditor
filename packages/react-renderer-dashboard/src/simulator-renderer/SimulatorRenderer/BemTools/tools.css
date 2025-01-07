@@ -76,3 +76,23 @@
     }
   }
 }
+
+.lc-guideline {
+  position: absolute;
+  z-index: 999;
+  background-color: red;
+
+  &.vertical {
+    left: 0;
+    width: 1px;
+    height: 20000px;
+    transform: translateY(-50%);
+  }
+
+  &.horizontal {
+    top: 0;
+    width: 20000px;
+    height: 1px;
+    transform: translateX(-50%);
+  }
+}

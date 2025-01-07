@@ -196,8 +196,14 @@ export class Designer {
       }
     })
 
+    this.init()
     this.postEvent(DESIGNER_EVENT.INIT, this)
   }
+
+  /**
+   * 该函数用于 Designer constructor 的插件扩展，因为 Object.defineProperty 无法修改 constructor
+   */
+  init() {}
 
   setProps(nextProps: DesignerProps) {
     const props = this.props ? { ...this.props, ...nextProps } : nextProps
