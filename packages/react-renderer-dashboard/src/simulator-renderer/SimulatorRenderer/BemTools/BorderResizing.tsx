@@ -179,6 +179,22 @@ export const BorderResizingInstance = observer(
           node.setExtraPropValue('$dashboard.rect.x', resizeRect.x)
           break
       }
+
+      // 如果是分组的话，还需要更新子节点的位置和大小
+      if (node.isGroup) {
+        // 根据分组的缩放大小计算，缩放比例
+        const ratioWidth = resizeRect.width / startNodeRect.width
+        const ratioHeight = resizeRect.height / startNodeRect.height
+
+        for (const child of node.getAllNodesInGroup()) {
+          // 子节点根据新的缩放比例重新计算位置
+          const childRect = child.getDashboardRect()
+          child.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + (childRect.x - startNodeRect.x) * ratioWidth)
+          child.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + (childRect.y - startNodeRect.y) * ratioHeight)
+          child.setExtraPropValue('$dashboard.rect.width', childRect.width * ratioWidth)
+          child.setExtraPropValue('$dashboard.rect.height', childRect.height * ratioHeight)
+        }
+      }
     }
 
     /**
@@ -205,6 +221,25 @@ export const BorderResizingInstance = observer(
       domNode.style.width = `${resizeRect.width}px`
       domNode.style.height = `${resizeRect.height}px`
       this.updateAllOutlines(resizeRect)
+
+      // 如果是分组的话，还需要更新子节点的位置和大小
+      if (node.isGroup) {
+        // 根据分组的缩放大小计算，缩放比例
+        const ratioWidth = resizeRect.width / startNodeRect.width
+        const ratioHeight = resizeRect.height / startNodeRect.height
+
+        for (const child of node.getAllNodesInGroup()) {
+          const childDom = child.getDashboardContainer()
+          if (!childDom) continue
+
+          // 子节点根据新的缩放比例重新计算位置
+          const childRect = child.getDashboardRect()
+          childDom.style.left = `${startNodeRect.x + (childRect.x - startNodeRect.x) * ratioWidth}px`
+          childDom.style.top = `${startNodeRect.y + (childRect.y - startNodeRect.y) * ratioHeight}px`
+          childDom.style.width = `${childRect.width * ratioWidth}px`
+          childDom.style.height = `${childRect.height * ratioHeight}px`
+        }
+      }
     }
 
     /**
@@ -252,7 +287,7 @@ export const BorderResizingInstance = observer(
           ;(e as any).trigger = direction
           advanced.callbacks.onResizeStart({ ...e, trigger: direction }, node)
         }
-        startNodeRect = node.getExtraPropValue('$dashboard.rect') as Rect
+        startNodeRect = node.getDashboardRect()
       }
 
       const resize = ({
@@ -503,8 +538,6 @@ export const BorderResizing: React.FC<BorderResizingProps> = observer(({ host })
   const { selection } = host.designer
   const dragging = host.designer.dragon.dragging
   const selecting = dragging ? selection.getTopNodes() : selection.getNodes()
-  console.log('🚀 ~ constBorderResizing:React.FC<BorderResizingProps>=observer ~ selecting:', selecting)
-
   if (!selecting || selecting.length < 1) {
     return null
   }
