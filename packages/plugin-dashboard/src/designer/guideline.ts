@@ -107,9 +107,9 @@ export class GuideLine {
     }
 
     nodes
-      .filter(node => !node.isHidden())
+      .filter(node => !node.isHidden)
       .forEach(node => {
-        if (selected.includes(node.id) || node.isRoot() || node.isGroup) return
+        if (selected.includes(node.id) || node.isRoot || node.isGroup) return
 
         const nodeRect = node.getDashboardRect()
         const verticalNodeLines = [nodeRect.left, nodeRect.left + nodeRect.width / 2, nodeRect.right]

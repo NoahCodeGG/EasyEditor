@@ -129,7 +129,7 @@ export class NodeChildren {
 
   @action
   internalDelete(node: Node, purge = false, useMutator = true): boolean {
-    if (node.isParentalNode) {
+    if (node.isParental) {
       node.children?.remove(purge, useMutator)
     }
 

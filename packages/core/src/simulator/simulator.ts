@@ -597,7 +597,7 @@ export class Simulator {
       let parentNode = node?.parent
 
       while (parentNode) {
-        if (parentNode.isContainer()) {
+        if (parentNode.isContainer) {
           parentContainerNode = parentNode
           break
         }
@@ -626,9 +626,7 @@ export class Simulator {
     if (!dropContainer) {
       return null
     }
-    const lockedNode = dropContainer?.container
-      ? getClosestNode(dropContainer.container, node => node.isLocked())
-      : null
+    const lockedNode = dropContainer?.container ? getClosestNode(dropContainer.container, node => node.isLocked) : null
     if (lockedNode) {
       return null
     }
@@ -703,7 +701,7 @@ export class Simulator {
       container = rootNode
     }
 
-    if (!container?.isParental()) {
+    if (!container?.isParental) {
       container = container?.parent || rootNode
     }
 
@@ -760,7 +758,7 @@ export class Simulator {
     const { dragObject } = e
     const document = this.project.currentDocument!
     const { rootNode } = document
-    if (container.isRoot() || container.contains(rootNode!)) {
+    if (container.isRoot || container.contains(rootNode!)) {
       // return document.checkNesting(rootNode!, dragObject as any)
       return true
     }

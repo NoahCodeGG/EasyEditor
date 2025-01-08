@@ -131,7 +131,7 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
     const { componentName, id, children, props, ...extras } = data
 
     this.props.import(props, extras)
-    if (this.isParental()) {
+    if (this.isParental) {
       this._children?.import(children, checkId)
     }
   }
@@ -156,7 +156,7 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
       ...(extras ? this.document.designer.transformProps(extras, this, stage) : {}),
     }
 
-    if (this.isParental() && this.children && this.children.size > 0) {
+    if (this.isParental && this.children && this.children.size > 0) {
       schema.children = this.children.export(stage)
     }
 
@@ -313,41 +313,25 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
     return this.props
   }
 
-  isContainer(): boolean {
-    return this.isContainerNode
-  }
-
-  get isContainerNode() {
+  get isContainer(): boolean {
     return this.componentMeta.isContainer
   }
 
-  isRoot() {
-    return this.isRootNode
-  }
-
-  get isRootNode() {
+  get isRoot() {
     return this.document.rootNode === this
   }
 
   /**
    * whether child nodes are included
    */
-  isParental() {
-    return this.isParentalNode
-  }
-
-  get isParentalNode(): boolean {
-    return !this.isLeafNode
+  get isParental() {
+    return !this.isLeaf
   }
 
   /**
    * whether this node is a leaf node
    */
-  isLeaf() {
-    return this.isLeafNode
-  }
-
-  get isLeafNode(): boolean {
+  get isLeaf() {
     return this._children ? this._children.isEmpty() : true
   }
 
@@ -360,7 +344,7 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
     this.emitter.emit(NODE_EVENT.VISIBLE_CHANGE, flag)
   }
 
-  isHidden() {
+  get isHidden() {
     return this.getExtraPropValue('isHidden') as boolean
   }
 
@@ -369,7 +353,7 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
     this.emitter.emit(NODE_EVENT.LOCK_CHANGE, flag)
   }
 
-  isLocked() {
+  get isLocked() {
     return this.getExtraPropValue('isLocked') as boolean
   }
 
@@ -492,7 +476,7 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
     let current: Node | null = this
 
     while (current) {
-      if (current.isRoot()) {
+      if (current.isRoot) {
         return true
       }
       current = current.parent
@@ -563,7 +547,7 @@ export class Node<Schema extends NodeSchema = NodeSchema> {
   }
 
   getRect() {
-    if (this.isRoot()) {
+    if (this.isRoot) {
       return this.document.simulator?.viewport.contentBounds || null
     }
     return this.document.simulator?.computeRect(this) || null
@@ -752,7 +736,7 @@ export const contains = (node1: Node, node2: Node): boolean => {
     return true
   }
 
-  if (!node1.isParental() || !node2.parent) {
+  if (!node1.isParental || !node2.parent) {
     return false
   }
 

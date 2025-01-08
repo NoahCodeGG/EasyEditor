@@ -55,7 +55,7 @@ export const BorderDetecting: React.FC<BorderDetectingProps> = observer(({ host 
 
   const lockedNode = getClosestNode(current, n => {
     // 假如当前节点就是 locked 状态，要从当前节点的父节点开始查找
-    return !n.isLocked()
+    return !n.isLocked
   })
 
   if (lockedNode && lockedNode.id !== current.id) {

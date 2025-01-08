@@ -125,7 +125,7 @@ export class Document {
   @action
   import(schema?: RootSchema, checkId = false) {
     this.nodes.forEach(node => {
-      if (node.isRoot()) return
+      if (node.isRoot) return
       this.internalRemoveNode(node, true)
     })
     this.remove()
@@ -223,7 +223,7 @@ export class Document {
       return
     }
 
-    if (node.isRoot()) {
+    if (node.isRoot) {
       this.rootNode = null
     }
 
