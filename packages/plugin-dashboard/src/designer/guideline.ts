@@ -1,4 +1,4 @@
-import type { Designer } from '@easy-editor/core'
+import { DESIGNER_EVENT, type Designer, type Viewport } from '@easy-editor/core'
 import { action, computed, observable } from 'mobx'
 
 type GuideLineType = 'horizontal' | 'vertical'
@@ -65,7 +65,41 @@ export class GuideLine {
     return this.designer.currentDocument
   }
 
-  constructor(readonly designer: Designer) {}
+  constructor(readonly designer: Designer) {
+    // 添加画布视口的辅助线
+    this.designer.onEvent(DESIGNER_EVENT.VIEWPORT_MOUNT, ({ viewport }: { viewport: Viewport }) => {
+      this.addGuideLine({
+        id: 'viewport-vertical-left',
+        type: 'vertical',
+        position: 0,
+      })
+      this.addGuideLine({
+        id: 'viewport-vertical-middle',
+        type: 'vertical',
+        position: viewport.width / 2,
+      })
+      this.addGuideLine({
+        id: 'viewport-vertical-right',
+        type: 'vertical',
+        position: viewport.width,
+      })
+      this.addGuideLine({
+        id: 'viewport-horizontal-top',
+        type: 'horizontal',
+        position: 0,
+      })
+      this.addGuideLine({
+        id: 'viewport-horizontal-middle',
+        type: 'horizontal',
+        position: viewport.height / 2,
+      })
+      this.addGuideLine({
+        id: 'viewport-horizontal-bottom',
+        type: 'horizontal',
+        position: viewport.height,
+      })
+    })
+  }
 
   /**
    * 添加额外的辅助线，用于尺寸调整

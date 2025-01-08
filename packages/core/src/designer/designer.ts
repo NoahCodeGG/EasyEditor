@@ -64,6 +64,8 @@ export enum DESIGNER_EVENT {
   SELECTION_CHANGE = 'designer:selection.change',
 
   NODE_RENDER = 'designer:node.render',
+
+  VIEWPORT_MOUNT = 'simulator:viewport.mount',
 }
 
 export class Designer {

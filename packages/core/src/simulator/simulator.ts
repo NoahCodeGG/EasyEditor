@@ -67,7 +67,7 @@ export class Simulator {
 
   readonly designer: Designer
 
-  readonly viewport = new Viewport()
+  readonly viewport: Viewport
 
   iframe?: HTMLElement
 
@@ -166,6 +166,7 @@ export class Simulator {
   constructor(designer: Designer) {
     this.designer = designer
     this.project = designer.project
+    this.viewport = new Viewport(designer)
   }
 
   @action

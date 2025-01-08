@@ -1,5 +1,5 @@
 import { action, computed, observable } from 'mobx'
-import type { Point } from '../designer'
+import { DESIGNER_EVENT, type Designer, type Point } from '../designer'
 
 export type AutoFit = '100%'
 export const AutoFit: AutoFit = '100%'
@@ -27,12 +27,19 @@ export class Viewport {
 
   private viewportElement?: HTMLElement
 
+  constructor(readonly designer: Designer) {}
+
   mount(viewportElement: HTMLElement | null) {
     if (!viewportElement || this.viewportElement === viewportElement) {
       return
     }
     this.viewportElement = viewportElement
     this.touch()
+
+    this.designer.postEvent(DESIGNER_EVENT.VIEWPORT_MOUNT, {
+      viewport: this,
+      viewportElement,
+    })
   }
 
   touch() {
