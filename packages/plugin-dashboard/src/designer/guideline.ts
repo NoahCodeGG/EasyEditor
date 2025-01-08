@@ -14,6 +14,17 @@ interface AlignmentLine {
   position: number
 }
 
+interface AdsorptionLine {
+  /**
+   * 吸附位置
+   *  - 0: 左 | 上
+   *  - 1: 中
+   *  - 2: 右 | 下
+   */
+  adsorption: number
+  position: number
+}
+
 export class GuideLine {
   /**
    * 是否启用辅助线
@@ -145,18 +156,16 @@ export class GuideLine {
    * @param rect 为拖动过程中组件的位置信息
    */
   @action
-  getAdsorptionPosition(rect: DOMRect): {
-    isAdsorption: boolean
-    fillX: number | undefined
-    fillY: number | undefined
-  } {
+  getAdsorptionPosition(rect: DOMRect) {
     this.resetAdsorptionLines()
 
+    const adsorptionVerticalLines: AdsorptionLine[] = []
+    const adsorptionHorizontalLines: AdsorptionLine[] = []
     const currentVerticalLine = [rect.left, rect.left + rect.width / 2, rect.right]
     const currentHorizontalLine = [rect.top, rect.top + rect.height / 2, rect.bottom]
 
-    // 接下来为计算,需要知道上中下三条线中，符合条件的辅助线中的最近的一条线，再做吸附
-    currentVerticalLine.forEach(item => {
+    // 计算需要显示的辅助线和吸附信息
+    currentVerticalLine.forEach((item, index) => {
       let minDistance = -1
 
       this.nodeLineMap.verticalLinesMap.forEach((_, pos) => {
@@ -170,11 +179,14 @@ export class GuideLine {
         }
       })
 
-      if (minDistance !== -1) {
-        this.adsorptionLines.verticalLines.add(minDistance)
+      if (minDistance !== -1 && adsorptionVerticalLines.findIndex(item => item.position === minDistance) === -1) {
+        adsorptionVerticalLines.push({
+          adsorption: index,
+          position: minDistance,
+        })
       }
     })
-    currentHorizontalLine.forEach(item => {
+    currentHorizontalLine.forEach((item, index) => {
       let minDistance = -1
 
       this.nodeLineMap.horizontalLinesMap.forEach((_, pos) => {
@@ -188,23 +200,49 @@ export class GuideLine {
         }
       })
 
-      if (minDistance !== -1) {
-        this.adsorptionLines.horizontalLines.add(minDistance)
+      if (minDistance !== -1 && adsorptionHorizontalLines.findIndex(item => item.position === minDistance) === -1) {
+        adsorptionHorizontalLines.push({
+          adsorption: index,
+          position: minDistance,
+        })
       }
     })
 
-    const isAdsorption = this.adsorptionLines.verticalLines.size > 0 || this.adsorptionLines.horizontalLines.size > 0
-    let fillX: number | undefined = undefined
-    let fillY: number | undefined = undefined
+    const isAdsorption = adsorptionVerticalLines.length > 0 || adsorptionHorizontalLines.length > 0
+    const adsorb: Record<'x' | 'y', number | undefined> = { x: undefined, y: undefined }
     if (isAdsorption) {
+      // 将吸附的辅助线添加到吸附辅助线集合中，用于显示到页面上
+      adsorptionVerticalLines.forEach(item => this.adsorptionLines.verticalLines.add(item.position))
+      adsorptionHorizontalLines.forEach(item => this.adsorptionLines.horizontalLines.add(item.position))
+
       // 如果吸附，则计算吸附的距离
-      fillX = Math.min(...this.adsorptionLines.verticalLines.values())
-      fillY = Math.min(...this.adsorptionLines.horizontalLines.values())
+      if (adsorptionVerticalLines.length > 0) {
+        const adsorptionPosition = Math.min(...adsorptionVerticalLines.map(item => item.position))
+        const adsorptionLine = adsorptionVerticalLines.find(item => item.position === adsorptionPosition)!
+        if (adsorptionLine.adsorption === 0) {
+          adsorb.x = adsorptionLine.position
+        } else if (adsorptionLine.adsorption === 1) {
+          adsorb.x = adsorptionLine.position - rect.width / 2
+        } else if (adsorptionLine.adsorption === 2) {
+          adsorb.x = adsorptionLine.position - rect.width
+        }
+      }
+      if (adsorptionHorizontalLines.length > 0) {
+        const adsorptionPosition = Math.min(...adsorptionHorizontalLines.map(item => item.position))
+        const adsorptionLine = adsorptionHorizontalLines.find(item => item.position === adsorptionPosition)!
+        if (adsorptionLine.adsorption === 0) {
+          adsorb.y = adsorptionLine.position
+        } else if (adsorptionLine.adsorption === 1) {
+          adsorb.y = adsorptionLine.position - rect.height / 2
+        } else if (adsorptionLine.adsorption === 2) {
+          adsorb.y = adsorptionLine.position - rect.height
+        }
+      }
     }
+
     return {
       isAdsorption,
-      fillX,
-      fillY,
+      adsorb,
     }
 
     // let fillX: number | undefined

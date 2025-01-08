@@ -81,7 +81,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
 
       /* ----------------------------------- DND ---------------------------------- */
-      let startNodes: { [key: string]: { x: number; y: number } } = {}
+      let startNodes: { [key: string]: DOMRect } = {}
       let startOffsetNodes: { [key: string]: { x: number; y: number } } = {}
       let lastOffsetNodes: { [key: string]: { x: number; y: number } } = {}
 
@@ -113,13 +113,20 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
             // 更新节点位置
             if (dndMode === 'dom') {
-              const { x = 0, y = 0 } = startOffsetNodes[node.id]
-              updateNodeRectByDOM(node, { x: e.canvasX! - x, y: e.canvasY! - y })
-              // TODO: 计算外部包围盒
-              const nodeRect = node.getDashboardRect()
-              designer.guideline.getAdsorptionPosition(
-                new DOMRect(e.canvasX! - x, e.canvasY! - y, nodeRect.width, nodeRect.height),
+              const { width = 0, height = 0 } = startNodes[node.id]
+              const { x: startX = 0, y: startY = 0 } = startOffsetNodes[node.id]
+              const offsetX = e.canvasX! - startX
+              const offsetY = e.canvasY! - startY
+              const { isAdsorption, adsorb } = designer.guideline.getAdsorptionPosition(
+                new DOMRect(offsetX, offsetY, width, height),
               )
+
+              if (isAdsorption) {
+                updateNodeRectByDOM(node, { x: adsorb.x ?? offsetX, y: adsorb.y ?? offsetY })
+              } else {
+                updateNodeRectByDOM(node, { x: offsetX, y: offsetY })
+              }
+
               lastOffsetNodes[node.id] = { x: e.canvasX!, y: e.canvasY! }
             } else if (dndMode === 'props') {
               const { x = 0, y = 0 } = startOffsetNodes[node.id]
