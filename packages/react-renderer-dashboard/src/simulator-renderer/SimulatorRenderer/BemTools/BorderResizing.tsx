@@ -145,38 +145,54 @@ export const BorderResizingInstance = observer(
 
       switch (direction) {
         case Direction.N:
-          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
-          node.setExtraPropValue('$dashboard.rect.y', resizeRect.y)
+          node.updateDashboardRect({
+            y: resizeRect.y,
+            height: resizeRect.height,
+          })
           break
         case Direction.S:
-          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
+          node.updateDashboardRect({
+            height: resizeRect.height,
+          })
           break
         case Direction.W:
-          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
-          node.setExtraPropValue('$dashboard.rect.x', resizeRect.x)
+          node.updateDashboardRect({
+            x: resizeRect.x,
+            width: resizeRect.width,
+          })
           break
         case Direction.E:
-          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
+          node.updateDashboardRect({
+            width: resizeRect.width,
+          })
           break
         case Direction.NW:
-          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
-          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
-          node.setExtraPropValue('$dashboard.rect.x', resizeRect.x)
-          node.setExtraPropValue('$dashboard.rect.y', resizeRect.y)
+          node.updateDashboardRect({
+            x: resizeRect.x,
+            y: resizeRect.y,
+            width: resizeRect.width,
+            height: resizeRect.height,
+          })
           break
         case Direction.NE:
-          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
-          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
-          node.setExtraPropValue('$dashboard.rect.y', resizeRect.y)
+          node.updateDashboardRect({
+            y: resizeRect.y,
+            width: resizeRect.width,
+            height: resizeRect.height,
+          })
           break
         case Direction.SE:
-          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
-          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
+          node.updateDashboardRect({
+            width: resizeRect.width,
+            height: resizeRect.height,
+          })
           break
         case Direction.SW:
-          node.setExtraPropValue('$dashboard.rect.width', resizeRect.width)
-          node.setExtraPropValue('$dashboard.rect.height', resizeRect.height)
-          node.setExtraPropValue('$dashboard.rect.x', resizeRect.x)
+          node.updateDashboardRect({
+            x: resizeRect.x,
+            width: resizeRect.width,
+            height: resizeRect.height,
+          })
           break
       }
 
@@ -189,10 +205,12 @@ export const BorderResizingInstance = observer(
         for (const child of node.getAllNodesInGroup()) {
           // 子节点根据新的缩放比例重新计算位置
           const childRect = child.getDashboardRect()
-          child.setExtraPropValue('$dashboard.rect.x', startNodeRect.x + (childRect.x - startNodeRect.x) * ratioWidth)
-          child.setExtraPropValue('$dashboard.rect.y', startNodeRect.y + (childRect.y - startNodeRect.y) * ratioHeight)
-          child.setExtraPropValue('$dashboard.rect.width', childRect.width * ratioWidth)
-          child.setExtraPropValue('$dashboard.rect.height', childRect.height * ratioHeight)
+          child.updateDashboardRect({
+            x: startNodeRect.x + (childRect.x - startNodeRect.x) * ratioWidth,
+            y: startNodeRect.y + (childRect.y - startNodeRect.y) * ratioHeight,
+            width: childRect.width * ratioWidth,
+            height: childRect.height * ratioHeight,
+          })
         }
       }
     }

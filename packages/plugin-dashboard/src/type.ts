@@ -35,6 +35,11 @@ declare module '@easy-editor/core' {
     getDashboardRect(): DOMRect
 
     /**
+     * 更新 dashboard 位置信息
+     */
+    updateDashboardRect(rect: Partial<DOMRect>): void
+
+    /**
      * 是否是 Group
      */
     isGroup: boolean

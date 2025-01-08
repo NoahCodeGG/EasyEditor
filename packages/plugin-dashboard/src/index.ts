@@ -281,6 +281,24 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             return new DOMRect(minX, minY, maxX - minX, maxY - minY)
           },
         },
+        updateDashboardRect: {
+          value(this: Node, rect: Partial<DOMRect>) {
+            if (this.isGroup) return
+
+            if (typeof rect.x === 'number') {
+              this.setExtraPropValue('$dashboard.rect.x', rect.x)
+            }
+            if (typeof rect.y === 'number') {
+              this.setExtraPropValue('$dashboard.rect.y', rect.y)
+            }
+            if (typeof rect.width === 'number') {
+              this.setExtraPropValue('$dashboard.rect.width', rect.width)
+            }
+            if (typeof rect.height === 'number') {
+              this.setExtraPropValue('$dashboard.rect.height', rect.height)
+            }
+          },
+        },
         isGroup: {
           get(this: Node) {
             return this.getExtraPropValue('isGroup')

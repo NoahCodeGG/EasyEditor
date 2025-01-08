@@ -9,18 +9,17 @@ import type { Node } from '@easy-editor/core'
 export const updateNodeRect = (node: Node, offset = { x: 0, y: 0 }) => {
   if (node.isGroup) {
     for (const childNode of node.getAllNodesInGroup()) {
-      childNode.setExtraPropValue(
-        '$dashboard.rect.x',
-        (childNode.getExtraPropValue('$dashboard.rect.x') as number) + offset.x,
-      )
-      childNode.setExtraPropValue(
-        '$dashboard.rect.y',
-        (childNode.getExtraPropValue('$dashboard.rect.y') as number) + offset.y,
-      )
+      const childRect = childNode.getDashboardRect()
+      childNode.updateDashboardRect({
+        x: childRect.x + offset.x,
+        y: childRect.y + offset.y,
+      })
     }
   } else {
-    node.setExtraPropValue('$dashboard.rect.x', offset.x)
-    node.setExtraPropValue('$dashboard.rect.y', offset.y)
+    node.updateDashboardRect({
+      x: offset.x,
+      y: offset.y,
+    })
   }
 }
 
