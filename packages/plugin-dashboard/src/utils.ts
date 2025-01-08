@@ -8,11 +8,17 @@ import type { Node } from '@easy-editor/core'
  */
 export const updateNodeRect = (node: Node, offset = { x: 0, y: 0 }) => {
   if (node.isGroup) {
+    const nodeRect = node.getDashboardRect()
+    const delta = {
+      x: offset.x - nodeRect.x,
+      y: offset.y - nodeRect.y,
+    }
+
     for (const childNode of node.getAllNodesInGroup()) {
       const childRect = childNode.getDashboardRect()
       childNode.updateDashboardRect({
-        x: childRect.x + offset.x,
-        y: childRect.y + offset.y,
+        x: childRect.x + delta.x,
+        y: childRect.y + delta.y,
       })
     }
   } else {

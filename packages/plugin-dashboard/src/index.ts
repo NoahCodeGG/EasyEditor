@@ -108,36 +108,29 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       designer.dragon.onDrag(e => {
         const { dragObject } = e
         if (dragObject && dragObject.type === DragObjectType.Node) {
+          // const boxRect = calculateDashboardRectBox(dragObject.nodes as Node[], startOffsetNodes)
+          // const { isAdsorption, adsorb } = designer.guideline.getAdsorptionPosition(
+          //   new DOMRect(e.canvasX, e.canvasY, boxRect.width, boxRect.height),
+          // )
+
           for (const node of dragObject.nodes!) {
             if (!node) continue
 
             // 更新节点位置
-            if (dndMode === 'dom') {
-              const { width = 0, height = 0 } = startNodes[node.id]
-              const { x: startX = 0, y: startY = 0 } = startOffsetNodes[node.id]
-              const offsetX = e.canvasX! - startX
-              const offsetY = e.canvasY! - startY
-              const { isAdsorption, adsorb } = designer.guideline.getAdsorptionPosition(
-                new DOMRect(offsetX, offsetY, width, height),
-              )
+            const { width = 0, height = 0 } = startNodes[node.id]
+            const { x: startX = 0, y: startY = 0 } = startOffsetNodes[node.id]
+            let offsetX = e.canvasX! - startX
+            let offsetY = e.canvasY! - startY
+            const { isAdsorption, adsorb } = designer.guideline.getAdsorptionPosition(
+              new DOMRect(offsetX, offsetY, width, height),
+            )
 
-              if (isAdsorption) {
-                updateNodeRectByDOM(node, { x: adsorb.x ?? offsetX, y: adsorb.y ?? offsetY })
-              } else {
-                updateNodeRectByDOM(node, { x: offsetX, y: offsetY })
-              }
-
-              lastOffsetNodes[node.id] = { x: e.canvasX!, y: e.canvasY! }
-            } else if (dndMode === 'props') {
-              const { x = 0, y = 0 } = startOffsetNodes[node.id]
-              const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
-              if (node.isGroup) {
-                updateNodeRect(node, { x: e.canvasX! - x - startX, y: e.canvasY! - y - startY })
-              } else {
-                updateNodeRect(node, { x: e.canvasX! - x, y: e.canvasY! - y })
-              }
-              startNodes[node.id] = node.getDashboardRect()
+            if (isAdsorption) {
+              offsetX = adsorb.x ?? offsetX
+              offsetY = adsorb.y ?? offsetY
             }
+            updateNodeRectByDOM(node, { x: offsetX, y: offsetY })
+            lastOffsetNodes[node.id] = { x: offsetX, y: offsetY }
           }
         }
       })
@@ -151,29 +144,10 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
             if (esc) {
               // dom 的话，因为没有更新内部节点值，所以直接重新渲染就行了
-              if (dndMode === 'dom') {
-                simulator.rerender()
-              }
-              // TODO: props 有点问题
-              else if (dndMode === 'props') {
-                const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
-                if (node.isGroup) {
-                  updateNodeRect(node, { x: 0 + 1, y: 0 + 1 })
-                } else {
-                  updateNodeRect(node, { x: startX + 1, y: startY + 1 })
-                }
-              }
+              simulator.rerender()
             } else {
-              if (dndMode === 'dom') {
-                const { x = 0, y = 0 } = startOffsetNodes[node.id]
-                const { x: startX = 0, y: startY = 0 } = startNodes[node.id]
-                const { x: lastX = 0, y: lastY = 0 } = lastOffsetNodes[node.id]
-                if (node.isGroup) {
-                  updateNodeRect(node, { x: lastX - x - startX, y: lastY - y - startY })
-                } else {
-                  updateNodeRect(node, { x: lastX - x, y: lastY - y })
-                }
-              }
+              const { x: lastX = 0, y: lastY = 0 } = lastOffsetNodes[node.id]
+              updateNodeRect(node, { x: lastX, y: lastY })
             }
           }
 
@@ -505,7 +479,7 @@ export default DashboardPlugin
  * @param nodes 分组节点
  * @returns 外围矩形 {DOMRect}
  */
-const calculateDashboardRectBox = (nodes: Node[]) => {
+const calculateDashboardRectBox = (nodes: Node[], startOffsetNodes: { [key: string]: { x: number; y: number } }) => {
   let [minX, minY, maxX, maxY] = [
     Number.POSITIVE_INFINITY,
     Number.POSITIVE_INFINITY,
@@ -515,10 +489,11 @@ const calculateDashboardRectBox = (nodes: Node[]) => {
 
   for (const node of nodes) {
     const rect = node.getDashboardRect()
-    minX = Math.min(minX, rect.x)
-    minY = Math.min(minY, rect.y)
-    maxX = Math.max(maxX, rect.x + rect.width)
-    maxY = Math.max(maxY, rect.y + rect.height)
+    const { x: startX = 0, y: startY = 0 } = startOffsetNodes[node.id]
+    minX = Math.min(minX, rect.x - startX)
+    minY = Math.min(minY, rect.y - startY)
+    maxX = Math.max(maxX, rect.x + rect.width - startX)
+    maxY = Math.max(maxY, rect.y + rect.height - startY)
   }
 
   return new DOMRect(minX, minY, maxX - minX, maxY - minY)
