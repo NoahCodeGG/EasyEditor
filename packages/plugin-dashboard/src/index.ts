@@ -102,32 +102,39 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
               startOffsetNodes[node.id] = { x: e.canvasX! - rect.x, y: e.canvasY! - rect.y }
             }
           }
+
+          // 计算整个拖拽包围盒的 Rect
+          const boxRect = calculateDashboardRectBox(dragObject.nodes as Node[])
+          if (boxRect) {
+            startNodes.box = boxRect
+            startOffsetNodes.box = { x: e.canvasX! - boxRect.x, y: e.canvasY! - boxRect.y }
+          }
         }
       })
 
       designer.dragon.onDrag(e => {
         const { dragObject } = e
         if (dragObject && dragObject.type === DragObjectType.Node) {
-          // const boxRect = calculateDashboardRectBox(dragObject.nodes as Node[], startOffsetNodes)
-          // const { isAdsorption, adsorb } = designer.guideline.getAdsorptionPosition(
-          //   new DOMRect(e.canvasX, e.canvasY, boxRect.width, boxRect.height),
-          // )
+          // 根据拖拽包围盒的 Rect 计算吸附位置
+          const { x: boxStartX = 0, y: boxStartY = 0, width = 0, height = 0 } = startNodes.box
+          const { x: boxX = 0, y: boxY = 0 } = startOffsetNodes.box
+          const { isAdsorption, adsorb } = designer.guideline.getAdsorptionPosition(
+            new DOMRect(e.canvasX! - boxX, e.canvasY! - boxY, width, height),
+          )
 
           for (const node of dragObject.nodes!) {
             if (!node) continue
 
             // 更新节点位置
-            const { width = 0, height = 0 } = startNodes[node.id]
-            const { x: startX = 0, y: startY = 0 } = startOffsetNodes[node.id]
-            let offsetX = e.canvasX! - startX
-            let offsetY = e.canvasY! - startY
-            const { isAdsorption, adsorb } = designer.guideline.getAdsorptionPosition(
-              new DOMRect(offsetX, offsetY, width, height),
-            )
+            const { x: nodeStartX = 0, y: nodeStartY = 0 } = startNodes[node.id]
+            const { x, y } = startOffsetNodes[node.id]
+            let offsetX = e.canvasX! - x
+            let offsetY = e.canvasY! - y
 
             if (isAdsorption) {
-              offsetX = adsorb.x ?? offsetX
-              offsetY = adsorb.y ?? offsetY
+              // 吸附位置 需要减去拖拽包围盒的 Rect 的偏移量 得到节点吸附位置
+              offsetX = adsorb.x ? adsorb.x + nodeStartX - boxStartX : offsetX
+              offsetY = adsorb.y ? adsorb.y + nodeStartY - boxStartY : offsetY
             }
             updateNodeRectByDOM(node, { x: offsetX, y: offsetY })
             lastOffsetNodes[node.id] = { x: offsetX, y: offsetY }
@@ -479,7 +486,7 @@ export default DashboardPlugin
  * @param nodes 分组节点
  * @returns 外围矩形 {DOMRect}
  */
-const calculateDashboardRectBox = (nodes: Node[], startOffsetNodes: { [key: string]: { x: number; y: number } }) => {
+const calculateDashboardRectBox = (nodes: Node[]) => {
   let [minX, minY, maxX, maxY] = [
     Number.POSITIVE_INFINITY,
     Number.POSITIVE_INFINITY,
@@ -489,11 +496,10 @@ const calculateDashboardRectBox = (nodes: Node[], startOffsetNodes: { [key: stri
 
   for (const node of nodes) {
     const rect = node.getDashboardRect()
-    const { x: startX = 0, y: startY = 0 } = startOffsetNodes[node.id]
-    minX = Math.min(minX, rect.x - startX)
-    minY = Math.min(minY, rect.y - startY)
-    maxX = Math.max(maxX, rect.x + rect.width - startX)
-    maxY = Math.max(maxY, rect.y + rect.height - startY)
+    minX = Math.min(minX, rect.x)
+    minY = Math.min(minY, rect.y)
+    maxX = Math.max(maxX, rect.x + rect.width)
+    maxY = Math.max(maxY, rect.y + rect.height)
   }
 
   return new DOMRect(minX, minY, maxX - minX, maxY - minY)
