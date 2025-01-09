@@ -3,7 +3,7 @@ import { observer } from 'mobx-react'
 import { BorderDetecting } from './BorderDetecting'
 import { BorderResizing } from './BorderResizing'
 import { BorderSelecting } from './BorderSelecting'
-import { GuideLine } from './Guideline'
+import { GuideLine } from './GuideLine'
 
 import './index.css'
 import './tools.css'
