@@ -25,10 +25,14 @@ export const BorderResizingInstance = observer(
     private outlineE: any
     private outlineS: any
     private outlineW: any
-    private outlineNE: any
-    private outlineNW: any
-    private outlineSE: any
-    private outlineSW: any
+    private resizeSideN: any
+    private resizeSideE: any
+    private resizeSideS: any
+    private resizeSideW: any
+    private resizeCornerNE: any
+    private resizeCornerNW: any
+    private resizeCornerSE: any
+    private resizeCornerSW: any
 
     private dragEngine: DragResizeEngine
 
@@ -267,22 +271,30 @@ export const BorderResizingInstance = observer(
     private updateAllOutlines(rect: { x: number; y: number; width: number; height: number }) {
       // 更新四边
       this.outlineN.style.width = `${rect.width}px`
-      this.outlineN.style.transform = `translate(${rect.x}px, ${rect.y - 10}px)`
+      this.outlineN.style.transform = `translate(${rect.x}px, ${rect.y}px)`
+      this.resizeSideN.style.width = `${rect.width}px`
+      this.resizeSideN.style.transform = `translate(${rect.x}px, ${rect.y - 10}px)`
 
       this.outlineS.style.width = `${rect.width}px`
-      this.outlineS.style.transform = `translate(${rect.x}px, ${rect.y + rect.height - 10}px)`
+      this.outlineS.style.transform = `translate(${rect.x}px, ${rect.y + rect.height}px)`
+      this.resizeSideS.style.width = `${rect.width}px`
+      this.resizeSideS.style.transform = `translate(${rect.x}px, ${rect.y + rect.height - 10}px)`
 
       this.outlineE.style.height = `${rect.height}px`
-      this.outlineE.style.transform = `translate(${rect.x + rect.width - 10}px, ${rect.y}px)`
+      this.outlineE.style.transform = `translate(${rect.x + rect.width}px, ${rect.y}px)`
+      this.resizeSideE.style.height = `${rect.height}px`
+      this.resizeSideE.style.transform = `translate(${rect.x + rect.width - 10}px, ${rect.y}px)`
 
       this.outlineW.style.height = `${rect.height}px`
-      this.outlineW.style.transform = `translate(${rect.x - 10}px, ${rect.y}px)`
+      this.outlineW.style.transform = `translate(${rect.x}px, ${rect.y}px)`
+      this.resizeSideW.style.height = `${rect.height}px`
+      this.resizeSideW.style.transform = `translate(${rect.x - 10}px, ${rect.y}px)`
 
       // 更新四角
-      this.outlineNW.style.transform = `translate(${rect.x - 3}px, ${rect.y - 3}px)`
-      this.outlineNE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y - 3}px)`
-      this.outlineSW.style.transform = `translate(${rect.x - 3}px, ${rect.y + rect.height - 5}px)`
-      this.outlineSE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y + rect.height - 5}px)`
+      this.resizeCornerNW.style.transform = `translate(${rect.x - 3}px, ${rect.y - 3}px)`
+      this.resizeCornerNE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y - 3}px)`
+      this.resizeCornerSW.style.transform = `translate(${rect.x - 3}px, ${rect.y + rect.height - 5}px)`
+      this.resizeCornerSE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y + rect.height - 5}px)`
     }
 
     componentWillUnmount() {
@@ -375,10 +387,14 @@ export const BorderResizingInstance = observer(
         !this.outlineE &&
         !this.outlineS &&
         !this.outlineW &&
-        !this.outlineNE &&
-        !this.outlineNW &&
-        !this.outlineSE &&
-        !this.outlineSW
+        !this.resizeSideN &&
+        !this.resizeSideE &&
+        !this.resizeSideS &&
+        !this.resizeSideW &&
+        !this.resizeCornerNE &&
+        !this.resizeCornerNW &&
+        !this.resizeCornerSE &&
+        !this.resizeCornerSW
       ) {
         return
       }
@@ -392,10 +408,14 @@ export const BorderResizingInstance = observer(
           this.dragEngine.from(this.outlineE, Direction.E, () => node),
           this.dragEngine.from(this.outlineS, Direction.S, () => node),
           this.dragEngine.from(this.outlineW, Direction.W, () => node),
-          this.dragEngine.from(this.outlineNE, Direction.NE, () => node),
-          this.dragEngine.from(this.outlineNW, Direction.NW, () => node),
-          this.dragEngine.from(this.outlineSE, Direction.SE, () => node),
-          this.dragEngine.from(this.outlineSW, Direction.SW, () => node),
+          this.dragEngine.from(this.resizeSideN, Direction.N, () => node),
+          this.dragEngine.from(this.resizeSideE, Direction.E, () => node),
+          this.dragEngine.from(this.resizeSideS, Direction.S, () => node),
+          this.dragEngine.from(this.resizeSideW, Direction.W, () => node),
+          this.dragEngine.from(this.resizeCornerNE, Direction.NE, () => node),
+          this.dragEngine.from(this.resizeCornerNW, Direction.NW, () => node),
+          this.dragEngine.from(this.resizeCornerSE, Direction.SE, () => node),
+          this.dragEngine.from(this.resizeCornerSW, Direction.SW, () => node),
         ],
       )
 
@@ -422,6 +442,7 @@ export const BorderResizingInstance = observer(
         offsetLeft = observed.offsetLeft
       }
 
+      const baseBorderClass = 'lc-borders lc-resize-border'
       const baseSideClass = 'lc-borders lc-resize-side'
       const baseCornerClass = 'lc-borders lc-resize-corner'
 
@@ -431,6 +452,17 @@ export const BorderResizingInstance = observer(
             ref={ref => {
               this.outlineN = ref
             }}
+            className={baseBorderClass}
+            style={{
+              width: offsetWidth,
+              height: 1,
+              transform: `translate(${offsetLeft}px, ${offsetTop}px)`,
+            }}
+          />
+          <div
+            ref={ref => {
+              this.resizeSideN = ref
+            }}
             className={`${baseSideClass} n`}
             style={{
               height: 20,
@@ -438,9 +470,10 @@ export const BorderResizingInstance = observer(
               width: offsetWidth,
             }}
           />
+
           <div
             ref={ref => {
-              this.outlineNE = ref
+              this.resizeCornerNE = ref
             }}
             className={`${baseCornerClass} ne`}
             style={{
@@ -448,10 +481,22 @@ export const BorderResizingInstance = observer(
               cursor: 'nesw-resize',
             }}
           />
+
+          <div
+            ref={ref => {
+              this.outlineE = ref
+            }}
+            className={baseBorderClass}
+            style={{
+              width: 1,
+              height: offsetHeight,
+              transform: `translate(${offsetLeft + offsetWidth}px, ${offsetTop}px)`,
+            }}
+          />
           <div
             className={`${baseSideClass} e`}
             ref={ref => {
-              this.outlineE = ref
+              this.resizeSideE = ref
             }}
             style={{
               height: offsetHeight,
@@ -459,9 +504,10 @@ export const BorderResizingInstance = observer(
               width: 20,
             }}
           />
+
           <div
             ref={ref => {
-              this.outlineSE = ref
+              this.resizeCornerSE = ref
             }}
             className={`${baseCornerClass} se`}
             style={{
@@ -469,9 +515,21 @@ export const BorderResizingInstance = observer(
               cursor: 'nwse-resize',
             }}
           />
+
           <div
             ref={ref => {
               this.outlineS = ref
+            }}
+            className={baseBorderClass}
+            style={{
+              width: offsetWidth,
+              height: 1,
+              transform: `translate(${offsetLeft}px, ${offsetTop + offsetHeight}px)`,
+            }}
+          />
+          <div
+            ref={ref => {
+              this.resizeSideS = ref
             }}
             className={`${baseSideClass} s`}
             style={{
@@ -480,9 +538,10 @@ export const BorderResizingInstance = observer(
               width: offsetWidth,
             }}
           />
+
           <div
             ref={ref => {
-              this.outlineSW = ref
+              this.resizeCornerSW = ref
             }}
             className={`${baseCornerClass} sw`}
             style={{
@@ -490,9 +549,21 @@ export const BorderResizingInstance = observer(
               cursor: 'nesw-resize',
             }}
           />
+
           <div
             ref={ref => {
               this.outlineW = ref
+            }}
+            className={baseBorderClass}
+            style={{
+              width: 1,
+              height: offsetHeight,
+              transform: `translate(${offsetLeft}px, ${offsetTop}px)`,
+            }}
+          />
+          <div
+            ref={ref => {
+              this.resizeSideW = ref
             }}
             className={`${baseSideClass} w`}
             style={{
@@ -501,9 +572,10 @@ export const BorderResizingInstance = observer(
               width: 20,
             }}
           />
+
           <div
             ref={ref => {
-              this.outlineNW = ref
+              this.resizeCornerNW = ref
             }}
             className={`${baseCornerClass} nw`}
             style={{
