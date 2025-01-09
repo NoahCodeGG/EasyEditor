@@ -61,6 +61,7 @@
   &.e,
   &.w {
     cursor: ew-resize;
+
     &:after {
       width: 4px;
       min-height: 50%;
@@ -70,6 +71,7 @@
   &.n,
   &.s {
     cursor: ns-resize;
+
     &:after {
       min-width: 50%;
       height: 4px;

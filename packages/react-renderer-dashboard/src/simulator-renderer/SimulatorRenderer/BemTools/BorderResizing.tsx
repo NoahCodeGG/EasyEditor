@@ -206,8 +206,8 @@ export const BorderResizingInstance = observer(
           // 子节点根据新的缩放比例重新计算位置
           const childRect = child.getDashboardRect()
           child.updateDashboardRect({
-            x: startNodeRect.x + (childRect.x - startNodeRect.x) * ratioWidth,
-            y: startNodeRect.y + (childRect.y - startNodeRect.y) * ratioHeight,
+            x: resizeRect.x + (childRect.x - startNodeRect.x) * ratioWidth,
+            y: resizeRect.y + (childRect.y - startNodeRect.y) * ratioHeight,
             width: childRect.width * ratioWidth,
             height: childRect.height * ratioHeight,
           })
