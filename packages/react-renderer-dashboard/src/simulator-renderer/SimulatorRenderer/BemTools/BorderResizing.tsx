@@ -1,7 +1,8 @@
 import type { Designer, Node, OffsetObserver, Rect, Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
-import { Component } from 'react'
+import { Component, useMemo } from 'react'
 import DragResizeEngine, { Direction } from './drag-resize-engine'
+import { calculateDashboardRectBox } from './utils'
 
 interface BorderResizingInstanceProps {
   observed: OffsetObserver
@@ -592,11 +593,11 @@ export const BorderResizingInstance = observer(
 interface BorderResizingForNodeProps {
   host: Simulator
   node: Node
+  dragging: boolean
 }
 
-const BorderResizingForNode: React.FC<BorderResizingForNodeProps> = observer(({ host, node }) => {
+const BorderResizingForNode: React.FC<BorderResizingForNodeProps> = observer(({ host, node, dragging }) => {
   const { designer } = host
-  const dragging = designer.dragon.dragging
   const instances = host.getComponentInstances(node)
 
   if (!instances || instances.length < 1 || dragging) {
@@ -620,6 +621,23 @@ const BorderResizingForNode: React.FC<BorderResizingForNodeProps> = observer(({ 
   )
 })
 
+interface BorderResizingForBoxProps {
+  host: Simulator
+  nodes: Node[]
+  dragging: boolean
+}
+
+const BorderResizingForBox: React.FC<BorderResizingForBoxProps> = observer(({ nodes, dragging }) => {
+  const { designer } = host
+  const boxRect = useMemo(() => calculateDashboardRectBox(nodes), [nodes])
+
+  if (dragging) {
+    return null
+  }
+
+  return <BorderResizingInstance dragging={dragging} observed={boxRect} designer={designer} />
+})
+
 interface BorderResizingProps {
   host: Simulator
 }
@@ -628,14 +646,19 @@ export const BorderResizing: React.FC<BorderResizingProps> = observer(({ host })
   const { selection } = host.designer
   const dragging = host.designer.dragon.dragging
   const selecting = dragging ? selection.getTopNodes() : selection.getNodes()
-  if (!selecting || selecting.length < 1) {
+
+  if (!selecting) {
     return null
+  }
+
+  if (selecting.length > 1) {
+    return <BorderResizingForBox host={host} nodes={selecting} dragging={dragging} />
   }
 
   return (
     <>
       {selecting.map(node => (
-        <BorderResizingForNode key={node.id} host={host} node={node} />
+        <BorderResizingForNode key={node.id} host={host} node={node} dragging={dragging} />
       ))}
     </>
   )

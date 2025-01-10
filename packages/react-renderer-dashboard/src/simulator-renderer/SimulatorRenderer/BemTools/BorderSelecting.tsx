@@ -1,27 +1,7 @@
 import type { Node, OffsetObserver, Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
-
-// TODO: 相比于用 observed，我感觉这种方式更好
-// interface BorderSelectingInstanceProps {
-//   host: Simulator
-//   node: Node
-// }
-
-// const BorderSelectingInstance: React.FC<BorderSelectingInstanceProps> = observer(({ host, node }) => {
-//   const rect = node.getDashboardRect()
-//   const style = {
-//     width: rect.width,
-//     height: rect.height,
-//     transform: `translate3d(${rect.left}px, ${rect.top}px, 0)`,
-//   }
-
-//   return (
-//     <div className='lc-borders lc-borders-selecting' style={style}>
-//       {/* <Title title={title} className='lc-borders-title' />
-//       {isLocked ? <Title title={intl('locked')} className='lc-borders-status' /> : null} */}
-//     </div>
-//   )
-// })
+import { useMemo } from 'react'
+import { calculateDashboardRectBox } from './utils'
 
 interface BorderSelectingInstanceProps {
   observed: OffsetObserver
@@ -86,6 +66,32 @@ const BorderSelectingForNode: React.FC<BorderSelectingForNodeProps> = observer((
   )
 })
 
+interface BorderSelectingForBoxProps {
+  nodes: Node[]
+  dragging: boolean
+}
+
+const BorderSelectingForBox: React.FC<BorderSelectingForBoxProps> = observer(({ nodes, dragging }) => {
+  const boxRect = useMemo(() => calculateDashboardRectBox(nodes), [nodes])
+
+  const style = {
+    width: boxRect.width,
+    height: boxRect.height,
+    transform: `translate3d(${boxRect.x}px, ${boxRect.y}px, 0)`,
+  }
+  let classname = 'lc-borders lc-borders-selecting'
+  if (dragging) {
+    classname += ' dragging'
+  }
+
+  return (
+    <div className={classname} style={style}>
+      {/* <Title title={title} className='lc-borders-title' />
+      {isLocked ? <Title title={intl('locked')} className='lc-borders-status' /> : null} */}
+    </div>
+  )
+})
+
 interface BorderSelectingProps {
   host: Simulator
 }
@@ -95,8 +101,12 @@ export const BorderSelecting: React.FC<BorderSelectingProps> = observer(({ host 
   const dragging = host.designer.dragon.dragging
   const selecting = dragging ? selection.getTopNodes() : selection.getNodes()
 
-  if (!selecting || selecting.length < 1) {
+  if (!selecting) {
     return null
+  }
+
+  if (selecting.length > 1) {
+    return <BorderSelectingForBox nodes={selecting} dragging={dragging} />
   }
 
   return (
