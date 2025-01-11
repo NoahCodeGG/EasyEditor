@@ -51,7 +51,7 @@
   border: 1px solid var(--color-brand, #197aff);
   background: var(--color-block-background-normal, #fff);
   pointer-events: auto;
-  z-index: 3;
+  z-index: 4;
 }
 
 .lc-resize-side {

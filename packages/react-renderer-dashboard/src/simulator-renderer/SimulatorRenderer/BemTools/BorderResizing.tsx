@@ -1,6 +1,6 @@
 import type { Designer, Node, OffsetObserver, Rect, Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
-import { Component, useMemo } from 'react'
+import { Component } from 'react'
 import DragResizeEngine, { Direction } from './drag-resize-engine'
 import { calculateDashboardRectBox } from './utils'
 
@@ -16,9 +16,8 @@ const RESIZE_MIN_WIDTH = 50
 /** resize 的最小高度 */
 const RESIZE_MIN_HEIGHT = 50
 
-export const BorderResizingInstance = observer(
+const BorderResizingInstance = observer(
   class BoxResizingInstance extends Component<BorderResizingInstanceProps> {
-    // private outline: any;
     private willUnbind: () => any
 
     // outline of eight direction
@@ -33,7 +32,7 @@ export const BorderResizingInstance = observer(
 
     private dragEngine: DragResizeEngine
 
-    constructor(props: any) {
+    constructor(props: BorderResizingInstanceProps) {
       super(props)
       this.dragEngine = new DragResizeEngine(props.designer)
     }
@@ -593,21 +592,508 @@ const BorderResizingForNode: React.FC<BorderResizingForNodeProps> = observer(({ 
   )
 })
 
+interface BorderResizingBoxProps {
+  designer: Designer
+  nodes: Node[]
+  dragging: boolean
+}
+
+const BorderResizingBox = observer(
+  class BoxResizingBox extends Component<BorderResizingBoxProps> {
+    private willUnbind: () => any
+
+    // outline of eight direction
+    private resizeBorderN: any
+    private resizeBorderE: any
+    private resizeBorderS: any
+    private resizeBorderW: any
+    private resizeCornerNE: any
+    private resizeCornerNW: any
+    private resizeCornerSE: any
+    private resizeCornerSW: any
+
+    private dragEngine: DragResizeEngine
+
+    constructor(props: BorderResizingBoxProps) {
+      super(props)
+      this.dragEngine = new DragResizeEngine(props.designer)
+    }
+
+    /**
+     * 计算 resize 后的 rect
+     * @param direction 方向
+     * @param delta 偏移量
+     * @param startNodeRect 拖拽开始时的 rect
+     */
+    private calculateResizeRectByDirection(direction: Direction, delta: { x: number; y: number }, startNodeRect: Rect) {
+      const newRect = {
+        width: startNodeRect.width,
+        height: startNodeRect.height,
+        x: startNodeRect.x,
+        y: startNodeRect.y,
+      }
+
+      switch (direction) {
+        case Direction.N:
+          if (startNodeRect.height - delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height - delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          break
+        case Direction.S:
+          newRect.height =
+            startNodeRect.height + delta.y > RESIZE_MIN_HEIGHT ? startNodeRect.height + delta.y : RESIZE_MIN_HEIGHT
+          break
+        case Direction.W:
+          if (startNodeRect.width - delta.x > RESIZE_MIN_WIDTH) {
+            newRect.width = startNodeRect.width - delta.x
+            newRect.x = startNodeRect.x + delta.x
+          } else {
+            newRect.width = RESIZE_MIN_WIDTH
+            newRect.x = startNodeRect.x + startNodeRect.width - RESIZE_MIN_WIDTH
+          }
+          break
+        case Direction.E:
+          newRect.width =
+            startNodeRect.width + delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width + delta.x : RESIZE_MIN_WIDTH
+          break
+        case Direction.NW:
+          if (startNodeRect.width - delta.x > RESIZE_MIN_WIDTH) {
+            newRect.width = startNodeRect.width - delta.x
+            newRect.x = startNodeRect.x + delta.x
+          } else {
+            newRect.width = RESIZE_MIN_WIDTH
+            newRect.x = startNodeRect.x + startNodeRect.width - RESIZE_MIN_WIDTH
+          }
+          if (startNodeRect.height - delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height - delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          break
+        case Direction.NE:
+          newRect.width =
+            startNodeRect.width + delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width + delta.x : RESIZE_MIN_WIDTH
+          if (startNodeRect.height - delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height - delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          break
+        case Direction.SE:
+          newRect.width =
+            startNodeRect.width + delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width + delta.x : RESIZE_MIN_WIDTH
+          newRect.height =
+            startNodeRect.height + delta.y > RESIZE_MIN_HEIGHT ? startNodeRect.height + delta.y : RESIZE_MIN_HEIGHT
+          break
+        case Direction.SW:
+          newRect.width =
+            startNodeRect.width - delta.x > RESIZE_MIN_WIDTH ? startNodeRect.width - delta.x : RESIZE_MIN_WIDTH
+          if (startNodeRect.height + delta.y > RESIZE_MIN_HEIGHT) {
+            newRect.height = startNodeRect.height + delta.y
+            newRect.y = startNodeRect.y + delta.y
+          } else {
+            newRect.height = RESIZE_MIN_HEIGHT
+            newRect.y = startNodeRect.y + startNodeRect.height - RESIZE_MIN_HEIGHT
+          }
+          newRect.x = startNodeRect.x + delta.x
+          break
+      }
+
+      return new DOMRect(newRect.x, newRect.y, newRect.width, newRect.height)
+    }
+
+    /**
+     * 计算 resize 后的 rect
+     * @param node 节点
+     * @param direction 方向
+     * @param delta 偏移量
+     * @param startNodeRect 拖拽开始时的 rect
+     */
+    private updateResizeRectByDirection(
+      node: Node,
+      direction: Direction,
+      delta: { x: number; y: number },
+      startNodeRect: Rect,
+    ) {
+      const resizeRect = this.calculateResizeRectByDirection(direction, delta, startNodeRect)
+      // 根据 box 的缩放大小计算，缩放比例
+      const ratioWidth = resizeRect.width / startNodeRect.width
+      const ratioHeight = resizeRect.height / startNodeRect.height
+
+      for (const node of this.props.nodes) {
+        // // 如果是分组的话，还需要更新子节点的位置和大小
+        if (node.isGroup) {
+          for (const child of node.getAllNodesInGroup()) {
+            // 子节点根据新的缩放比例重新计算位置
+            const childRect = child.getDashboardRect()
+            child.updateDashboardRect({
+              x: resizeRect.x + (childRect.x - startNodeRect.x) * ratioWidth,
+              y: resizeRect.y + (childRect.y - startNodeRect.y) * ratioHeight,
+              width: childRect.width * ratioWidth,
+              height: childRect.height * ratioHeight,
+            })
+          }
+        } else {
+          const rect = node.getDashboardRect()
+          node.updateDashboardRect({
+            x: resizeRect.x + (rect.x - startNodeRect.x) * ratioWidth,
+            y: resizeRect.y + (rect.y - startNodeRect.y) * ratioHeight,
+            width: rect.width * ratioWidth,
+            height: rect.height * ratioHeight,
+          })
+        }
+      }
+    }
+
+    /**
+     * 计算 resize 后的 rect 通过 DOM 计算
+     * @param node 节点
+     * @param direction 方向
+     * @param delta 偏移量
+     * @param startNodeRect 拖拽开始时的 rect
+     */
+    private updateResizeRectByDirectionByDOM(
+      node: Node,
+      direction: Direction,
+      delta: { x: number; y: number },
+      startNodeRect: Rect,
+    ) {
+      const resizeRect = this.calculateResizeRectByDirection(direction, delta, startNodeRect)
+      const ratioWidth = resizeRect.width / startNodeRect.width
+      const ratioHeight = resizeRect.height / startNodeRect.height
+
+      for (const node of this.props.nodes) {
+        // // 如果是分组的话，还需要更新子节点的位置和大小
+        if (node.isGroup) {
+          // 根据分组的缩放大小计算，缩放比例
+          const ratioWidth = resizeRect.width / startNodeRect.width
+          const ratioHeight = resizeRect.height / startNodeRect.height
+
+          for (const child of node.getAllNodesInGroup()) {
+            const childDom = child.getDashboardContainer()
+            if (!childDom) continue
+
+            // 子节点根据新的缩放比例重新计算位置
+            const childRect = child.getDashboardRect()
+            childDom.style.left = `${resizeRect.x + (childRect.x - startNodeRect.x) * ratioWidth}px`
+            childDom.style.top = `${resizeRect.y + (childRect.y - startNodeRect.y) * ratioHeight}px`
+            childDom.style.width = `${childRect.width * ratioWidth}px`
+            childDom.style.height = `${childRect.height * ratioHeight}px`
+          }
+        } else {
+          const domNode = node.getDashboardContainer()
+          if (!domNode) continue
+
+          const rect = node.getDashboardRect()
+          domNode.style.left = `${resizeRect.x + (rect.x - startNodeRect.x) * ratioWidth}px`
+          domNode.style.top = `${resizeRect.y + (rect.y - startNodeRect.y) * ratioHeight}px`
+          domNode.style.width = `${rect.width * ratioWidth}px`
+          domNode.style.height = `${rect.height * ratioHeight}px`
+        }
+      }
+
+      this.updateAllOutlines(resizeRect)
+    }
+
+    /**
+     * 更新所有 outline 通过 DOM
+     * @param rect 矩形
+     */
+    private updateAllOutlines(rect: { x: number; y: number; width: number; height: number }) {
+      // 更新四边
+      this.resizeBorderN.style.width = `${rect.width}px`
+      this.resizeBorderN.style.transform = `translate(${rect.x}px, ${rect.y}px)`
+
+      this.resizeBorderS.style.width = `${rect.width}px`
+      this.resizeBorderS.style.transform = `translate(${rect.x}px, ${rect.y + rect.height}px)`
+
+      this.resizeBorderE.style.height = `${rect.height}px`
+      this.resizeBorderE.style.transform = `translate(${rect.x + rect.width}px, ${rect.y}px)`
+
+      this.resizeBorderW.style.height = `${rect.height}px`
+      this.resizeBorderW.style.transform = `translate(${rect.x}px, ${rect.y}px)`
+
+      // 更新四角
+      this.resizeCornerNW.style.transform = `translate(${rect.x - 3}px, ${rect.y - 3}px)`
+      this.resizeCornerNE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y - 3}px)`
+      this.resizeCornerSW.style.transform = `translate(${rect.x - 3}px, ${rect.y + rect.height - 5}px)`
+      this.resizeCornerSE.style.transform = `translate(${rect.x + rect.width - 5}px, ${rect.y + rect.height - 5}px)`
+    }
+
+    componentWillUnmount() {
+      if (this.willUnbind) {
+        this.willUnbind()
+      }
+    }
+
+    componentDidMount() {
+      this.willBind()
+
+      let startNodeRect: Rect
+      let lastNodeInfo: any
+
+      const resizeStart = () => {
+        startNodeRect = this.getRect()
+      }
+
+      const resize = ({
+        e,
+        direction,
+        node,
+        moveX,
+        moveY,
+      }: { e: MouseEvent; direction: Direction; node: Node; moveX: number; moveY: number }) => {
+        this.updateResizeRectByDirectionByDOM(node, direction, { x: moveX, y: moveY }, startNodeRect)
+        lastNodeInfo = {
+          node,
+          direction,
+          moveX,
+          moveY,
+        }
+        console.log('resizelog', e, direction, node, moveX, moveY)
+      }
+
+      const resizeEnd = ({ e, direction, node }: { e: MouseEvent; direction: Direction; node: Node }) => {
+        if (lastNodeInfo) {
+          this.updateResizeRectByDirection(
+            lastNodeInfo.node,
+            lastNodeInfo.direction,
+            {
+              x: lastNodeInfo.moveX,
+              y: lastNodeInfo.moveY,
+            },
+            startNodeRect,
+          )
+        }
+
+        const editor = node.document?.designer.editor
+        const selected = node?.componentMeta?.componentName || ''
+        editor?.eventBus.emit('designer.border.resize', {
+          selected,
+          layout: node?.parent?.getPropValue('layout') || '',
+        })
+      }
+
+      this.dragEngine.onResize(resize)
+      this.dragEngine.onResizeStart(resizeStart)
+      this.dragEngine.onResizeEnd(resizeEnd)
+    }
+
+    willBind() {
+      if (this.willUnbind) {
+        this.willUnbind()
+      }
+
+      if (
+        !this.resizeBorderN &&
+        !this.resizeBorderE &&
+        !this.resizeBorderS &&
+        !this.resizeBorderW &&
+        !this.resizeCornerNE &&
+        !this.resizeCornerNW &&
+        !this.resizeCornerSE &&
+        !this.resizeCornerSW
+      ) {
+        return
+      }
+
+      const unBind: any[] = []
+
+      unBind.push(
+        ...[
+          this.dragEngine.from(this.resizeBorderN, Direction.N, () => null),
+          this.dragEngine.from(this.resizeBorderE, Direction.E, () => null),
+          this.dragEngine.from(this.resizeBorderS, Direction.S, () => null),
+          this.dragEngine.from(this.resizeBorderW, Direction.W, () => null),
+          this.dragEngine.from(this.resizeCornerNE, Direction.NE, () => null),
+          this.dragEngine.from(this.resizeCornerNW, Direction.NW, () => null),
+          this.dragEngine.from(this.resizeCornerSE, Direction.SE, () => null),
+          this.dragEngine.from(this.resizeCornerSW, Direction.SW, () => null),
+        ],
+      )
+
+      this.willUnbind = () => {
+        if (unBind && unBind.length > 0) {
+          unBind.forEach(item => {
+            item()
+          })
+        }
+        this.willUnbind = () => {}
+      }
+    }
+
+    getRect() {
+      return calculateDashboardRectBox(this.props.nodes)
+    }
+
+    render() {
+      const rect = this.getRect()
+      const offsetLeft = rect.x
+      const offsetTop = rect.y
+      const offsetWidth = rect.width
+      const offsetHeight = rect.height
+
+      const baseBorderClass = 'lc-borders lc-resize-border'
+      const baseSideClass = 'lc-borders lc-resize-side'
+      const baseCornerClass = 'lc-borders lc-resize-corner'
+
+      return (
+        <div>
+          <div
+            ref={ref => {
+              this.resizeBorderN = ref
+            }}
+            className={baseBorderClass}
+            style={{
+              width: offsetWidth,
+              height: 1,
+              transform: `translate(${offsetLeft}px, ${offsetTop}px)`,
+            }}
+          >
+            <div
+              className={`${baseSideClass} n`}
+              style={{
+                height: 20,
+                transform: 'translateY(-10px)',
+                width: '100%',
+              }}
+            />
+          </div>
+
+          <div
+            ref={ref => {
+              this.resizeCornerNE = ref
+            }}
+            className={`${baseCornerClass} ne`}
+            style={{
+              transform: `translate(${offsetLeft + offsetWidth - 5}px, ${offsetTop - 3}px)`,
+              cursor: 'nesw-resize',
+            }}
+          />
+
+          <div
+            ref={ref => {
+              this.resizeBorderE = ref
+            }}
+            className={baseBorderClass}
+            style={{
+              width: 1,
+              height: offsetHeight,
+              transform: `translate(${offsetLeft + offsetWidth}px, ${offsetTop}px)`,
+            }}
+          >
+            <div
+              className={`${baseSideClass} e`}
+              style={{
+                height: '100%',
+                transform: 'translateX(-10px)',
+                width: 20,
+              }}
+            />
+          </div>
+
+          <div
+            ref={ref => {
+              this.resizeCornerSE = ref
+            }}
+            className={`${baseCornerClass} se`}
+            style={{
+              transform: `translate(${offsetLeft + offsetWidth - 5}px, ${offsetTop + offsetHeight - 5}px)`,
+              cursor: 'nwse-resize',
+            }}
+          />
+
+          <div
+            ref={ref => {
+              this.resizeBorderS = ref
+            }}
+            className={baseBorderClass}
+            style={{
+              width: offsetWidth,
+              height: 1,
+              transform: `translate(${offsetLeft}px, ${offsetTop + offsetHeight}px)`,
+            }}
+          >
+            <div
+              className={`${baseSideClass} s`}
+              style={{
+                height: 20,
+                transform: 'translateY(-10px)',
+                width: '100%',
+              }}
+            />
+          </div>
+
+          <div
+            ref={ref => {
+              this.resizeCornerSW = ref
+            }}
+            className={`${baseCornerClass} sw`}
+            style={{
+              transform: `translate(${offsetLeft - 3}px, ${offsetTop + offsetHeight - 5}px)`,
+              cursor: 'nesw-resize',
+            }}
+          />
+
+          <div
+            ref={ref => {
+              this.resizeBorderW = ref
+            }}
+            className={baseBorderClass}
+            style={{
+              width: 1,
+              height: offsetHeight,
+              transform: `translate(${offsetLeft}px, ${offsetTop}px)`,
+            }}
+          >
+            <div
+              className={`${baseSideClass} w`}
+              style={{
+                height: '100%',
+                transform: 'translateX(-10px)',
+                width: 20,
+              }}
+            />
+          </div>
+
+          <div
+            ref={ref => {
+              this.resizeCornerNW = ref
+            }}
+            className={`${baseCornerClass} nw`}
+            style={{
+              transform: `translate(${offsetLeft - 3}px, ${offsetTop - 3}px)`,
+              cursor: 'nwse-resize',
+            }}
+          />
+        </div>
+      )
+    }
+  },
+)
+
 interface BorderResizingForBoxProps {
   host: Simulator
   nodes: Node[]
   dragging: boolean
 }
 
-const BorderResizingForBox: React.FC<BorderResizingForBoxProps> = observer(({ nodes, dragging }) => {
+const BorderResizingForBox: React.FC<BorderResizingForBoxProps> = observer(({ host, nodes, dragging }) => {
   const { designer } = host
-  const boxRect = useMemo(() => calculateDashboardRectBox(nodes), [nodes])
 
   if (dragging) {
     return null
   }
 
-  return <BorderResizingInstance dragging={dragging} observed={boxRect} designer={designer} />
+  return <BorderResizingBox dragging={dragging} nodes={nodes} designer={designer} />
 })
 
 interface BorderResizingProps {
