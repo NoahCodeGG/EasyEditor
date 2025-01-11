@@ -41,6 +41,7 @@
   z-index: 1;
   will-change: transform, width, height;
   overflow: visible;
+  z-index: 3;
 }
 
 .lc-resize-corner {
@@ -50,16 +51,16 @@
   border: 1px solid var(--color-brand, #197aff);
   background: var(--color-block-background-normal, #fff);
   pointer-events: auto;
-  z-index: 2;
+  z-index: 3;
 }
 
 .lc-resize-side {
-  border-width: 0;
-  z-index: 1;
-  pointer-events: auto;
+  display: flex;
   align-items: center;
   justify-content: center;
-  display: flex;
+  border-width: 0;
+  pointer-events: auto;
+  z-index: 3;
 
   &:after {
     content: "";
