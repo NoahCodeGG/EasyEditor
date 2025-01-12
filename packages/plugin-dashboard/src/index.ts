@@ -122,6 +122,30 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             new DOMRect(e.canvasX! - boxX, e.canvasY! - boxY, width, height),
           )
 
+          // 根据辅助线位置，计算对应吸附位置
+          let adsorbX = undefined
+          let adsorbY = undefined
+          if (isAdsorption) {
+            if (adsorb.x) {
+              if (adsorb.x.adsorption === 0) {
+                adsorbX = adsorb.x.position
+              } else if (adsorb.x.adsorption === 1) {
+                adsorbX = adsorb.x.position - width / 2
+              } else if (adsorb.x.adsorption === 2) {
+                adsorbX = adsorb.x.position - width
+              }
+            }
+            if (adsorb.y) {
+              if (adsorb.y.adsorption === 0) {
+                adsorbY = adsorb.y.position
+              } else if (adsorb.y.adsorption === 1) {
+                adsorbY = adsorb.y.position - height / 2
+              } else if (adsorb.y.adsorption === 2) {
+                adsorbY = adsorb.y.position - height
+              }
+            }
+          }
+
           for (const node of dragObject.nodes!) {
             if (!node) continue
 
@@ -133,8 +157,8 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
             if (isAdsorption) {
               // 吸附位置 需要减去拖拽包围盒的 Rect 的偏移量 得到节点吸附位置
-              offsetX = adsorb.x ? adsorb.x + nodeStartX - boxStartX : offsetX
-              offsetY = adsorb.y ? adsorb.y + nodeStartY - boxStartY : offsetY
+              offsetX = adsorbX ? adsorbX + nodeStartX - boxStartX : offsetX
+              offsetY = adsorbY ? adsorbY + nodeStartY - boxStartY : offsetY
             }
             updateNodeRectByDOM(node, { x: offsetX, y: offsetY })
             lastOffsetNodes[node.id] = { x: offsetX, y: offsetY }

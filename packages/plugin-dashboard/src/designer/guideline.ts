@@ -188,9 +188,17 @@ export class GuideLine {
   /**
    * 设置画布上要实时展示的对齐辅助线，返回要吸附的距离
    * @param rect 为拖动过程中组件的位置信息
+   * @param adsorption 指定需要吸附位置
+   *  - 0: 左 | 上
+   *  - 1: 中
+   *  - 2: 右 | 下
    */
   @action
-  getAdsorptionPosition(rect: DOMRect) {
+  getAdsorptionPosition(rect: DOMRect, adsorption?: 0 | 1 | 2 | Array<0 | 1 | 2>) {
+    if (typeof adsorption === 'number') {
+      adsorption = [adsorption]
+    }
+
     this.resetAdsorptionLines()
 
     const adsorptionVerticalLines: AdsorptionLine[] = []
@@ -243,7 +251,7 @@ export class GuideLine {
     })
 
     const isAdsorption = adsorptionVerticalLines.length > 0 || adsorptionHorizontalLines.length > 0
-    const adsorb: Record<'x' | 'y', number | undefined> = { x: undefined, y: undefined }
+    const adsorb: Record<'x' | 'y', AdsorptionLine | undefined> = { x: undefined, y: undefined }
     if (isAdsorption) {
       // 将吸附的辅助线添加到吸附辅助线集合中，用于显示到页面上
       adsorptionVerticalLines.forEach(item => this.adsorptionLines.verticalLines.add(item.position))
@@ -251,25 +259,19 @@ export class GuideLine {
 
       // 如果吸附，则计算吸附的距离
       if (adsorptionVerticalLines.length > 0) {
-        const adsorptionPosition = Math.min(...adsorptionVerticalLines.map(item => item.position))
-        const adsorptionLine = adsorptionVerticalLines.find(item => item.position === adsorptionPosition)!
-        if (adsorptionLine.adsorption === 0) {
-          adsorb.x = adsorptionLine.position
-        } else if (adsorptionLine.adsorption === 1) {
-          adsorb.x = adsorptionLine.position - rect.width / 2
-        } else if (adsorptionLine.adsorption === 2) {
-          adsorb.x = adsorptionLine.position - rect.width
+        if (adsorption) {
+          adsorb.x = adsorptionVerticalLines.find(item => adsorption.includes(item.adsorption))!
+        } else {
+          const adsorptionPosition = Math.min(...adsorptionVerticalLines.map(item => item.position))
+          adsorb.x = adsorptionVerticalLines.find(item => item.position === adsorptionPosition)!
         }
       }
       if (adsorptionHorizontalLines.length > 0) {
-        const adsorptionPosition = Math.min(...adsorptionHorizontalLines.map(item => item.position))
-        const adsorptionLine = adsorptionHorizontalLines.find(item => item.position === adsorptionPosition)!
-        if (adsorptionLine.adsorption === 0) {
-          adsorb.y = adsorptionLine.position
-        } else if (adsorptionLine.adsorption === 1) {
-          adsorb.y = adsorptionLine.position - rect.height / 2
-        } else if (adsorptionLine.adsorption === 2) {
-          adsorb.y = adsorptionLine.position - rect.height
+        if (adsorption) {
+          adsorb.y = adsorptionHorizontalLines.find(item => adsorption.includes(item.adsorption))!
+        } else {
+          const adsorptionPosition = Math.min(...adsorptionHorizontalLines.map(item => item.position))
+          adsorb.y = adsorptionHorizontalLines.find(item => item.position === adsorptionPosition)!
         }
       }
     }
