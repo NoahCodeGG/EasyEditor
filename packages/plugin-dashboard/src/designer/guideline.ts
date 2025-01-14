@@ -208,20 +208,25 @@ export class GuideLine {
 
     // 计算需要显示的辅助线和吸附信息
     currentVerticalLine.forEach((item, index) => {
-      let minDistance = -1
+      let minDistance = Number.POSITIVE_INFINITY
 
       this.nodeLineMap.verticalLinesMap.forEach((_, pos) => {
-        if (Math.abs(item - pos) < this.adsorptionSize) {
+        const distance = Math.abs(item - pos)
+        if (distance !== 0 && distance < this.adsorptionSize && distance < minDistance) {
           minDistance = pos
         }
       })
       this.guideLinesMap.verticalLinesMap.forEach((_, pos) => {
-        if (Math.abs(item - pos) < this.adsorptionSize) {
+        const distance = Math.abs(item - pos)
+        if (distance !== 0 && distance < this.adsorptionSize && distance < minDistance) {
           minDistance = pos
         }
       })
 
-      if (minDistance !== -1 && adsorptionVerticalLines.findIndex(item => item.position === minDistance) === -1) {
+      if (
+        minDistance !== Number.POSITIVE_INFINITY &&
+        adsorptionVerticalLines.findIndex(item => item.position === minDistance) === -1
+      ) {
         adsorptionVerticalLines.push({
           adsorption: index,
           position: minDistance,
@@ -237,7 +242,8 @@ export class GuideLine {
         }
       })
       this.guideLinesMap.horizontalLinesMap.forEach((_, pos) => {
-        if (Math.abs(item - pos) < this.adsorptionSize) {
+        const distance = Math.abs(item - pos)
+        if (distance < this.adsorptionSize && distance < minDistance) {
           minDistance = pos
         }
       })

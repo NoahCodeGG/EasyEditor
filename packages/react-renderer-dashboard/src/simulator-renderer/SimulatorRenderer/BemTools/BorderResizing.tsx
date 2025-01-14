@@ -144,6 +144,7 @@ const BorderResizingInstance = observer(
           // 计算吸附位置
           adsorption = this.props.designer.guideline.getAdsorptionPosition(
             new DOMRect(newRect.x, newRect.y, newRect.width, newRect.height),
+            0,
           )
           if (adsorption.isAdsorption) {
             if (adsorption.adsorb.x) {
@@ -174,12 +175,13 @@ const BorderResizingInstance = observer(
           // 计算吸附位置
           adsorption = this.props.designer.guideline.getAdsorptionPosition(
             new DOMRect(newRect.x, newRect.y, newRect.width, newRect.height),
+            [0, 2],
           )
           if (adsorption.isAdsorption) {
-            if (adsorption.adsorb.x) {
+            if (adsorption.adsorb.x && adsorption.adsorb.x.position > newRect.x) {
               newRect.width = adsorption.adsorb.x.position - newRect.x
             }
-            if (adsorption.adsorb.y) {
+            if (adsorption.adsorb.y && adsorption.adsorb.y.position <= newRect.y) {
               newRect.y = adsorption.adsorb.y.position
               newRect.height += newRect.y - adsorption.adsorb.y.position
             }
@@ -201,12 +203,13 @@ const BorderResizingInstance = observer(
           // 计算吸附位置
           adsorption = this.props.designer.guideline.getAdsorptionPosition(
             new DOMRect(newRect.x, newRect.y, newRect.width, newRect.height),
+            2,
           )
           if (adsorption.isAdsorption) {
-            if (adsorption.adsorb.x) {
+            if (adsorption.adsorb.x && adsorption.adsorb.x.position > newRect.x) {
               newRect.width = adsorption.adsorb.x.position - newRect.x
             }
-            if (adsorption.adsorb.y) {
+            if (adsorption.adsorb.y && adsorption.adsorb.y.position > newRect.y) {
               newRect.height = adsorption.adsorb.y.position - newRect.y
             }
           }
@@ -223,17 +226,17 @@ const BorderResizingInstance = observer(
           newRect.x = startNodeRect.x + delta.x
           newRect.width = startNodeRect.width - delta.x
           newRect.height = startNodeRect.height + delta.y
-
           // 计算吸附位置
           adsorption = this.props.designer.guideline.getAdsorptionPosition(
             new DOMRect(newRect.x, newRect.y, newRect.width, newRect.height),
+            [0, 2],
           )
           if (adsorption.isAdsorption) {
-            if (adsorption.adsorb.x) {
+            if (adsorption.adsorb.x && adsorption.adsorb.x.position <= newRect.x) {
               newRect.x = adsorption.adsorb.x.position
               newRect.width += newRect.x - adsorption.adsorb.x.position
             }
-            if (adsorption.adsorb.y) {
+            if (adsorption.adsorb.y && adsorption.adsorb.y.position > newRect.y) {
               newRect.height = adsorption.adsorb.y.position - newRect.y
             }
           }
