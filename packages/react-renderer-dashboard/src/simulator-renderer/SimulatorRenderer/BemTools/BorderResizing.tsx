@@ -65,7 +65,7 @@ const BorderResizingInstance = observer(
           if (adsorption.isAdsorption) {
             if (adsorption.adsorb.y) {
               newRect.y = adsorption.adsorb.y.position
-              newRect.height += newRect.y - adsorption.adsorb.y.position
+              newRect.height = startNodeRect.height - (newRect.y - startNodeRect.y)
             }
           }
 
@@ -106,7 +106,7 @@ const BorderResizingInstance = observer(
           if (adsorption.isAdsorption) {
             if (adsorption.adsorb.x) {
               newRect.x = adsorption.adsorb.x.position
-              newRect.width += newRect.x - adsorption.adsorb.x.position
+              newRect.width = startNodeRect.width - (newRect.x - startNodeRect.x)
             }
           }
 
@@ -149,11 +149,11 @@ const BorderResizingInstance = observer(
           if (adsorption.isAdsorption) {
             if (adsorption.adsorb.x) {
               newRect.x = adsorption.adsorb.x.position
-              newRect.width += newRect.x - adsorption.adsorb.x.position
+              newRect.width = startNodeRect.width - (newRect.x - startNodeRect.x)
             }
             if (adsorption.adsorb.y) {
               newRect.y = adsorption.adsorb.y.position
-              newRect.height += newRect.y - adsorption.adsorb.y.position
+              newRect.height = startNodeRect.height - (newRect.y - startNodeRect.y)
             }
           }
 
@@ -183,7 +183,7 @@ const BorderResizingInstance = observer(
             }
             if (adsorption.adsorb.y && adsorption.adsorb.y.position <= newRect.y) {
               newRect.y = adsorption.adsorb.y.position
-              newRect.height += newRect.y - adsorption.adsorb.y.position
+              newRect.height = startNodeRect.height - (newRect.y - startNodeRect.y)
             }
           }
 
@@ -234,7 +234,7 @@ const BorderResizingInstance = observer(
           if (adsorption.isAdsorption) {
             if (adsorption.adsorb.x && adsorption.adsorb.x.position <= newRect.x) {
               newRect.x = adsorption.adsorb.x.position
-              newRect.width += newRect.x - adsorption.adsorb.x.position
+              newRect.width = startNodeRect.width - (newRect.x - startNodeRect.x)
             }
             if (adsorption.adsorb.y && adsorption.adsorb.y.position > newRect.y) {
               newRect.height = adsorption.adsorb.y.position - newRect.y

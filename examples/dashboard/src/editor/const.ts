@@ -16,7 +16,7 @@ export const defaultRootSchema = {
       componentName: 'Button',
       props: {
         type: 'primary',
-        text: '按钮',
+        text: 'Button in Root',
       },
       $dashboard: {
         rect: {
@@ -39,7 +39,7 @@ export const defaultRootSchema = {
               componentName: 'Button',
               props: {
                 type: 'primary',
-                text: '按钮 in Group2',
+                text: 'Button in Group2',
               },
               $dashboard: {
                 rect: {
@@ -54,17 +54,16 @@ export const defaultRootSchema = {
               componentName: 'Button',
               props: {
                 type: 'primary',
-                text: '按钮222 in Group2',
+                text: 'Button2 in Group2',
               },
               $dashboard: {
                 rect: {
-                  x: 300,
-                  y: 300,
-                  width: 50,
-                  height: 50,
+                  x: 200,
+                  y: 200,
+                  width: 70,
+                  height: 70,
                 },
               },
-              isLocked: true,
             },
           ],
         },
@@ -72,22 +71,7 @@ export const defaultRootSchema = {
           componentName: 'Button',
           props: {
             type: 'primary',
-            text: '按钮 in Group',
-          },
-          $dashboard: {
-            rect: {
-              x: 200,
-              y: 200,
-              width: 70,
-              height: 70,
-            },
-          },
-        },
-        {
-          componentName: 'Button',
-          props: {
-            type: 'primary',
-            text: '按钮222 in Group',
+            text: 'Hidden Button in Group',
           },
           $dashboard: {
             rect: {
@@ -98,6 +82,22 @@ export const defaultRootSchema = {
             },
           },
           isHidden: true,
+        },
+        {
+          componentName: 'Button',
+          props: {
+            type: 'primary',
+            text: 'Locked Button in Group',
+          },
+          $dashboard: {
+            rect: {
+              x: 300,
+              y: 300,
+              width: 50,
+              height: 50,
+            },
+          },
+          isLocked: true,
         },
       ],
     },
