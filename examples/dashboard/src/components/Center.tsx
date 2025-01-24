@@ -24,7 +24,13 @@ const Center = observer(() => {
             onCompGetRef={(schema, ref) => console.log('onCompGetRef', schema, ref)}
           /> */}
         {/* <div ref={viewportRef} id='app' className='w-full h-full' /> */}
-        <SimulatorRenderer host={simulator} />
+        <SimulatorRenderer
+          host={simulator}
+          bemTools={{
+            resizing: true,
+            // extra: <div>123</div>
+          }}
+        />
         {/* </div> */}
       </div>
     </div>

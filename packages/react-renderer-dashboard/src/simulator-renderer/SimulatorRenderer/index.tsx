@@ -1,6 +1,6 @@
 import type { Simulator } from '@easy-editor/core'
 import { observer } from 'mobx-react'
-import { useEffect, useRef } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { simulatorRenderer } from '..'
 import { BemTools } from './BemTools'
 import { useResizeObserver } from './hooks/useResizeObserver'
@@ -15,18 +15,55 @@ const defaultDeviceStyle = {
   },
 }
 
-interface SimulatorRendererProps {
+export interface SimulatorRendererProps {
   // editor: Editor
   host: Simulator
+
+  /**
+   * 是否显示 BemTools
+   * @default true
+   */
+  bemTools?:
+    | boolean
+    | {
+        /**
+         * hover组件功能
+         * @default true
+         */
+        detecting?: boolean
+
+        /**
+         * 缩放组件功能
+         * @default true
+         */
+        resizing?: boolean
+
+        /**
+         * 选中组件功能
+         * @default true
+         */
+        selecting?: boolean
+
+        /**
+         * 显示参考线
+         * @default true
+         */
+        guideLine?: boolean
+
+        /**
+         * 额外内容
+         */
+        extra?: ReactNode
+      }
 }
 
-export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => {
+export const SimulatorRenderer = observer(({ host, bemTools }: SimulatorRendererProps) => {
   const { viewport } = host
   const canvasRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const { canvas: canvasStyle = {}, viewport: viewportStyle = {} } = host.deviceStyle || {}
+  const { canvas: canvasStyle = {}, viewport: viewportStyle = {}, content: contentStyle = {} } = host.deviceStyle || {}
   const { width: viewportWidth, height: viewportHeight } = (viewportStyle as any) || defaultDeviceStyle.viewport
 
   const frameStyle: any = {
@@ -70,16 +107,9 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
           }}
         >
           {/* BemTools */}
-          <BemTools host={host} />
+          <BemTools host={host} bemTools={bemTools} />
           {/* Content */}
-          <div
-            ref={contentRef}
-            className='lc-simulator-content'
-            style={{
-              // 临时样式
-              backgroundColor: 'white',
-            }}
-          />
+          <div ref={contentRef} className='lc-simulator-content' style={contentStyle} />
         </div>
       </div>
     </div>
