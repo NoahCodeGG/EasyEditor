@@ -8,6 +8,13 @@ import { useResizeObserver } from './hooks/useResizeObserver'
 import './css/theme.css'
 import './index.css'
 
+const defaultDeviceStyle = {
+  viewport: {
+    width: 1920,
+    height: 1080,
+  },
+}
+
 interface SimulatorRendererProps {
   // editor: Editor
   host: Simulator
@@ -20,24 +27,24 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
   const contentRef = useRef<HTMLDivElement>(null)
 
   const { canvas: canvasStyle = {}, viewport: viewportStyle = {} } = host.deviceStyle || {}
+  const { width: viewportWidth, height: viewportHeight } = (viewportStyle as any) || defaultDeviceStyle.viewport
+
   const frameStyle: any = {
     position: 'absolute',
     transformOrigin: '0px 0px',
     left: '50%',
     top: '50%',
     transform: `scale(${viewport.scale})  translate(-50%, -50%)`,
-    width: '1920px',
-    height: '1080px',
-    // height: viewport.contentHeight,
-    // width: viewport.contentWidth,
+    width: viewportWidth,
+    height: viewportHeight,
   }
 
   useResizeObserver({
     elem: canvasRef,
     onResize: entries => {
       const { width, height } = entries[0].contentRect
-      const ww = width / 1920
-      const wh = height / 1080
+      const ww = width / viewportWidth
+      const wh = height / viewportHeight
       viewport.scale = Math.min(ww, wh)
     },
   })
@@ -58,8 +65,8 @@ export const SimulatorRenderer = observer(({ host }: SimulatorRendererProps) => 
           ref={viewportRef}
           className='lc-simulator-viewport lc-simulator-device-default-viewport'
           style={{
-            ...viewportStyle,
             ...frameStyle,
+            ...viewportStyle,
           }}
         >
           {/* BemTools */}
