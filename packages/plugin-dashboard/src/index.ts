@@ -197,12 +197,12 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
         lastOffsetNodes = {}
       })
     },
-    extend(ctx) {
-      const { Document, Node, Simulator, OffsetObserver, Designer } = ctx
+    extend({ extendClass, extend }) {
+      const { Document, Node, Simulator, OffsetObserver, Designer } = extendClass
 
       /* -------------------------------- Designer -------------------------------- */
       const originalInit = Designer.prototype.init
-      Object.defineProperties(Designer.prototype, {
+      extend('Designer', {
         init: {
           value(this: Designer) {
             originalInit.call(this)
@@ -213,7 +213,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
 
       /* -------------------------------- Document -------------------------------- */
-      Object.defineProperties(Document.prototype, {
+      extend('Document', {
         group: {
           value(this: Document, nodeIdList: Node[] | string[]) {
             if (nodeIdList.length === 0) return
@@ -267,7 +267,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
       /* ---------------------------------- Node ---------------------------------- */
       const originalInitProps = Node.prototype.initBuiltinProps
-      Object.defineProperties(Node.prototype, {
+      extend('Node', {
         getDashboardContainer: {
           value(this: Node) {
             return document.getElementById(`${this.id}-mask`)
@@ -399,7 +399,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
 
       /* -------------------------------- Simulator ------------------------------- */
       // TODO: 是否需要
-      Object.defineProperties(Simulator.prototype, {
+      extend('Simulator', {
         computeDashboardRect: {
           value(this: Simulator, node: Node) {
             const instances = this.getComponentInstances(node)
@@ -426,7 +426,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
 
       /* ----------------------------- OffsetObserver ----------------------------- */
-      Object.defineProperties(OffsetObserver.prototype, {
+      extend('OffsetObserver', {
         computeRect: {
           value(this: OffsetObserver) {
             // return this.node.getDashboardRect()
