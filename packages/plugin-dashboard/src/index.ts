@@ -35,7 +35,13 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
     name: 'DashboardPlugin',
     deps: [],
     init(ctx) {
-      const { designer, simulator, componentMetaManager } = ctx
+      const { designer, simulator, componentMetaManager, hotkey, logger } = ctx
+
+      // test hotkey
+      hotkey.bind('ctrl+d', e => {
+        e.preventDefault()
+        logger.log('ctrl+d')
+      })
 
       // add guideline
       designer.onEvent(DESIGNER_EVENT.INIT, (designer: Designer) => {
