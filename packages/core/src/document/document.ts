@@ -90,6 +90,7 @@ export class Document {
 
   @observable.ref private accessor _dropLocation: DropLocation | null = null
 
+  @action
   set dropLocation(loc: DropLocation | null) {
     this._dropLocation = loc
     this.designer.postEvent(DESIGNER_EVENT.DOCUMENT_DROP_LOCATION_CHANGE, { document: this, location: loc })

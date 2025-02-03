@@ -104,6 +104,7 @@ export class GuideLine {
   /**
    * 添加额外的辅助线，用于尺寸调整
    */
+  @action
   addGuideLine(guideLine: GuideLineItem) {
     this.guideLines.push(guideLine)
   }
@@ -111,6 +112,7 @@ export class GuideLine {
   /**
    * 删除辅助线
    */
+  @action
   removeGuideLine(id: string) {
     const index = this.guideLines.findIndex(item => item.id === id)
     if (index !== -1) {
@@ -121,6 +123,7 @@ export class GuideLine {
   /**
    * 修改辅助线
    */
+  @action
   updateGuideLine(id: string, guideLine: GuideLineItem) {
     const index = this.guideLines.findIndex(item => item.id === id)
     if (index !== -1) {

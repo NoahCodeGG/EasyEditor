@@ -6,7 +6,7 @@ import type { ComponentInstance } from './component-meta'
 import type { LocateEvent } from './location'
 import type { Sensor } from './sensor'
 
-import { action, observable } from 'mobx'
+import { action, observable, runInAction } from 'mobx'
 import { isSimulator } from '../simulator'
 import { createEventBus } from '../utils'
 
@@ -224,7 +224,9 @@ export class Dragon {
 
     // drag start
     const dragstart = () => {
-      this._dragging = true
+      runInAction(() => {
+        this._dragging = true
+      })
       setShaken(boostEvent)
       const locateEvent = createLocateEvent(boostEvent)
       if (isNode) {
@@ -291,7 +293,9 @@ export class Dragon {
 
       let exception: unknown
       if (this._dragging) {
-        this._dragging = false
+        runInAction(() => {
+          this._dragging = false
+        })
         try {
           // TODO: copy
           // this.emitter.emit(DRAGON_EVENT.DRAGEND, { dragObject, copy: false, e })
@@ -394,7 +398,9 @@ export class Dragon {
         e.sensor = sensor
         sensor.fixEvent(e)
       }
-      this._activeSensor = sensor
+      runInAction(() => {
+        this._activeSensor = sensor
+      })
       return sensor
     }
 

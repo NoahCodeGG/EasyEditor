@@ -231,6 +231,7 @@ export class Simulator {
     this.renderer?.rerender?.()
   }
 
+  @action
   mountContentFrame(iframe: HTMLIFrameElement | HTMLElement | null) {
     if (!iframe || this.iframe === iframe) {
       return

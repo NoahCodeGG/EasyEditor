@@ -1,14 +1,13 @@
 import {
-  type ComponentInstance,
   DESIGNER_EVENT,
   type Designer,
   type Document,
   DragObjectType,
   type DropLocation,
   type Node,
+  type NodeSchema,
   type OffsetObserver,
   type PluginCreator,
-  type Simulator,
   getConvertedExtraKey,
 } from '@easy-editor/core'
 import { GuideLine } from './designer/guideline'
@@ -16,20 +15,23 @@ import { GroupComponent, GroupComponentMeta } from './materials/group'
 import { updateNodeRect, updateNodeRectByDOM } from './utils'
 
 interface DashboardPluginOptions {
-  dndMode?: 'props' | 'dom'
+  group?: {
+    schema?: NodeSchema
+  }
 
   // TODO: 配置分组内容(schema、meta)
   xxx?: string
 }
 
-const groupSchema = {
+const defaultGroupSchema = {
   componentName: 'Group',
   title: '分组',
   isGroup: true,
 }
 
 const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
-  const { dndMode = 'dom' } = options || {}
+  const { group = {} } = options || {}
+  const { schema: groupSchema = defaultGroupSchema } = group || {}
 
   return {
     name: 'DashboardPlugin',
@@ -46,7 +48,6 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       // add guideline
       designer.onEvent(DESIGNER_EVENT.INIT, (designer: Designer) => {
         designer.guideline = new GuideLine(designer)
-        console.log('🚀 ~ designer.onEvent ~ designer:', designer)
       })
 
       // add componentMeta
@@ -198,7 +199,7 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
       })
     },
     extend({ extendClass, extend }) {
-      const { Document, Node, Simulator, OffsetObserver, Designer } = extendClass
+      const { Node, Designer } = extendClass
 
       /* -------------------------------- Designer -------------------------------- */
       const originalInit = Designer.prototype.init
@@ -393,34 +394,6 @@ const DashboardPlugin: PluginCreator<DashboardPluginOptions> = options => {
             originalInitProps.call(this)
 
             this.props.has(getConvertedExtraKey('isGroup')) || this.props.add(getConvertedExtraKey('isGroup'), false)
-          },
-        },
-      })
-
-      /* -------------------------------- Simulator ------------------------------- */
-      // TODO: 是否需要
-      extend('Simulator', {
-        computeDashboardRect: {
-          value(this: Simulator, node: Node) {
-            const instances = this.getComponentInstances(node)
-            if (!instances) {
-              return null
-            }
-            return this.computeComponentInstanceRect(instances[0])
-          },
-        },
-        computeComponentInstanceDashboardRect: {
-          value(this: Simulator, instance: ComponentInstance) {
-            if (!instance || !instance.parentNode) return new DOMRect(0, 0, 0, 0)
-
-            // const style = instance.parentNode.style
-            const properties = getComputedStyle(instance.parentNode)
-            return new DOMRect(
-              Number.parseFloat(properties.left ?? 0),
-              Number.parseFloat(properties.top ?? 0),
-              Number.parseFloat(properties.width ?? 0),
-              Number.parseFloat(properties.height ?? 0),
-            )
           },
         },
       })

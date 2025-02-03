@@ -42,6 +42,7 @@ export class Viewport {
     })
   }
 
+  @action
   touch() {
     if (this.viewportElement) {
       this.rect = this.bounds
