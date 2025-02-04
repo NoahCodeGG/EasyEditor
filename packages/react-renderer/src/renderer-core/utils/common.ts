@@ -1,4 +1,4 @@
-import type { NodeSchema } from '@easy-editor/core'
+import { type NodeSchema, isJSExpression } from '@easy-editor/core'
 import { logger } from './logger'
 
 export function inSameDomain() {
@@ -73,6 +73,14 @@ interface IParseOptions {
 }
 
 export const parseData = (schema: unknown, self: any, options: IParseOptions = {}): any => {
+  if (isJSExpression(schema)) {
+    return parseExpression({
+      str: schema,
+      self,
+      thisRequired: options.thisRequiredInJSE,
+      logScope: options.logScope,
+    })
+  }
   if (typeof schema === 'string') {
     return schema.trim()
   } else if (Array.isArray(schema)) {
