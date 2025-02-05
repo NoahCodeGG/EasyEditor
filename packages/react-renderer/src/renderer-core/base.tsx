@@ -7,6 +7,7 @@ import {
   isJSExpression,
   isJSFunction,
 } from '@easy-editor/core'
+import classnames from 'classnames'
 import { forEach, isEmpty } from 'lodash-es'
 import { Component } from 'react'
 import { adapter } from './adapter'
@@ -15,6 +16,7 @@ import { type ComponentConstruct, type ComponentHocInfo, compWrapper, leafWrappe
 import type { BaseRenderComponent, BaseRendererContext, BaseRendererProps, NodeInfo } from './types'
 import {
   checkPropTypes,
+  getFileCssName,
   getValue,
   isSchema,
   isUseLoop,
@@ -143,7 +145,6 @@ export function baseRendererFactory(): BaseRenderComponent {
 
     static getDerivedStateFromProps(props: BaseRendererProps, state: any) {
       const result = executeLifeCycleMethod(
-        // biome-ignore lint/complexity/noThisInStatic: <explanation>
         this,
         props?.__schema,
         'getDerivedStateFromProps',
@@ -884,7 +885,7 @@ export function baseRendererFactory(): BaseRenderComponent {
         Comp,
         componentInfo: {},
       })
-      // const { className } = data
+      const { className } = data
       const otherProps: any = {}
       const { engine } = this.context || {}
       if (!engine) {
@@ -901,7 +902,7 @@ export function baseRendererFactory(): BaseRenderComponent {
           ...data,
           ...this.props,
           ref: this.__getRef,
-          // className: classnames(getFileCssName(__schema?.fileName), className, this.props.className),
+          className: classnames(getFileCssName(__schema?.fileName), className, this.props.className),
           __id: __schema?.id,
           ...otherProps,
         },
@@ -913,21 +914,16 @@ export function baseRendererFactory(): BaseRenderComponent {
     __renderContent(children: any) {
       const { __schema } = this.props
       const parsedProps = this.__parseData(__schema.props)
-      // const className = classnames(
-      //   `lce-${this.__namespace}`,
-      //   getFileCssName(__schema.fileName),
-      //   parsedProps.className,
-      //   this.props.className,
-      // )
+      const className = classnames(
+        `lce-${this.__namespace}`,
+        getFileCssName(__schema.fileName),
+        parsedProps.className,
+        this.props.className,
+      )
       const style = { ...(parsedProps.style || {}), ...(typeof this.props.style === 'object' ? this.props.style : {}) }
       const id = this.props.id || parsedProps.id
       return (
-        <div
-          ref={this.__getRef}
-          // className={className}
-          id={id}
-          style={style}
-        >
+        <div ref={this.__getRef} className={className} id={id} style={style}>
           {children}
         </div>
       )

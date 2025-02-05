@@ -1,9 +1,11 @@
 import type { RootSchema } from '@easy-editor/core'
 
 export const defaultRootSchema: RootSchema = {
+  fileName: 'home',
   componentName: 'RootContainer',
   props: {
     backgroundColor: '#ffffff',
+    className: 'page test',
   },
   $dashboard: {
     rect: {
@@ -184,6 +186,70 @@ export const defaultRootSchema: RootSchema = {
         rect: {
           x: 400,
           y: 500,
+          width: 50,
+          height: 30,
+        },
+      },
+    },
+    {
+      componentName: 'Button',
+      props: {
+        type: 'primary',
+        text: 'Button with Condition',
+      },
+      $dashboard: {
+        rect: {
+          x: 800,
+          y: 600,
+          width: 50,
+          height: 30,
+        },
+      },
+      condition: false,
+    },
+    {
+      componentName: 'Button',
+      props: {
+        type: 'primary',
+        text: 'Button with Loop',
+      },
+      $dashboard: {
+        rect: {
+          x: 700,
+          y: 600,
+          width: 50,
+          height: 30,
+        },
+      },
+      loop: [1, 2, 3, 4, 5],
+      loopArgs: [null, null],
+    },
+    // {
+    //   componentName: 'Button',
+    //   props: {
+    //     type: 'primary',
+    //     text: { error: 'error' },
+    //   },
+    //   $dashboard: {
+    //     rect: {
+    //       x: 700,
+    //       y: 600,
+    //       width: 50,
+    //       height: 30,
+    //     },
+    //   },
+    // },
+    {
+      componentName: 'Button',
+      props: {
+        type: 'primary',
+        text: 'Button with className',
+        className: 'button test',
+      },
+      $dashboard: {
+        rect: {
+          x: 700,
+          y: 600,
           width: 50,
           height: 30,
         },

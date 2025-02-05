@@ -1,4 +1,5 @@
 import { type NodeSchema, isJSExpression } from '@easy-editor/core'
+import { Component, type ComponentClass, type ComponentType } from 'react'
 import { logger } from './logger'
 
 export function inSameDomain() {
@@ -7,6 +8,22 @@ export function inSameDomain() {
   } catch (e) {
     return false
   }
+}
+
+/**
+ * get css styled name from schema`s fileName
+ * FileName -> lce-file-name
+ * @returns string
+ */
+export function getFileCssName(fileName: string) {
+  if (!fileName) {
+    return
+  }
+  const name = fileName.replace(/([A-Z])/g, '-$1').toLowerCase()
+  return `lce-${name}`
+    .split('-')
+    .filter(p => !!p)
+    .join('-')
 }
 
 export const isSchema = (schema: any): schema is NodeSchema => {
@@ -234,4 +251,12 @@ export function capitalizeFirstLetter(word: string) {
     return word
   }
   return word[0].toUpperCase() + word.slice(1)
+}
+
+export const isReactClass = (obj: any): obj is ComponentClass<any> => {
+  return obj && obj.prototype && (obj.prototype.isReactComponent || obj.prototype instanceof Component)
+}
+
+export function isReactComponent(obj: any): obj is ComponentType<any> {
+  return obj && (isReactClass(obj) || typeof obj === 'function')
 }
