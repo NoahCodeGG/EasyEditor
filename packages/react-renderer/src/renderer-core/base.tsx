@@ -274,6 +274,7 @@ export function baseRendererFactory(): BaseRenderComponent {
       if (!props) {
         return
       }
+      // TODO: 数据源引擎方案
       // const schema = props.__schema || {}
       // const defaultDataSource: DataSource = {
       //   list: [],
