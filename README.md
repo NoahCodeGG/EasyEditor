@@ -1,7 +1,12 @@
 <div align="center">
-<img src=".github/assets/logo.png" width="70" alt="logo" />
 
-### EastEditor
+<!-- <img src=".github/assets/logo.svg" width="70" alt="logo" />
+
+### EastEditor -->
+
+<img src=".github/assets/banner.svg" height="60" alt="logo" />
+
+<br />
 
 <b>🎉 面向扩展的跨框架低代码引擎 🎉</b>
 
