@@ -233,6 +233,7 @@ export class PluginManager {
     for (const plugin of this.plugins) {
       await plugin.extend({
         extendClass,
+        // @ts-ignore
         extend: (extendClass, properties) => extend(extendMap, extendClass, properties),
       })
     }

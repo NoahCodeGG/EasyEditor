@@ -7,7 +7,6 @@ import type {
   LocationChildrenDetail,
   LocationData,
   NodeInstance,
-  Rect,
   Snippet,
 } from '../designer'
 import type { Node } from '../document'
@@ -460,7 +459,7 @@ export class Simulator {
     return this.computeComponentInstanceRect(instances[0])
   }
 
-  computeComponentInstanceRect(instance: ComponentInstance, selector?: string): Rect | null {
+  computeComponentInstanceRect(instance: ComponentInstance, selector?: string): DOMRect | undefined {
     const rect = this.renderer?.getClientRects(instance)?.[0]
     return rect
     // const renderer = this.renderer!;

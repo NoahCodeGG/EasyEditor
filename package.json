@@ -1,6 +1,6 @@
 {
-  "name": "easy-editor",
-  "description": "A low-code engine for enterprise applications.",
+  "name": "@easy-editor/git",
+  "description": "A cross-framework low-code engine with scale-out design",
   "homepage": "https://github.com/Easy-Editor/EasyEditor",
   "license": "MIT",
   "version": "1.0.0",
