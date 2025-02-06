@@ -41,9 +41,9 @@ export interface SimulatorProps {
   designMode?: DesignMode
   device?: Device
   deviceClassName?: string
-  // @TODO 补充类型
-  /** @property 请求处理器配置 */
   requestHandlersMap?: any
+
+  // TODO
   // library?: LibraryItem[];
   // utilsMetadata?: UtilsMetadata
   // simulatorUrl?: Asset;
@@ -84,7 +84,6 @@ export class Simulator {
 
   @computed get requestHandlersMap(): any {
     // renderer 依赖
-    // TODO: 需要根据 design mode 不同切换鼠标响应情况
     return this.get('requestHandlersMap') || null
   }
 
@@ -273,8 +272,7 @@ export class Simulator {
 
   setupDragAndClick() {
     const { designer } = this
-    // const doc = this.contentDocument!
-    const doc = this.iframe!
+    const doc = this.contentDocument!
 
     doc.addEventListener(
       'mousedown',
@@ -308,6 +306,7 @@ export class Simulator {
         // downEvent.stopPropagation()
         // TODO: ?? 阻止了 linkSnippet 事件 - dragstart 事件
         // downEvent.preventDefault()
+
         const isLeftButton = downEvent.which === 1 || downEvent.button === 0
         const checkSelect = (e: MouseEvent) => {
           doc.removeEventListener('mouseup', checkSelect, true)
@@ -367,8 +366,7 @@ export class Simulator {
   }
 
   setupDetecting() {
-    // const doc = this.contentDocument!
-    const doc = this.iframe!
+    const doc = this.contentDocument!
     const { detecting, dragon } = this.designer
     const hover = (e: MouseEvent) => {
       if (!detecting.enable || this.designMode !== 'design') {

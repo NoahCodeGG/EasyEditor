@@ -21,18 +21,44 @@ export type EditorGetResult<T, ClsType> = T extends undefined
   : T
 
 export interface EditorConfig {
+  /**
+   * 插件 Plugin
+   */
   plugins?: Plugin[]
 
+  /**
+   * 设置器 Setter
+   */
   setters?: Record<string, Setter>
+
+  /**
+   * 组件 Component
+   */
   components?: Record<string, Component>
+
+  /**
+   * 组件元数据 ComponentMetadata
+   */
   componentMetas?: Record<string, ComponentMetadata>
 
+  /**
+   * 生命周期
+   */
   lifeCycles?: LifeCyclesConfig
 
+  /**
+   * designer props
+   */
   designer?: Pick<DesignerProps, 'onDragstart' | 'onDrag' | 'onDragend'>
 
+  /**
+   * 默认项目 Schema
+   */
   defaultSchema?: ProjectSchema
 
+  /**
+   * 快捷键
+   */
   hotkeys?: HotkeyConfig[]
 }
 
@@ -147,12 +173,16 @@ export class Editor {
       defaultSchema,
     } = this.config
 
+    // 1. register plugins
     const pluginManager = new PluginManager()
     if (plugins) {
       pluginManager.registerPlugins(plugins)
     }
+
+    // 2. plugins.extend()
     await this.extend(pluginManager)
 
+    // 3. init
     this.eventBus.emit(EDITOR_EVENT.BEFORE_INIT)
 
     const hotkey = new Hotkey()

@@ -91,7 +91,6 @@ export class Viewport {
   @action
   set scale(newScale: number) {
     if (Number.isNaN(newScale) || newScale <= 0) {
-      // TODO: 统一错误信息
       throw new Error(`invalid new scale "${newScale}"`)
     }
 

@@ -283,24 +283,13 @@ export class Dragon {
         }
       }
 
-      // const locateEvent = createLocateEvent(e)
-      // const sensor = chooseSensor(locateEvent)
-
-      // if (sensor) {
-      //   sensor.fixEvent(locateEvent)
-      //   sensor.locate(locateEvent)
-      // }
-
       let exception: unknown
       if (this._dragging) {
         runInAction(() => {
           this._dragging = false
         })
         try {
-          // TODO: copy
-          // this.emitter.emit(DRAGON_EVENT.DRAGEND, { dragObject, copy: false, e })
-          // this.emitter.emit(DRAGON_EVENT.DRAGEND, locateEvent)
-          // TODO: escape
+          // TODO: copy, escape
           this.emitter.emit(DRAGON_EVENT.DRAGEND, { dragObject, copy: false, esc: !e })
         } catch (ex) {
           exception = ex
