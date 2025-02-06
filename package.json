@@ -1,7 +1,30 @@
 {
-  "name": "@easyeditor",
-  "private": true,
+  "name": "easy-editor",
+  "description": "A low-code engine for enterprise applications.",
+  "homepage": "https://github.com/Easy-Editor/EasyEditor",
   "license": "MIT",
+  "version": "1.0.0",
+  "author": "JinSo <kimjinso@qq.com>",
+  "contributors": [
+    {
+      "name": "NoahCodeGG",
+      "email": "noahcodegg@gmail.com",
+      "url": "https://github.com/NoahCodeGG"
+    }
+  ],
+  "keywords": [
+    "easy-editor",
+    "low-code",
+    "editor",
+    "engine"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Easy-Editor/EasyEditor"
+  },
+  "bugs": {
+    "url": "https://github.com/Easy-Editor/EasyEditor/issues"
+  },
   "scripts": {
     "prepare": "husky",
     "preinstall": "npx only-allow pnpm",
@@ -47,6 +70,7 @@
   },
   "packageManager": "pnpm@9.12.2",
   "engines": {
+    "node": ">=18.0.0",
     "pnpm": ">=9.12.2"
   }
 }
