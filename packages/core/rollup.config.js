@@ -13,6 +13,14 @@ const plugins = [
     babelrc: false,
     babelHelpers: 'bundled',
     presets: ['@babel/preset-typescript'],
+    plugins: [
+      [
+        '@babel/plugin-proposal-decorators',
+        {
+          version: '2023-11',
+        },
+      ],
+    ],
   }),
   cleanup({
     comments: ['some', /PURE/],
@@ -32,11 +40,27 @@ export default [
     input: 'src/index.ts',
     output: [
       {
-        file: 'dist/easy-editor.production.cjs',
+        file: 'dist/cjs/index.js',
         format: 'cjs',
+        sourcemap: true,
       },
       {
-        file: 'dist/easy-editor.production.js',
+        file: 'dist/cjs/index.production.js',
+        format: 'cjs',
+        sourcemap: true,
+      },
+      {
+        file: 'dist/esm/index.js',
+        format: 'es',
+        sourcemap: true,
+      },
+      {
+        file: 'dist/esm/index.production.js',
+        format: 'es',
+        sourcemap: true,
+      },
+      {
+        file: 'dist/index.js',
         format: 'es',
       },
     ],
@@ -46,12 +70,14 @@ export default [
     input: 'src/index.ts',
     output: [
       {
-        file: 'dist/easy-editor.development.cjs',
+        file: 'dist/cjs/index.development.js',
         format: 'cjs',
+        sourcemap: true,
       },
       {
-        file: 'dist/easy-editor.development.js',
+        file: 'dist/esm/index.development.js',
         format: 'es',
+        sourcemap: true,
       },
     ],
     plugins: [replaceDev(true)].concat(plugins),

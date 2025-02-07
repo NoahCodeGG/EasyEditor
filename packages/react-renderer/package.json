@@ -1,0 +1,44 @@
+{
+  "name": "@easy-editor/react-renderer",
+  "private": true,
+  "description": "React Render package for EasyEditor.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "keywords": [
+    "@easy-editor",
+    "react-render",
+    "dashboard"
+  ],
+  "author": "",
+  "scripts": {
+    "dev": "deno run --watch ./src/index.ts",
+    "format": "biome format --write .",
+    "lint": "biome check .",
+    "build": "npm-run-all -nl build:*",
+    "build:clean": "rimraf dist/",
+    "build:js": "rollup -c",
+    "types": "npm-run-all -nl types:*",
+    "types:clean": "rimraf types/",
+    "types:src": "tsc --project tsconfig.build.json",
+    "test-types": "tsc --project tsconfig.test.json"
+  },
+  "files": [
+    "dist",
+    "types"
+  ],
+  "peerDependencies": {
+    "@easy-editor/core": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "dependencies": {
+    "classnames": "^2.5.1",
+    "lodash-es": "^4.17.21",
+    "mobx-react": "^9.2.0"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3"
+  }
+}

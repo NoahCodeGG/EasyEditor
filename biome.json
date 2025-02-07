@@ -17,18 +17,21 @@
       },
       "suspicious": {
         "noExplicitAny": "off",
-        "noImplicitAnyLet": "error"
+        "noImplicitAnyLet": "error",
+        "noAssignInExpressions": "off"
       },
       "complexity": {
         "noForEach": "off",
         "noUselessEmptyExport": "error",
-        "useArrowFunction": "error"
+        "useArrowFunction": "error",
+        "useOptionalChain": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
-        "noUselessElse": "warn",
+        "noUselessElse": "off",
         "noInferrableTypes": "error",
-        "noNegationElse": "error"
+        "noNegationElse": "error",
+        "noParameterAssign": "off"
       },
       "correctness": {
         "useExhaustiveDependencies": "warn"

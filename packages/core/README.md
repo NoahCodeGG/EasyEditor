@@ -1,3 +1,3 @@
 # @easy-editor/core
 
-Core package for EasyEditor.
+Core engine package for EasyEditor.
