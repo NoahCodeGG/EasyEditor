@@ -1,5 +1,6 @@
 {
-  "name": "@easy-editor/git",
+  "name": "@easy-editor/repository",
+  "private": true,
   "description": "A cross-framework low-code engine with scale-out design",
   "homepage": "https://github.com/Easy-Editor/EasyEditor",
   "license": "MIT",
@@ -38,7 +39,12 @@
     "publish": "pnpm run build && pnpm run types && pnpm run release:only",
     "bump": "changeset add",
     "release:only": "changeset publish",
-    "example:dashboard": "turbo dev --filter ./examples/dashboard"
+    "example:dashboard": "turbo dev --filter ./examples/dashboard",
+    "pub:changeset": "pnpm changeset",
+    "pub:build": "pnpm build && pnpm types",
+    "pub:alpha": "pnpm changeset pre enter alpha",
+    "pub:beta": "pnpm changeset pre enter beta",
+    "pub:rc": "pnpm changeset pre enter rc"
   },
   "devDependencies": {
     "@babel/cli": "^7.26.4",
