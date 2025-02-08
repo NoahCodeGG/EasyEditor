@@ -29,6 +29,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
 
+      - name: Install Dependencies
+        run: pnpm install
+
       - name: Setup
         run: pnpm run pub:build
 
@@ -44,3 +47,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  sync-develop:
+    needs: release
+    name: Sync develop with main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: develop
+          token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+
+      - name: Rebase develop onto main
+        run: |
+          git fetch origin main
+          git rebase origin/main
+          git push --force-with-lease origin develop
