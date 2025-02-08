@@ -1,5 +1,6 @@
 {
-  "name": "example-dashboard",
+  "name": "@easy-editor/example-dashboard",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
