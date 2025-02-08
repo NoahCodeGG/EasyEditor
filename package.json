@@ -38,7 +38,7 @@
     "test": "turbo test",
     "example:dashboard": "turbo dev --filter ./examples/dashboard",
     "pub:changeset": "pnpm changeset",
-    "pub:build": "pnpm build && pnpm types",
+    "pub:build": "turbo run build --filter=\"@easy-editor/*\" && turbo run types --filter=\"@easy-editor/*\"",
     "pub:alpha": "pnpm changeset pre enter alpha",
     "pub:beta": "pnpm changeset pre enter beta",
     "pub:rc": "pnpm changeset pre enter rc",
