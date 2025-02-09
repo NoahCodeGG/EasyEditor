@@ -82,12 +82,6 @@ export interface RendererProps {
   device?: 'default' | 'pc' | 'mobile' | string
 
   /**
-   * @default true
-   * JSExpression 是否只支持使用 this 来访问上下文变量
-   */
-  thisRequiredInJSE?: boolean
-
-  /**
    * @default false
    * 当开启组件未找到严格模式时，渲染模块不会默认给一个容器组件
    */
@@ -183,7 +177,6 @@ export interface BaseRendererProps {
   id?: string | number
   getSchemaChangedSymbol?: () => boolean
   setSchemaChangedSymbol?: (symbol: boolean) => void
-  thisRequiredInJSE?: boolean
   documentId?: string
   getNode?: any
 

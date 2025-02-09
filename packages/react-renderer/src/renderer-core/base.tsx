@@ -23,7 +23,6 @@ import {
   logger,
   parseData,
   parseExpression,
-  parseThisRequiredExpression,
   transformArrayToMap,
   transformStringToFunction,
 } from './utils'
@@ -31,13 +30,7 @@ import {
 /**
  * execute method in schema.lifeCycles with context
  */
-export function executeLifeCycleMethod(
-  context: any,
-  schema: RootSchema,
-  method: string,
-  args: any,
-  thisRequiredInJSE: boolean | undefined,
-): any {
+export function executeLifeCycleMethod(context: any, schema: RootSchema, method: string, args: any): any {
   if (!context || !isSchema(schema) || !method) {
     return
   }
@@ -50,7 +43,7 @@ export function executeLifeCycleMethod(
 
   // TODO: cache
   if (isJSExpression(fn) || isJSFunction(fn)) {
-    fn = thisRequiredInJSE ? parseThisRequiredExpression(fn, context) : parseExpression(fn, context)
+    fn = parseExpression(fn, context, true)
   }
 
   if (typeof fn !== 'function') {
@@ -125,7 +118,7 @@ export function baseRendererFactory(): BaseRenderComponent {
     constructor(props: BaseRendererProps) {
       super(props)
       this.__parseExpression = (str: string, self: any) => {
-        return parseExpression({ str, self, thisRequired: props?.thisRequiredInJSE, logScope: props.componentName })
+        return parseExpression({ str, self, logScope: props.componentName })
       }
       this.__beforeInit(props)
       this.__init(props)
@@ -144,13 +137,7 @@ export function baseRendererFactory(): BaseRenderComponent {
     __afterInit(props: BaseRendererProps) {}
 
     static getDerivedStateFromProps(props: BaseRendererProps, state: any) {
-      const result = executeLifeCycleMethod(
-        this,
-        props?.__schema,
-        'getDerivedStateFromProps',
-        [props, state],
-        props.thisRequiredInJSE,
-      )
+      const result = executeLifeCycleMethod(this, props?.__schema, 'getDerivedStateFromProps', [props, state])
       return result === undefined ? null : result
     }
 
@@ -218,7 +205,7 @@ export function baseRendererFactory(): BaseRenderComponent {
      * execute method in schema.lifeCycles
      */
     __executeLifeCycleMethod = (method: string, args?: any) => {
-      executeLifeCycleMethod(this, this.props.__schema, method, args, this.props.thisRequiredInJSE)
+      executeLifeCycleMethod(this, this.props.__schema, method, args)
     }
 
     /**
@@ -267,8 +254,8 @@ export function baseRendererFactory(): BaseRenderComponent {
     }
 
     __parseData = (data: any, ctx?: Record<string, any>) => {
-      const { __ctx, thisRequiredInJSE, componentName } = this.props
-      return parseData(data, ctx || __ctx || this, { thisRequiredInJSE, logScope: componentName })
+      const { __ctx, componentName } = this.props
+      return parseData(data, ctx || __ctx || this, { logScope: componentName })
     }
 
     __initDataSource = (props: BaseRendererProps) => {

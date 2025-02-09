@@ -20,69 +20,6 @@ interface RendererViewProps {
   host: Simulator
 }
 
-// export const RendererView: React.FC<RendererViewProps> = props => {
-//   const { documentInstance, simulatorRenderer, host } = props
-//   const { container, document } = documentInstance
-//   const { designMode, device } = container
-
-//   const startTime = useRef(Date.now())
-//   const schemaChangedSymbol = useRef(false)
-
-//   const getSchemaChangedSymbol = () => {
-//     return schemaChangedSymbol.current
-//   }
-
-//   const setSchemaChangedSymbol = (symbol: boolean) => {
-//     schemaChangedSymbol.current = symbol
-//   }
-
-//   const recordTime = () => {
-//     if (startTime.current) {
-//       const time = Date.now() - startTime.current
-//       const nodeCount = host.designer.currentDocument?.getNodeCount?.()
-//       host.designer.postEvent(DESIGNER_EVENT.NODE_RENDER, {
-//         componentName: 'Renderer',
-//         type: 'All',
-//         time,
-//         nodeCount,
-//       })
-//     }
-//   }
-
-//   if (!container.autoRender || isRendererDetached()) {
-//     return null
-//   }
-
-//   recordTime()
-
-//   console.log('RendererView render')
-
-//   return (
-//     <LowCodeRenderer
-//       schema={documentInstance.schema}
-//       components={container.components}
-//       appHelper={container.context}
-//       designMode={designMode}
-//       device={device}
-//       documentId={document.id}
-//       suspended={documentInstance.suspended}
-//       getSchemaChangedSymbol={getSchemaChangedSymbol}
-//       setSchemaChangedSymbol={setSchemaChangedSymbol}
-//       getNode={(id: string) => documentInstance.getNode(id)!}
-//       rendererName='PageRenderer'
-//       thisRequiredInJSE={host.thisRequiredInJSE}
-//       notFoundComponent={host.notFoundComponent}
-//       faultComponent={host.faultComponent}
-//       __host={host}
-//       __container={container}
-//       onCompGetRef={(schema: any, ref: ReactInstance | null) => {
-//         documentInstance.mountInstance(schema.id, ref)
-//       }}
-//       enableStrictNotFoundMode={host.enableStrictNotFoundMode}
-//     />
-//   )
-// }
-
 export const RendererView = observer(
   class RendererView extends Component<RendererViewProps> {
     startTime: number | null = null
@@ -141,7 +78,6 @@ export const RendererView = observer(
           setSchemaChangedSymbol={this.setSchemaChangedSymbol}
           getNode={(id: string) => documentInstance.getNode(id)!}
           rendererName='PageRenderer'
-          thisRequiredInJSE={host.thisRequiredInJSE}
           notFoundComponent={host.notFoundComponent}
           faultComponent={host.faultComponent}
           __host={host}

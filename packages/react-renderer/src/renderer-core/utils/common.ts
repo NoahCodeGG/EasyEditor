@@ -90,7 +90,6 @@ export function transformArrayToMap(arr: any[], key: string, overwrite = true) {
 }
 
 interface IParseOptions {
-  thisRequiredInJSE?: boolean
   logScope?: string
 }
 
@@ -99,7 +98,7 @@ export const parseData = (schema: unknown, self: any, options: IParseOptions = {
     return parseExpression({
       str: schema,
       self,
-      thisRequired: options.thisRequiredInJSE,
+      thisRequired: true,
       logScope: options.logScope,
     })
   }
