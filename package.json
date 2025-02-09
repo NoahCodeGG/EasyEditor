@@ -42,7 +42,7 @@
     "pub:alpha": "pnpm changeset pre enter alpha",
     "pub:beta": "pnpm changeset pre enter beta",
     "pub:rc": "pnpm changeset pre enter rc",
-    "pub:exit-pre": "pnpm changeset exit pre",
+    "pub:exit-pre": "pnpm changeset pre exit",
     "pub:version": "pnpm changeset version",
     "pub:release": "pnpm changeset publish"
   },
