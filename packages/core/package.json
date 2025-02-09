@@ -58,8 +58,10 @@
     "types:src": "tsc --project tsconfig.build.json",
     "test-types": "tsc --project tsconfig.test.json"
   },
+  "peerDependencies": {
+    "mobx": "^6.13.5"
+  },
   "dependencies": {
-    "mobx": "^6.13.5",
     "nanoid": "^5.0.7"
   }
 }
