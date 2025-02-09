@@ -47,23 +47,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  sync-develop:
-    needs: release
-    name: Sync develop with main
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: develop
-          token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-
-      - name: Merge main into develop
-        run: |
-          git config pull.rebase true
-          git fetch origin main
-          git pull origin main
-          git push origin develop
