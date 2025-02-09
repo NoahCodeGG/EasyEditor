@@ -86,10 +86,6 @@ export class Simulator {
     return this.get('requestHandlersMap') || null
   }
 
-  get thisRequiredInJSE(): boolean {
-    return this.editor.get('thisRequiredInJSE') ?? true
-  }
-
   get enableStrictNotFoundMode(): any {
     return this.editor.get('enableStrictNotFoundMode') ?? false
   }

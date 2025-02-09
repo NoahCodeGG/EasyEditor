@@ -26,7 +26,6 @@ export function rendererFactory(): RenderComponent {
       schema: {} as RootSchema,
       onCompGetRef: () => {},
       onCompGetCtx: () => {},
-      thisRequiredInJSE: true,
     }
 
     constructor(props: RendererProps) {

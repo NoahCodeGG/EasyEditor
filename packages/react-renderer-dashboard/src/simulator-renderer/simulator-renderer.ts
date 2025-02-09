@@ -211,7 +211,6 @@ export class SimulatorRendererContainer implements ISimulatorRenderer {
   //           device={renderer.device}
   //           appHelper={renderer.context}
   //           rendererName='LowCodeRenderer'
-  //           thisRequiredInJSE={renderer.host.thisRequiredInJSE}
   //           faultComponent={renderer.host.faultComponent}
   //           faultComponentMap={renderer.host.faultComponentMap}
   //           customCreateElement={(Comp: any, props: any, children: any) => {
