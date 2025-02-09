@@ -18,6 +18,8 @@
 
 </div>
 
+EasyEditor 是一个面向扩展的跨框架低代码引擎，提供了一套完整的可视化设计系统和灵活的插件架构。通过简单的拖拽操作即可快速搭建应用，同时支持 React、Vue 等多种框架的渲染扩展。它不仅拥有企业级的功能特性，还具备高度的可定制性，让开发者能够根据实际需求打造专属的低代码平台。
+
 ## 核心特性
 
 - **解耦设计**：引擎核心与框架无关，支持多种框架渲染扩展
@@ -37,6 +39,10 @@
 1. 安装
 
 ```bash
+# 用于 core 和 renderer 进行数据驱动和响应式处理
+pnpm add mobx mobx-react
+
+# 安装引擎核心和插件
 pnpm install @easyeditor/core @easyeditor/plugin-dashboard @easyeditor/react-renderer-dashboard
 ```
 

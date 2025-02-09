@@ -18,6 +18,8 @@ English | [简体中文](./README-zh_CN.md)
 
 </div>
 
+EasyEditor is a cross-framework low-code engine with scale-out design, providing a complete visual design system and flexible plugin architecture. Applications can be quickly built through simple drag-and-drop operations, while supporting rendering extensions for multiple frameworks such as React and Vue. It not only has enterprise-level features but also high customizability, allowing developers to create their own low-code platform according to actual needs.
+
 ## Features
 
 - **Decoupling Design**：Engine core is framework-independent, supporting multiple framework rendering extensions
@@ -37,6 +39,10 @@ English | [简体中文](./README-zh_CN.md)
 1. Install
 
 ```bash
+# For data-driven and reactive processing in core and renderer
+pnpm add mobx mobx-react
+
+# Install engine core and plugins
 pnpm install @easyeditor/core @easyeditor/plugin-dashboard @easyeditor/react-renderer-dashboard
 ```
 
