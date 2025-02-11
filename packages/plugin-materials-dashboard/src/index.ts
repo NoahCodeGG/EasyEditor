@@ -2,8 +2,6 @@ import type { Component, ComponentMetadata, PluginCreator } from '@easy-editor/c
 import * as components from './materials/component'
 import * as componentMetas from './materials/meta'
 
-import './index.css'
-
 const MaterialsDashboardPlugin: PluginCreator = () => {
   const componentMap = formatMapFromESModule<Component>(components)
   const componentMetaMap = formatMapFromESModule<ComponentMetadata>(componentMetas)

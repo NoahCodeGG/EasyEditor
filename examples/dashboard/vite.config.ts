@@ -1,8 +1,8 @@
 import babel from '@rollup/plugin-babel'
 import react from '@vitejs/plugin-react'
-import UnoCSS from 'unocss/vite'
-import { defineConfig } from 'vite'
 import ReactComponentName from 'react-scan/react-component-name/vite'
+import tailwindcss from 'tailwindcss'
+import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -24,12 +24,17 @@ export default defineConfig({
       ],
     }),
     react(),
-    UnoCSS(),
     ReactComponentName({}),
   ],
   resolve: {
     alias: {
       '@': '/src',
+    },
+  },
+  // 新增 css 配置
+  css: {
+    postcss: {
+      plugins: [tailwindcss()],
     },
   },
 })

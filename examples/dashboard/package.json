@@ -17,8 +17,8 @@
     "@easy-editor/react-renderer": "workspace:*",
     "@easy-editor/react-renderer-dashboard": "workspace:*",
     "mobx-react": "^9.2.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-scan": "^0.0.50"
   },
   "devDependencies": {
@@ -26,13 +26,11 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
-    "eslint": "^9.15.0",
-    "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-refresh": "^0.4.14",
+    "autoprefixer": "^10.4.20",
     "globals": "^15.12.0",
+    "postcss": "^8.5.2",
+    "tailwindcss": "3",
     "typescript": "~5.6.2",
-    "typescript-eslint": "^8.15.0",
-    "unocss": "^0.64.1",
     "vite": "^6.0.1"
   }
 }

@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client'
 import { scan } from 'react-scan'
-import 'virtual:uno.css'
 import App from './App'
 import './index.css'
 
