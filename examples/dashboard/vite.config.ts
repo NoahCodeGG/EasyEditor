@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import babel from '@rollup/plugin-babel'
 import react from '@vitejs/plugin-react'
 import ReactComponentName from 'react-scan/react-component-name/vite'
@@ -28,7 +30,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': '/src',
+      '@': path.resolve(__dirname, './src'),
     },
   },
   // 新增 css 配置
