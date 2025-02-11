@@ -400,7 +400,14 @@ export class Simulator {
 
   @action
   buildComponentMap(components: Record<string, Component>) {
-    this._components = components
+    if (this._components) {
+      this._components = {
+        ...this._components,
+        ...components,
+      }
+    } else {
+      this._components = components
+    }
   }
 
   @action
