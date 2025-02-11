@@ -8,8 +8,8 @@ import type { RendererProps } from '@easy-editor/react-renderer'
 import { isPlainObject } from 'lodash-es'
 import { action, computed, observable, runInAction, untracked } from 'mobx'
 import { type ReactInstance, createElement } from 'react'
-import * as ReactDOM from 'react-dom/client'
-import { RendererView } from './RendereView'
+import { createRoot } from 'react-dom/client'
+import { RendererView } from './RendererView'
 import { DocumentInstance, REACT_KEY, SYMBOL_VDID, SYMBOL_VNID, cacheReactKey } from './document-instance'
 import { buildComponents, getClientRects } from './utils'
 
@@ -249,7 +249,7 @@ export class SimulatorRendererContainer implements ISimulatorRenderer {
       }
     }
 
-    ReactDOM.createRoot(container).render(
+    createRoot(container).render(
       createElement(RendererView, {
         simulatorRenderer: this,
         documentInstance: this.documentInstances[0],
