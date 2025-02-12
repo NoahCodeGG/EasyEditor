@@ -1,4 +1,5 @@
 import babel from '@rollup/plugin-babel'
+import commonjs from '@rollup/plugin-commonjs'
 import nodeResolve from '@rollup/plugin-node-resolve'
 import replace from '@rollup/plugin-replace'
 import cleanup from 'rollup-plugin-cleanup'
@@ -11,10 +12,12 @@ const plugins = [
   nodeResolve({
     extensions: ['.js', '.ts', '.jsx', '.tsx'],
   }),
+  commonjs(),
   postcss({
-    modules: true,
-    extract: true,
+    modules: false,
+    extract: false,
     minimize: true,
+    sourceMap: true,
   }),
   babel({
     extensions: ['.js', '.ts', '.jsx', '.tsx'],
@@ -22,7 +25,7 @@ const plugins = [
     babelrc: false,
     babelHelpers: 'bundled',
     presets: [
-      '@babel/preset-react',
+      ['@babel/preset-react', { runtime: 'automatic' }],
       [
         '@babel/preset-typescript',
         {
