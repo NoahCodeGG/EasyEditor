@@ -101,6 +101,9 @@ importers:
       '@easy-editor/plugin-dashboard':
         specifier: workspace:*
         version: link:../../packages/plugin-dashboard
+      '@easy-editor/plugin-hotkey':
+        specifier: workspace:*
+        version: link:../../packages/plugin-hotkey
       '@easy-editor/react-renderer':
         specifier: workspace:*
         version: link:../../packages/react-renderer
@@ -186,6 +189,12 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+
+  packages/plugin-hotkey:
+    dependencies:
+      '@easy-editor/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/react-renderer:
     dependencies:
