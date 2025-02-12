@@ -4,12 +4,13 @@
 
 ### Patch Changes
 
-- 1c9ec92: chore: remove package's CHANGELOG.md
-- eaf4ff7: fix: react@19-18 ref error
-- abb00ee: fix: postcss build
-- Updated dependencies [92574e0]
-- Updated dependencies [1c9ec92]
-- Updated dependencies [6f282a3]
+- ca396de: feat: update
+- d59eab1: chore: remove package's CHANGELOG.md
+- Updated dependencies [da54175]
+- Updated dependencies [ca396de]
+- Updated dependencies [d59eab1]
+- Updated dependencies [0c4970d]
+- Updated dependencies [2d0a1fa]
   - @easy-editor/core@0.0.3
 
 ## 0.0.2-alpha.2

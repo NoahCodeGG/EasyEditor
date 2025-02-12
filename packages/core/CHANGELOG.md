@@ -4,9 +4,11 @@
 
 ### Patch Changes
 
-- 92574e0: perf: remove thisRequiredInJSE
-- 1c9ec92: chore: remove package's CHANGELOG.md
-- 6f282a3: build: move mobx,mobx-react to peerDependencies
+- da54175: perf: remove thisRequiredInJSE
+- ca396de: feat: update
+- d59eab1: chore: remove package's CHANGELOG.md
+- 0c4970d: fix: document.import error
+- 2d0a1fa: build: move mobx,mobx-react to peerDependencies
 
 ## 0.0.3-alpha.2
 

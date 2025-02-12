@@ -4,17 +4,16 @@
 
 ### Patch Changes
 
-- 92574e0: perf: remove thisRequiredInJSE
-- 1c9ec92: chore: remove package's CHANGELOG.md
-- eaf4ff7: fix: react@19-18 ref error
-- abb00ee: fix: postcss build
-- 4f5de9d: perf: add --color-guideline variable
-- 6f282a3: build: move mobx,mobx-react to peerDependencies
-- Updated dependencies [92574e0]
-- Updated dependencies [1c9ec92]
-- Updated dependencies [eaf4ff7]
-- Updated dependencies [abb00ee]
-- Updated dependencies [6f282a3]
+- da54175: perf: remove thisRequiredInJSE
+- ca396de: feat: update
+- d59eab1: chore: remove package's CHANGELOG.md
+- b5899e6: perf: add --color-guideline variable
+- 2d0a1fa: build: move mobx,mobx-react to peerDependencies
+- Updated dependencies [da54175]
+- Updated dependencies [ca396de]
+- Updated dependencies [d59eab1]
+- Updated dependencies [0c4970d]
+- Updated dependencies [2d0a1fa]
   - @easy-editor/react-renderer@0.0.2
   - @easy-editor/core@0.0.3
   - @easy-editor/plugin-dashboard@0.0.2
