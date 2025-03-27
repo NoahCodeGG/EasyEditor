@@ -28,33 +28,6 @@ EasyEditor is a cross-framework low-code engine with scale-out design, providing
 - **Rendering Engine**: Multi-framework support, real-time preview, Schema driven, component isolation sandbox
 - **Enterprise-level Capabilities**: Data source management, multi-language support, version control, online collaboration
 
-## Technical Architecture
-
-                       +----------------+
-                       |  Core          |
-                       |  - Schema      |
-                       |  - Component   |
-                       |  - Plugin      |
-                       +----------------+
-                           /        \
-                          /          \
-                         /            \
-          +-------------+              +---------------+
-          |  Renderers  |              |  Plugins      |
-          |  - React    | ------------ |  - Dashboard  |
-          |  - Vue      | ------------ |  - Form       |
-          |  - Custom   |              |  - Document   |
-          +-------------+              +---------------+
-                         \            /
-                          \          /
-                           \        /
-                       +----------------+
-                       |  Applications  |
-                       |  - Dashboard   |
-                       |  - Form        |
-                       |  - ...         |
-                       +----------------+
-
 ## Documentation
 
 ⏳⏳⏳
