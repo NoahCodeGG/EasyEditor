@@ -20,7 +20,14 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+
+    /* Additional */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@easy-editor/custom-component": ["../../packages/custom-component/src"]
+    }
   },
   "include": ["src"]
 }

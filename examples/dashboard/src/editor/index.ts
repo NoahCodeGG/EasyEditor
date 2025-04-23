@@ -9,6 +9,7 @@ import {
   type Simulator,
   createEasyEditor,
 } from '@easy-editor/core'
+import CustomComponentsPlugin from '@easy-editor/plugin-custom-components'
 import DashboardPlugin from '@easy-editor/plugin-dashboard'
 import HotkeyPlugin from '@easy-editor/plugin-hotkey'
 import { defaultRootSchema } from './const'
@@ -30,7 +31,26 @@ export const editor = createEasyEditor({
       console.log('destroy')
     },
   },
-  plugins: [DashboardPlugin(), HotkeyPlugin(), ...plugins],
+  plugins: [
+    DashboardPlugin(),
+    HotkeyPlugin(),
+    CustomComponentsPlugin({
+      // 不再从文件加载
+      // configPath: './custom-components.config.js',
+      devMode: import.meta.env.DEV,
+      // 直接提供组件配置
+      components: [
+        {
+          id: 'CustomComponent',
+          path: import.meta.env.DEV
+            ? '../../packages/custom-component/dist/index.mjs'
+            : './node_modules/@easy-editor/custom-component/dist/index.mjs',
+          devMode: import.meta.env.DEV,
+        },
+      ],
+    }),
+    ...plugins,
+  ],
   setters: formatMapFromESModule<Setter>(setterMap),
   components: formatMapFromESModule<Component>(componentMap),
   componentMetas: formatMapFromESModule<ComponentMetadata>(componentMetaMap),

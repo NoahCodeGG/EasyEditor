@@ -1,0 +1,73 @@
+.custom-component {
+  padding: 16px;
+  border-radius: 8px;
+  margin: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 500px;
+}
+
+.custom-component:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 主题样式 */
+.custom-component-light {
+  background-color: white;
+  color: #333;
+}
+
+.custom-component-dark {
+  background-color: #222;
+  color: #f0f0f0;
+}
+
+.custom-component-colorful {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  color: #333;
+}
+
+.custom-component-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding-bottom: 8px;
+}
+
+.custom-component-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 500;
+}
+
+.custom-component-time {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.custom-component-content {
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.custom-component-counter {
+  font-size: 0.85em;
+  margin-top: 12px;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.custom-component-footer {
+  font-size: 0.8em;
+  opacity: 0.6;
+  text-align: right;
+  margin-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding-top: 8px;
+}

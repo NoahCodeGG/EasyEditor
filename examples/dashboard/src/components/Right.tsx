@@ -1,6 +1,7 @@
 import { SettingRender } from '@easy-editor/react-renderer'
 import { observer } from 'mobx-react'
 import { editor } from '../editor'
+import { DevComponentPanel } from './DevTools'
 
 const Right = observer(() => {
   return (
@@ -34,6 +35,10 @@ const Right = observer(() => {
           </div>
         </div>
       </div> */}
+
+      <div className='p-4 border-t border-gray-200'>
+        <DevComponentPanel />
+      </div>
     </div>
   )
 })
