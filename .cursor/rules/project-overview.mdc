@@ -1,0 +1,21 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Overview
+
+EasyEditor is a plugin-based cross-framework low-code engine, providing a complete visual design system and flexible plugin architecture. It allows building applications through drag-and-drop operations, supporting rendering extensions for multiple frameworks like React and Vue.
+
+## Key Features
+- **Decoupling Design**: Engine core is framework-independent, supporting multiple rendering extensions
+- **Plugin Architecture**: Flexible plugin system with lifecycle management, hotkey binding, and dependency injection
+- **Renderer Engine**: Multi-framework support, real-time preview, Schema driven, component isolation
+- **Visual Design**: Complete designer implementation with drag-and-drop layout, snapping alignment, and undo/redo
+- **Enterprise Capabilities**: Data source management, multi-language support, version control, collaboration
+
+## Project Structure
+- [packages/core/src/index.ts](mdc:packages/core/src/index.ts): Main entry point for the core package
+- [packages/core/src/editor.ts](mdc:packages/core/src/editor.ts): Core editor implementation
+- [package.json](mdc:package.json): Root package configuration
+- [README.md](mdc:README.md): Project documentation

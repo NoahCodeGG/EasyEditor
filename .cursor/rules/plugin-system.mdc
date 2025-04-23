@@ -1,0 +1,40 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Plugin System
+
+EasyEditor uses a flexible plugin system to extend functionality. Plugins can hook into various lifecycle events and provide additional features to the editor.
+
+## Plugin Architecture
+- Plugins can be registered during editor initialization
+- Each plugin has access to the editor context and can provide API extensions
+- Plugins have a defined lifecycle with init, destroy, and other lifecycle hooks
+- The plugin manager handles registration and lifecycle management
+
+## Plugin Types
+- **Dashboard Plugin**: UI dashboard components and panels
+- **Hotkey Plugin**: Keyboard shortcut management
+- **Materials Plugin**: Component library and material management
+- **Form Plugin**: Form-specific functionality (in development)
+
+## Key Files
+- [packages/core/src/plugin/index.ts](mdc:packages/core/src/plugin/index.ts): Plugin system exports
+- [packages/plugin-dashboard/src/index.ts](mdc:packages/plugin-dashboard/src/index.ts): Dashboard plugin implementation
+- [packages/plugin-hotkey/src/index.ts](mdc:packages/plugin-hotkey/src/index.ts): Hotkey plugin implementation
+- [packages/plugin-materials-dashboard/src/index.ts](mdc:packages/plugin-materials-dashboard/src/index.ts): Materials plugin implementation
+
+## Plugin Usage
+Plugins are registered in the editor config:
+
+```typescript
+const editor = new Editor({
+  plugins: [
+    hotkeyPlugin,
+    dashboardPlugin,
+    materialsDashboardPlugin,
+    // other plugins...
+  ]
+})
+```

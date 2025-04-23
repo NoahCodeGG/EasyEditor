@@ -1,0 +1,36 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Renderer System
+
+EasyEditor provides a framework-agnostic core with specific renderer implementations for different frameworks. Currently, React is the primary supported renderer.
+
+## Renderer Architecture
+- The core engine is framework-independent
+- Renderers implement the rendering interface for specific frameworks
+- Components are isolated in a sandbox environment
+- Schema-driven rendering allows for dynamic updates
+
+## Available Renderers
+- **React Renderer**: Renders components using React
+- **React Dashboard Renderer**: Specialized renderer for dashboard components in React
+- **Vue Renderer**: Coming soon (planned implementation)
+
+## Key Files
+- [packages/react-renderer/src/index.ts](mdc:packages/react-renderer/src/index.ts): React renderer implementation
+- [packages/react-renderer-dashboard/src/index.ts](mdc:packages/react-renderer-dashboard/src/index.ts): React dashboard renderer
+
+## Usage Example
+```typescript
+// Using the React renderer
+import { ReactRenderer } from '@easy-editor/react-renderer'
+
+const renderer = new ReactRenderer({
+  // configuration options
+})
+
+// Mount the renderer
+renderer.mount(container, schema)
+```

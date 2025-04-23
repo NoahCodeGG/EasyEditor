@@ -1,0 +1,31 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Examples
+
+EasyEditor provides example implementations to demonstrate usage and serve as a starting point for building your own low-code platforms.
+
+## Available Examples
+- **Dashboard Example**: A complete dashboard implementation showcasing the low-code editor capabilities
+
+## Dashboard Example
+The dashboard example demonstrates:
+- Setting up the editor with plugins
+- Configuring the dashboard UI
+- Using components and materials
+- Drag-and-drop functionality
+- Property editing
+- Preview and simulation
+
+## Key Files
+- [examples/dashboard/src/index.tsx](mdc:examples/dashboard/src/index.tsx): Main entry point for the dashboard example
+- [examples/dashboard/package.json](mdc:examples/dashboard/package.json): Dashboard example dependencies
+
+## Running Examples
+To run the dashboard example:
+
+```bash
+pnpm example:dashboard
+```

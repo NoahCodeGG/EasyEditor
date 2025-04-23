@@ -1,0 +1,25 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Core Package
+
+The `core` package contains the foundational components of the EasyEditor system, including the editor, designer, document, project, and plugin systems.
+
+## Key Modules
+- **Editor**: The central management class for the entire editor system
+- **Designer**: Handles visual design features like drag-and-drop, selection, and component manipulation
+- **Document**: Manages the document structure and content
+- **Project**: Handles project-level functionality and schemas
+- **Plugin**: Provides the plugin architecture for extending functionality
+- **Simulator**: Manages the preview and simulation environment
+
+## Important Files
+- [packages/core/src/editor.ts](mdc:packages/core/src/editor.ts): Core editor implementation and central management class
+- [packages/core/src/designer/index.ts](mdc:packages/core/src/designer/index.ts): Designer system exports
+- [packages/core/src/document/index.ts](mdc:packages/core/src/document/index.ts): Document system exports
+- [packages/core/src/plugin/index.ts](mdc:packages/core/src/plugin/index.ts): Plugin system exports
+- [packages/core/src/project/index.ts](mdc:packages/core/src/project/index.ts): Project system exports
+- [packages/core/src/simulator/index.ts](mdc:packages/core/src/simulator/index.ts): Simulator system exports
+- [packages/core/src/types/index.ts](mdc:packages/core/src/types/index.ts): Core type definitions

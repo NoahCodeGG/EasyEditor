@@ -1,0 +1,45 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Architecture
+
+EasyEditor uses a modular architecture with clear separation of concerns.
+
+## Core Architecture
+- **Editor**: Central management class that coordinates all subsystems
+- **Designer**: Handles visual design and editing capabilities
+- **Document**: Manages the document structure and content
+- **Project**: Manages project configuration and schema
+- **Simulator**: Provides preview and simulation capabilities
+- **Plugin System**: Extensible plugin architecture for adding features
+- **Renderer**: Framework-specific rendering implementations
+
+## Data Flow
+1. User interacts with the UI (drag-drop, property editing)
+2. Actions are processed by the Editor and relevant subsystems
+3. Document and project data are updated
+4. Changes are reflected in the Simulator through the Renderer
+5. Plugins can hook into various parts of this flow
+
+## Schema-Driven Approach
+EasyEditor uses a schema-driven approach where:
+- Component schemas define their properties and behavior
+- Project schemas define the overall structure
+- Serialization and deserialization enable saving and loading projects
+
+## Key Concepts
+- **Component**: Reusable UI elements with defined properties and behaviors
+- **Node**: Instances of components in the document tree
+- **Document**: Tree structure representing the UI components
+- **Project**: Contains documents, configuration, and overall project state
+- **Simulator**: Renders the document for preview and interaction
+- **Plugin**: Extends the editor with additional functionality
+- **Setter**: Specialized property editors for component properties
+
+## Code Organization
+The codebase is organized into packages by functionality:
+- [packages/core/](mdc:packages/core): Core engine
+- [packages/react-renderer/](mdc:packages/react-renderer): React rendering
+- [packages/plugin-*/](mdc:packages/plugin-hotkey): Various plugins

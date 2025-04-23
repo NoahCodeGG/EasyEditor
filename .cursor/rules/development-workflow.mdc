@@ -1,0 +1,43 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Development Workflow
+
+EasyEditor uses modern development tools and workflows to ensure code quality and maintainability.
+
+## Prerequisites
+- Node.js >= 18.0.0
+- pnpm >= 9.12.2
+
+## Getting Started
+Clone the repository and install dependencies:
+```bash
+git clone git@github.com:Easy-Editor/EasyEditor.git
+cd EasyEditor
+pnpm install
+```
+
+## Development Commands
+- `pnpm dev`: Run development server for all packages
+- `pnpm build`: Build all packages
+- `pnpm types`: Generate TypeScript types
+- `pnpm test`: Run tests
+- `pnpm example:dashboard`: Run the dashboard example
+
+## Monorepo Structure
+EasyEditor uses pnpm workspaces for monorepo management:
+- [pnpm-workspace.yaml](mdc:pnpm-workspace.yaml): Workspace configuration
+- [turbo.json](mdc:turbo.json): Turborepo configuration for build pipelines
+
+## Release Process
+EasyEditor uses Changesets for versioning and publishing:
+- `pnpm pub:changeset`: Create a new changeset
+- `pnpm pub:version`: Update versions based on changesets
+- `pnpm pub:release`: Publish packages to npm
+
+## Code Quality
+- [biome.json](mdc:biome.json): Biome configuration for linting and formatting
+- [.editorconfig](mdc:.editorconfig): Editor configuration
+- [commitlint.config.js](mdc:commitlint.config.js): Commit message linting configuration
