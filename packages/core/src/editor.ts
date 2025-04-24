@@ -1,14 +1,18 @@
 import type { Component, ComponentMetadata } from './designer'
 import type { Plugin, PluginContextApiAssembler } from './plugin'
 import type { Setter } from './setter-manager'
-import type { ProjectSchema } from './types'
+import type { Assets, ComponentDescription, ProjectSchema, RemoteComponentDescription } from './types'
 
 import { action, observable } from 'mobx'
 import { ComponentMetaManager, Designer, type DesignerProps } from './designer'
 import { PluginManager } from './plugin'
 import { SetterManager } from './setter-manager'
 import { Simulator } from './simulator'
-import { Hotkey, type HotkeyConfig, createEventBus, createLogger, logger } from './utils'
+import { AssetLoader, Hotkey, type HotkeyConfig, createEventBus, createLogger, logger } from './utils'
+
+const AssetsCache: {
+  [key: string]: RemoteComponentDescription
+} = {}
 
 export type EditorValueKey = string | symbol
 
@@ -109,8 +113,104 @@ export class Editor {
 
   @action
   set(key: EditorValueKey, data: any): void | Promise<void> {
+    if (key === 'assets') {
+      return this.setAssets(data)
+    }
+
     this.context.set(key, data)
     this.notifyGot(key)
+  }
+
+  @action
+  async setAssets(assets: Assets) {
+    const { components, packages } = assets
+
+    if (packages) {
+      const simulator = await this.onceGot<Simulator>('simulator')
+      if (simulator) {
+        await simulator.setupComponents(packages)
+      }
+    }
+
+    if (components && components.length) {
+      const componentDescriptions: ComponentDescription[] = []
+      const remoteComponentDescriptions: RemoteComponentDescription[] = []
+      components.forEach((component: any) => {
+        if (!component) {
+          return
+        }
+        if (component.exportName && component.url) {
+          remoteComponentDescriptions.push(component)
+        } else {
+          componentDescriptions.push(component)
+        }
+      })
+      assets.components = componentDescriptions
+      assets.componentList = assets.componentList || []
+
+      // 如果有远程组件描述协议，则自动加载并补充到资产包中，同时出发 designer.incrementalAssetsReady 通知组件面板更新数据
+      if (remoteComponentDescriptions && remoteComponentDescriptions.length) {
+        await Promise.all(
+          remoteComponentDescriptions.map(async (component: RemoteComponentDescription) => {
+            const { exportName, url, npm } = component
+            if (!url || !exportName) {
+              return
+            }
+            if (!AssetsCache[exportName] || !npm?.version || AssetsCache[exportName].npm?.version !== npm?.version) {
+              await new AssetLoader().load(url)
+            }
+            AssetsCache[exportName] = component
+            function setAssetsComponent(component: any, extraNpmInfo: any = {}) {
+              const components = component.components
+              assets.componentList = assets.componentList?.concat(component.componentList || [])
+              if (Array.isArray(components)) {
+                components.forEach(d => {
+                  assets.components = assets.components.concat({
+                    npm: {
+                      ...npm,
+                      ...extraNpmInfo,
+                    },
+                    ...d,
+                  })
+                })
+                return
+              }
+              if (component.components) {
+                assets.components = assets.components.concat({
+                  npm: {
+                    ...npm,
+                    ...extraNpmInfo,
+                  },
+                  ...component.components,
+                })
+              }
+            }
+            function setArrayAssets(value: any[], preExportName = '', preSubName = '') {
+              value.forEach((d: any, i: number) => {
+                const exportName = [preExportName, i.toString()].filter(d => !!d).join('.')
+                const subName = [preSubName, i.toString()].filter(d => !!d).join('.')
+                Array.isArray(d)
+                  ? setArrayAssets(d, exportName, subName)
+                  : setAssetsComponent(d, {
+                      exportName,
+                      subName,
+                    })
+              })
+            }
+            if ((window as any)[exportName]) {
+              if (Array.isArray((window as any)[exportName])) {
+                setArrayAssets((window as any)[exportName] as any)
+              } else {
+                setAssetsComponent((window as any)[exportName] as any)
+              }
+            }
+            return (window as any)[exportName]
+          }),
+        )
+      }
+    }
+    this.context.set('assets', assets)
+    this.notifyGot('assets')
   }
 
   /**

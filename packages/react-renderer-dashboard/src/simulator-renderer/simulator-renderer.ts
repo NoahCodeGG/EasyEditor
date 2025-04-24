@@ -1,4 +1,6 @@
 import {
+  type Asset,
+  AssetLoader,
   type SimulatorRenderer as ISimulatorRenderer,
   type NodeInstance,
   type Simulator,
@@ -12,7 +14,9 @@ import { type ReactInstance, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { SimulatorRendererView } from './RendererView'
 import { DocumentInstance, REACT_KEY, SYMBOL_VDID, SYMBOL_VNID, cacheReactKey } from './document-instance'
-import { buildComponents, getClientRects, withQueryParams } from './utils'
+import { buildComponents, getClientRects, getProjectUtils, withQueryParams } from './utils'
+
+const loader = new AssetLoader()
 
 export class SimulatorRendererContainer implements ISimulatorRenderer {
   readonly isSimulatorRenderer = true
@@ -95,10 +99,8 @@ export class SimulatorRendererContainer implements ISimulatorRenderer {
           this._layout = this.host.project.get('config')?.layout
 
           // todo: split with others, not all should recompute
-          // if (this._libraryMap !== host.libraryMap) {
-          //   this._libraryMap = host.libraryMap || {}
-          // }
-          if (this._componentsMap !== this.host.designer.componentMetaManager.componentsMap) {
+          if (this._libraryMap !== this.host.libraryMap) {
+            this._libraryMap = this.host.libraryMap || {}
             this._componentsMap = this.host.designer.componentMetaManager.componentsMap
             this.buildComponents()
           }
@@ -147,7 +149,6 @@ export class SimulatorRendererContainer implements ISimulatorRenderer {
 
     this._appContext = {
       utils: {
-        // ...getProjectUtils(this._libraryMap, host.get('utilsMetadata')),
         router: {
           navigate: (path: string, param?: object & { replace?: boolean }) => {
             if (param?.replace) {
@@ -157,31 +158,35 @@ export class SimulatorRendererContainer implements ISimulatorRenderer {
             }
           },
         },
+        ...getProjectUtils(this._libraryMap, this.host.get('utilsMetadata')),
       },
       constants: {},
       requestHandlersMap: this._requestHandlersMap,
     }
+
+    // this.host.injectionConsumer.consume((data) => {
+    //   // TODO: sync utils, i18n, contants,... config
+    //   const newCtx = {
+    //     ...this._appContext,
+    //   };
+    //   merge(newCtx, data.appHelper || {});
+    //   this._appContext = newCtx;
+    // });
   }
 
   private buildComponents() {
     this._components = buildComponents(this._libraryMap, this._componentsMap)
-    // this._components = {
-    //   ...builtinComponents,
-    //   ...this._components,
-    // }
+    // this._components = buildComponents(this._libraryMap, this._componentsMap, this.createComponent.bind(this))
   }
 
-  /**
-   * 加载资源
-   */
-  // load(asset: Asset): Promise<any> {
-  //   return loader.load(asset)
-  // }
+  load(asset: Asset): Promise<any> {
+    return loader.load(asset)
+  }
 
-  // async loadAsyncLibrary(asyncLibraryMap: Record<string, any>) {
-  //   await loader.loadAsyncLibrary(asyncLibraryMap)
-  //   this.buildComponents()
-  // }
+  async loadAsyncLibrary(asyncLibraryMap: Record<string, any>) {
+    await loader.loadAsyncLibrary(asyncLibraryMap)
+    this.buildComponents()
+  }
 
   getComponent(componentName: string) {
     const paths = componentName.split('.')

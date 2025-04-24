@@ -9,3 +9,7 @@ export const isPlainObject = (value: any): value is any => {
   const proto = Object.getPrototypeOf(value)
   return proto === Object.prototype || proto === null || Object.getPrototypeOf(proto) === null
 }
+
+export const isCSSUrl = (url: string): boolean => {
+  return /\.css(\?.*)?$/.test(url)
+}

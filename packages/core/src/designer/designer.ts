@@ -1,13 +1,13 @@
 import type { Node, PropsMap } from '../document'
 import type { Editor } from '../editor'
-import type { ProjectSchema, TRANSFORM_STAGE } from '../types'
+import type { Assets, ProjectSchema, TRANSFORM_STAGE } from '../types'
 import type { ComponentMetaManager } from './component-meta'
 import type { DragObject } from './dragon'
 import type { LocateEvent, LocationData } from './location'
 
 import { insertChildren, isNodeSchema } from '../document'
 import { Project } from '../project'
-import { createEventBus, logger } from '../utils'
+import { createEventBus, logger, mergeAssets } from '../utils'
 import { Detecting } from './detecting'
 import { Dragon, isDragNodeDataObject, isDragNodeObject } from './dragon'
 import { DropLocation, isLocationChildrenDetail } from './location'
@@ -209,6 +209,26 @@ export class Designer {
   setProps(nextProps: DesignerProps) {
     const props = this.props ? { ...this.props, ...nextProps } : nextProps
     this.props = props
+  }
+
+  async loadIncrementalAssets(incrementalAssets: Assets) {
+    const { components, packages } = incrementalAssets
+    // components && this.componentMetaManager.buildComponentMetasMap(components)
+    if (packages) {
+      await this.project.simulator?.setupComponents(packages)
+    }
+
+    if (components) {
+      // 合并 assets
+      const assets = this.editor.get('assets') || {}
+      const newAssets = mergeAssets(assets, incrementalAssets)
+      // 对于 assets 存在需要二次网络下载的过程，必须 await 等待结束之后，再进行事件触发
+      await this.editor.set('assets', newAssets)
+    }
+    // TODO: 因为涉及修改 prototype.view，之后在 renderer 里修改了 vc 的 view 获取逻辑后，可删除
+    this.componentMetaManager.refreshComponentMetasMap()
+    // 完成加载增量资源后发送事件，方便插件监听并处理相关逻辑
+    this.editor.eventBus.emit('designer.incrementalAssetsReady')
   }
 
   get(key: string) {

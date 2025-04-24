@@ -1,4 +1,4 @@
-import type { Node } from '..'
+import type { Asset, Node } from '..'
 import type { Component, ComponentInstance, NodeInstance } from '../designer'
 
 export interface SimulatorRenderer {
@@ -49,7 +49,13 @@ export interface SimulatorRenderer {
    */
   run(): void
 
-  // TODO
-  // load(asset: Asset): Promise<any>;
-  // loadAsyncLibrary(asyncMap: { [index: string]: any }): void
+  /**
+   * 加载资源
+   */
+  load(asset: Asset): Promise<any>
+
+  /**
+   * 加载异步资源
+   */
+  loadAsyncLibrary(asyncMap: { [index: string]: any }): void
 }

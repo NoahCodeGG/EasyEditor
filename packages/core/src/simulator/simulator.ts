@@ -24,8 +24,16 @@ import {
   isShaken,
 } from '../designer'
 import { getClosestClickableNode, getClosestNode } from '../document'
-import { createEventBus } from '../utils'
+import { type Asset, type AssetList, AssetType, type Package } from '../types'
+import { assetItem, createEventBus } from '../utils'
 import { Viewport } from './viewport'
+
+export type LibraryItem = Package & {
+  package: string
+  library: string
+  urls?: Asset
+  editUrls?: Asset
+}
 
 export interface DropContainer {
   container: Node
@@ -156,6 +164,10 @@ export class Simulator {
     return this._renderer
   }
 
+  readonly asyncLibraryMap: { [key: string]: {} } = {}
+
+  readonly libraryMap: { [key: string]: string } = {}
+
   private sensing = false
 
   get currentDocument() {
@@ -223,6 +235,53 @@ export class Simulator {
   }
 
   /**
+   * {
+   *   package: 'moment',
+   *   exportName: 'moment',
+   *   version: '2.30.1',
+   *   urls: ['https://unpkg.com/moment@2.30.1/moment.js'],
+   *   library: 'moment',
+   * }
+   * package：String 资源 npm 包名
+   * exportName：String umd 包导出名字，用于适配部分物料包 define name 不一致的问题，例如把 BizCharts 改成 bizcharts，用来兼容物料用 define 声明的 bizcharts
+   * version：String 版本号
+   * urls：Array 资源 cdn 地址，必须是 umd 类型，可以是.js 或者.css
+   * library：String umd 包直接导出的 name
+   */
+  buildLibrary(library?: LibraryItem[]) {
+    const _library = library || (this.get('library') as LibraryItem[])
+    const libraryAsset: AssetList = []
+    const libraryExportList: string[] = []
+    const functionCallLibraryExportList: string[] = []
+
+    if (_library && _library.length) {
+      _library.forEach(item => {
+        const { exportMode, exportSourceLibrary } = item
+        this.libraryMap[item.package] = item.library
+        if (item.async) {
+          this.asyncLibraryMap[item.package] = item
+        }
+        if (item.exportName && item.library) {
+          libraryExportList.push(`Object.defineProperty(window,'${item.exportName}',{get:()=>window.${item.library}});`)
+        }
+        if (exportMode === 'functionCall' && exportSourceLibrary) {
+          functionCallLibraryExportList.push(
+            `window["${item.library}"] = window["${exportSourceLibrary}"]("${item.library}", "${item.package}");`,
+          )
+        }
+        if (item.editUrls) {
+          libraryAsset.push(item.editUrls)
+        } else if (item.urls) {
+          libraryAsset.push(item.urls)
+        }
+      })
+    }
+    libraryAsset.unshift(assetItem(AssetType.JSText, libraryExportList.join('')))
+    libraryAsset.push(assetItem(AssetType.JSText, functionCallLibraryExportList.join('')))
+    return libraryAsset
+  }
+
+  /**
    * force to rerender the viewport
    */
   rerender() {
@@ -248,6 +307,18 @@ export class Simulator {
     this.setupEvents()
 
     clipboard.injectCopyPaster(this._contentDocument!)
+  }
+
+  async setupComponents(library: LibraryItem[]) {
+    const libraryAsset: AssetList = this.buildLibrary(library)
+    await this.renderer?.load(libraryAsset)
+    if (Object.keys(this.asyncLibraryMap).length > 0) {
+      // 加载异步 Library
+      await this.renderer?.loadAsyncLibrary(this.asyncLibraryMap)
+      Object.keys(this.asyncLibraryMap).forEach(key => {
+        delete this.asyncLibraryMap[key]
+      })
+    }
   }
 
   getComponent(componentName: string) {

@@ -1,5 +1,21 @@
 import { type ProjectSchema, isElement } from '@easy-editor/core'
-import type { ComponentType } from 'react'
+import { type ComponentType, createElement, forwardRef } from 'react'
+
+export function accessLibrary(library: string | Record<string, unknown>) {
+  if (typeof library !== 'string') {
+    return library
+  }
+
+  return (window as any)[library] || generateHtmlComp(library)
+}
+
+export function generateHtmlComp(library: string) {
+  if (['a', 'img', 'div', 'span', 'svg'].includes(library)) {
+    return forwardRef((props: any, ref) => {
+      return createElement(library, { ref, ...props }, props.children)
+    })
+  }
+}
 
 export type Component = ComponentType<any> | object
 
@@ -43,6 +59,45 @@ export const buildComponents = (
   //   }
   // });
   return components
+}
+
+export interface UtilsMetadata {
+  name: string
+  npm: {
+    package: string
+    version?: string
+    exportName: string
+    subName?: string
+    destructuring?: boolean
+    main?: string
+  }
+}
+
+interface LibrayMap {
+  [key: string]: string
+}
+
+interface ProjectUtils {
+  [packageName: string]: any
+}
+export function getProjectUtils(librayMap: LibrayMap, utilsMetadata: UtilsMetadata[]): ProjectUtils {
+  const projectUtils: ProjectUtils = {}
+  if (utilsMetadata) {
+    utilsMetadata.forEach(meta => {
+      if (librayMap[meta?.npm?.package]) {
+        const lib = accessLibrary(librayMap[meta?.npm.package])
+        if (lib?.destructuring) {
+          Object.keys(lib).forEach(name => {
+            if (name === 'destructuring') return
+            projectUtils[name] = lib[name]
+          })
+        } else if (meta.name) {
+          projectUtils[meta.name] = lib
+        }
+      }
+    })
+  }
+  return projectUtils
 }
 
 // a range for test TextNode clientRect

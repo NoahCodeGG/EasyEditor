@@ -108,4 +108,12 @@ export class ComponentMetaManager {
   isComponentMeta(obj: any) {
     return isComponentMeta(obj)
   }
+
+  /**
+   * 刷新 componentMetasMap，可间接触发模拟器里的 buildComponents
+   */
+  @action
+  refreshComponentMetasMap() {
+    this._componentMetasMap = new Map(this._componentMetasMap)
+  }
 }
