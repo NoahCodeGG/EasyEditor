@@ -1,13 +1,9 @@
-import { Component } from './component'
-import { metadata } from './metadata'
-import { propDefinitions } from './props'
+// packages/custom-component/src/index.ts
+import Component from './component'
+import meta from './meta'
 
-// 单独导出组件部分
-export { Component, metadata, propDefinitions }
-
-// 导出组件定义（默认导出）
+// 默认导出符合插件规范的对象
 export default {
   component: Component,
-  metadata,
-  props: propDefinitions,
+  metadata: meta,
 }

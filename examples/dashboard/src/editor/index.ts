@@ -35,19 +35,21 @@ export const editor = createEasyEditor({
     DashboardPlugin(),
     HotkeyPlugin(),
     CustomComponentsPlugin({
-      // 不再从文件加载
-      // configPath: './custom-components.config.js',
       devMode: import.meta.env.DEV,
-      // 直接提供组件配置
       components: [
         {
           id: 'CustomComponent',
           path: import.meta.env.DEV
-            ? '../../packages/custom-component/dist/index.mjs'
+            ? 'http://localhost:5174/custom-component.js'
             : './node_modules/@easy-editor/custom-component/dist/index.mjs',
           devMode: import.meta.env.DEV,
         },
       ],
+      // 启用开发服务器进行热重载
+      devServer: {
+        enabled: import.meta.env.DEV,
+        url: 'ws://localhost:5174', // WebSocket连接也修改为5174端口
+      },
     }),
     ...plugins,
   ],

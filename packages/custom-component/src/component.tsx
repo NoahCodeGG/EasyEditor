@@ -12,7 +12,7 @@ export interface CustomComponentProps {
   refreshInterval?: number
 }
 
-export const Component: React.FC<CustomComponentProps> = ({
+const Component: React.FC<CustomComponentProps> = ({
   title = '自定义组件',
   content = '这是一个自定义组件示例',
   theme = 'light',
@@ -75,3 +75,5 @@ export const Component: React.FC<CustomComponentProps> = ({
     </div>
   )
 }
+
+export default Component

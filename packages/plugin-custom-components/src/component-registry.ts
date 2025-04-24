@@ -1,4 +1,4 @@
-import type { Editor } from '@easy-editor/core'
+import type { ComponentMetaManager, Editor } from '@easy-editor/core'
 import type { ComponentLoader, ComponentPackage } from './component-loader'
 
 // 组件配置类型
@@ -157,35 +157,20 @@ export class ComponentRegistry {
 
   // 注册到组件元数据管理器
   private async registerComponentMeta(id: string, componentPackage: ComponentPackage): Promise<string> {
-    const componentMetaManager = this.editor.get('componentMetaManager')
+    const componentMetaManager = this.editor.get<ComponentMetaManager>('componentMetaManager')
     if (!componentMetaManager) {
       throw new Error('Component meta manager not found')
     }
 
-    const { component, metadata, props } = componentPackage
+    const { component, metadata } = componentPackage
 
     // 创建组件包装器
     const WrappedComponent = this.componentLoader.createComponentWrapper(component)
 
     // 注册组件元数据
-    componentMetaManager.registerComponentMeta(id, {
+    componentMetaManager.createComponentMeta({
       ...metadata,
       component: WrappedComponent,
-      // 合并配置
-      configure: {
-        ...(metadata.configure || {}),
-        props: [
-          ...((metadata.configure && metadata.configure.props) || []),
-          ...props.map(prop => ({
-            name: prop.name,
-            setter: prop.setter,
-            extraProps: {
-              title: prop.title,
-              defaultValue: prop.defaultValue,
-            },
-          })),
-        ],
-      },
     })
 
     return id

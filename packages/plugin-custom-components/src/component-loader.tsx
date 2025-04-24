@@ -15,13 +15,6 @@ export interface ComponentPackage {
     tags?: string[]
     [key: string]: any
   }
-  props: Array<{
-    name: string
-    title: string
-    setter: string
-    defaultValue?: any
-    [key: string]: any
-  }>
 }
 
 export class ComponentLoader {
@@ -53,7 +46,7 @@ export class ComponentLoader {
       // 使用默认导出
       const pkg = componentModule.default as ComponentPackage
 
-      if (!pkg || !pkg.component || !pkg.metadata || !pkg.props) {
+      if (!pkg || !pkg.component || !pkg.metadata) {
         throw new Error(`Invalid component package format from ${packagePath}`)
       }
 
@@ -75,12 +68,25 @@ export class ComponentLoader {
 
   // 加载远程组件包
   private async loadRemoteComponentPackage(url: string): Promise<any> {
-    // 这里使用动态导入加载远程模块
-    // 注意：这需要Vite或Webpack配置支持动态导入远程模块
+    // 添加缓存破坏参数，确保在开发模式下始终加载最新版本
+    const cacheBusterUrl = `${url}?t=${Date.now()}`
+
     try {
-      const module = await import(/* @vite-ignore */ url)
+      // 动态导入远程模块
+      const module: any = await import(/* @vite-ignore */ cacheBusterUrl)
       return module
     } catch (error) {
+      console.error(`[Component Loader] Remote loading error:`, error)
+
+      // 提供更有用的调试信息
+      if ((error as Error).message.includes('CORS')) {
+        throw new Error(
+          'CORS error loading component from ' + url + '. Ensure the server allows cross-origin requests.',
+        )
+      } else if ((error as Error).message.includes('module not found')) {
+        throw new Error('Module not found at ' + url + '. Check if the URL is correct and the server is running.')
+      }
+
       throw new Error(`Failed to load remote component: ${(error as Error).message}`)
     }
   }
