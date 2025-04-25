@@ -215,7 +215,7 @@ export class Designer {
     const { components, packages } = incrementalAssets
     // components && this.componentMetaManager.buildComponentMetasMap(components)
     if (packages) {
-      await this.project.simulator?.setupComponents(packages)
+      await this.project.simulator?.loadLibrary(packages)
     }
 
     if (components) {

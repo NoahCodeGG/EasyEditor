@@ -29,17 +29,18 @@ const Header = () => {
                   },
                 ],
                 components: [
-                  // {
-                  //   exportName: 'AlilcAntdLowcodeMaterialsMeta',
-                  //   npm: {
-                  //     package: '@alilc/antd-lowcode-materials',
-                  //     version: '1.2.1',
-                  //   },
-                  //   url: 'https://alifd.alicdn.com/npm/@alilc/antd-lowcode-materials@1.2.1/build/lowcode/meta.js',
-                  //   urls: {
-                  //     default: 'https://alifd.alicdn.com/npm/@alilc/antd-lowcode-materials@1.2.1/build/lowcode/meta.js',
-                  //   },
-                  // },
+                  {
+                    exportName: 'AlilcAntdLowcodeMaterialsMeta',
+                    componentName: 'AlilcAntdLowcodeMaterialsMeta',
+                    npm: {
+                      package: '@alilc/antd-lowcode-materials',
+                      version: '1.2.1',
+                    },
+                    url: 'https://alifd.alicdn.com/npm/@alilc/antd-lowcode-materials@1.2.1/build/lowcode/meta.js',
+                    urls: {
+                      default: 'https://alifd.alicdn.com/npm/@alilc/antd-lowcode-materials@1.2.1/build/lowcode/meta.js',
+                    },
+                  },
                 ],
               })
 

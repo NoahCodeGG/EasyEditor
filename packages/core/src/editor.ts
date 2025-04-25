@@ -125,13 +125,6 @@ export class Editor {
   async setAssets(assets: Assets) {
     const { components, packages } = assets
 
-    if (packages) {
-      const simulator = await this.onceGot<Simulator>('simulator')
-      if (simulator) {
-        await simulator.setupComponents(packages)
-      }
-    }
-
     if (components && components.length) {
       const componentDescriptions: ComponentDescription[] = []
       const remoteComponentDescriptions: RemoteComponentDescription[] = []
@@ -209,6 +202,18 @@ export class Editor {
         )
       }
     }
+
+    // TODO: 需要优化 packages 执行时机，与 loadIncrementalAssets 冲突
+    if (packages) {
+      const simulator = await this.onceGot<Simulator>('simulator')
+      const project = await this.onceGot<Project>('project')
+      // 等渲染器初始化完成，再加载库
+      project.onRendererReady(() => {
+        console.log('loadLibrary')
+        simulator.loadLibrary(packages)
+      })
+    }
+
     this.context.set('assets', assets)
     this.notifyGot('assets')
   }

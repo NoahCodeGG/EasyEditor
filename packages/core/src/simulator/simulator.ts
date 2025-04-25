@@ -26,6 +26,7 @@ import {
 import { getClosestClickableNode, getClosestNode } from '../document'
 import { type Asset, type AssetList, AssetType, type Package } from '../types'
 import { assetItem, createEventBus } from '../utils'
+import ResourceConsumer from './resource-consumer'
 import { Viewport } from './viewport'
 
 export type LibraryItem = Package & {
@@ -51,7 +52,7 @@ export interface SimulatorProps {
   requestHandlersMap?: any
 
   // TODO
-  // library?: LibraryItem[];
+  library?: LibraryItem[]
   // utilsMetadata?: UtilsMetadata
   // simulatorUrl?: Asset;
   // theme?: Asset;
@@ -85,6 +86,10 @@ export class Simulator {
     return this.designer.editor
   }
 
+  readonly componentsConsumer: ResourceConsumer
+
+  readonly injectionConsumer: ResourceConsumer
+
   @computed get device(): string {
     return this.get('device') || 'default'
   }
@@ -108,6 +113,11 @@ export class Simulator {
 
   get faultComponent(): any {
     return this.editor.get('faultComponent') ?? null
+  }
+
+  @computed
+  get componentsAsset(): Asset | undefined {
+    return this.get('componentsAsset')
   }
 
   @computed
@@ -164,9 +174,11 @@ export class Simulator {
     return this._renderer
   }
 
+  @observable.ref private accessor _appHelper: any
+
   readonly asyncLibraryMap: { [key: string]: {} } = {}
 
-  readonly libraryMap: { [key: string]: string } = {}
+  @observable.ref accessor libraryMap: { [key: string]: string } = {}
 
   private sensing = false
 
@@ -178,6 +190,20 @@ export class Simulator {
     this.designer = designer
     this.project = designer.project
     this.viewport = new Viewport(designer)
+    this.autoRender = !this.editor.get('disableAutoRender') || false
+    this._appHelper = this.editor.get('appHelper')
+
+    this.componentsConsumer = new ResourceConsumer<Asset | undefined>(() => this.componentsAsset)
+    this.injectionConsumer = new ResourceConsumer(() => {
+      return {
+        appHelper: this._appHelper,
+      }
+    })
+
+    this.editor.onGot('appHelper', data => {
+      // appHelper被config.set修改后触发injectionConsumer.consume回调
+      this._appHelper = data
+    })
   }
 
   @action
@@ -276,8 +302,14 @@ export class Simulator {
         }
       })
     }
-    libraryAsset.unshift(assetItem(AssetType.JSText, libraryExportList.join('')))
-    libraryAsset.push(assetItem(AssetType.JSText, functionCallLibraryExportList.join('')))
+    const libraryExport = assetItem(AssetType.JSText, libraryExportList.join(''))
+    if (libraryExport) {
+      libraryAsset.unshift(libraryExport)
+    }
+    const functionCallLibraryExport = assetItem(AssetType.JSText, functionCallLibraryExportList.join(''))
+    if (functionCallLibraryExport) {
+      libraryAsset.push(functionCallLibraryExport)
+    }
     return libraryAsset
   }
 
@@ -289,7 +321,7 @@ export class Simulator {
   }
 
   @action
-  mountContentFrame(iframe: HTMLIFrameElement | HTMLElement | null) {
+  async mountContentFrame(iframe: HTMLIFrameElement | HTMLElement | null) {
     if (!iframe || this.iframe === iframe) {
       return
     }
@@ -303,13 +335,27 @@ export class Simulator {
       this._contentWindow = iframe.ownerDocument.defaultView!
     }
 
+    // wait 业务组件被第一次消费，否则会渲染出错
+    await this.componentsConsumer.waitFirstConsume()
+
+    // wait 运行时上下文
+    await this.injectionConsumer.waitFirstConsume()
+
+    if (Object.keys(this.asyncLibraryMap).length > 0) {
+      // 加载异步 Library
+      await this.renderer?.loadAsyncLibrary(this.asyncLibraryMap)
+      Object.keys(this.asyncLibraryMap).forEach(key => {
+        delete this.asyncLibraryMap[key]
+      })
+    }
+
     this._renderer?.run()
     this.setupEvents()
 
     clipboard.injectCopyPaster(this._contentDocument!)
   }
 
-  async setupComponents(library: LibraryItem[]) {
+  async loadLibrary(library: LibraryItem[]) {
     const libraryAsset: AssetList = this.buildLibrary(library)
     await this.renderer?.load(libraryAsset)
     if (Object.keys(this.asyncLibraryMap).length > 0) {

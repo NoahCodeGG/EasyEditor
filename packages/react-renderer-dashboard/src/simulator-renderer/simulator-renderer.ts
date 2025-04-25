@@ -8,7 +8,7 @@ import {
 } from '@easy-editor/core'
 import type { RendererProps } from '@easy-editor/react-renderer'
 import { type MemoryHistory, createMemoryHistory } from 'history'
-import { isPlainObject } from 'lodash-es'
+import { isPlainObject, merge } from 'lodash-es'
 import { action, computed, observable, runInAction, untracked } from 'mobx'
 import { type ReactInstance, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -158,20 +158,27 @@ export class SimulatorRendererContainer implements ISimulatorRenderer {
             }
           },
         },
+        // TODO: utilsMetadata 未知 以及 库加载时机
         ...getProjectUtils(this._libraryMap, this.host.get('utilsMetadata')),
       },
       constants: {},
       requestHandlersMap: this._requestHandlersMap,
     }
 
-    // this.host.injectionConsumer.consume((data) => {
-    //   // TODO: sync utils, i18n, contants,... config
-    //   const newCtx = {
-    //     ...this._appContext,
-    //   };
-    //   merge(newCtx, data.appHelper || {});
-    //   this._appContext = newCtx;
-    // });
+    this.host.componentsConsumer.consume(async componentsAsset => {
+      if (componentsAsset) {
+        await this.load(componentsAsset)
+        this.buildComponents()
+      }
+    })
+    this.host.injectionConsumer.consume(data => {
+      // TODO: sync utils, i18n, contants,... config
+      const newCtx = {
+        ...this._appContext,
+      }
+      merge(newCtx, data.appHelper || {})
+      this._appContext = newCtx
+    })
   }
 
   private buildComponents() {
