@@ -94,7 +94,7 @@ export const editor = createEasyEditor({
 export const designer = await editor.onceGot('designer')
 
 // Project: 项目管理，负责项目文档的管理
-export const project = await editor.onceGot('project')+
+export const project = await editor.onceGot('project')
 
 // Simulator: 模拟器，负责连接到渲染器，做两者之间的通信
 export const simulator = await editor.onceGot('simulator')
